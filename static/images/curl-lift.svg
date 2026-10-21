@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="480" viewBox="0 0 360 480" role="img" aria-label="Side view dumbbell curl, lift">
+<rect width="360" height="480" rx="24" fill="#faf7fc"/><ellipse cx="190" cy="444" rx="80" ry="12" fill="#e8e0f1"/>
+<path d="M196 323 L170 432 M200 323 L223 432" stroke="#726389" stroke-width="25" stroke-linecap="round"/>
+<path d="M181 195 Q214 189 222 219 L216 324 Q196 335 170 322 L170 224 Q169 205 181 195" fill="#cdb8e5"/>
+<path d="M188 184 L187 202" stroke="#d9aab4" stroke-width="18" stroke-linecap="round"/>
+<circle cx="188" cy="160" r="28" fill="#ebc2c6"/><path d="M161 151 Q163 119 195 132 Q221 139 214 163 L205 151 Q179 146 168 165" fill="#6b526f"/>
+<path d="M183 211 L174 266 L223 191" stroke="#e4b2be" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="174" cy="266" r="7" fill="#965f89"/><circle cx="223" cy="191" r="10" fill="#e4b2be"/>
+<g transform="translate(223 191) rotate(-20)"><path d="M-21 0 H21" stroke="#665278" stroke-width="8"/><rect x="-30" y="-14" width="13" height="28" rx="4" fill="#876da2"/><rect x="17" y="-14" width="13" height="28" rx="4" fill="#876da2"/></g>
+<path d="M152 200 V315" stroke="#94b4a5" stroke-width="2" stroke-dasharray="6 6"/>
+</svg>

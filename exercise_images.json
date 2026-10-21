@@ -1,0 +1,17 @@
+{
+  "single_row": "One-Arm_Dumbbell_Row",
+  "bent_row": "Bent_Over_Two-Dumbbell_Row",
+  "supported_row": "Dumbbell_Incline_Row",
+  "curl": "Dumbbell_Bicep_Curl",
+  "hammer_curl": "Hammer_Curls",
+  "lying_triceps": "Lying_Dumbbell_Tricep_Extension",
+  "floor_press": "Dumbbell_Floor_Press",
+  "bench_press": "Dumbbell_Bench_Press",
+  "incline_press": "Incline_Dumbbell_Press",
+  "shoulder_press": "Standing_Dumbbell_Press",
+  "lateral_raise": "Side_Lateral_Raise",
+  "front_raise": "Front_Dumbbell_Raise",
+  "goblet_squat": "Goblet_Squat",
+  "rdl": "Stiff-Legged_Dumbbell_Deadlift",
+  "split_squat": "Split_Squat_with_Dumbbells"
+}

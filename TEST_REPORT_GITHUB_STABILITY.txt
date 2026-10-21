@@ -1,0 +1,16 @@
+GitHub stability update — 2026-10-21
+Base: supplied 45Fitness_Ready_v24 archive.
+Preserved original features, receiving account, payment QR and receipt UI.
+Camera change: bound fetch AND JSON body reads; bound /status recovery requests;
+abort timed-out requests and preserve request ownership during cleanup.
+Verification performed this update:
+- Python syntax parsing: PASS.
+- Updated camera JavaScript syntax: PASS.
+- Network regression: success, stalled headers, stalled body, cleanup: PASS.
+- Existing jsdom regression: 3 isolated contexts x 200 camera cycles = 600: PASS.
+- Existing TH/EN push-up UI, email reset UI and shared-profile charts: PASS.
+Limitations: media devices and network failures were simulated; no physical
+webcam/mobile test or live SMTP/payment verification was performed here.
+No promise of 200 successful openings on every device.
+Packaging also adds README/.gitignore, uses the launcher folder, and prompts
+for admin email instead of automatically granting an embedded email on update.

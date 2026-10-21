@@ -1,0 +1,40 @@
+OPTIONAL OPENAI COACH VOICE — v5
+
+The default Thai Neural mode requires internet, but no OpenAI key.
+OpenAI is a separate optional provider, not an extraction of ChatGPT's exact
+Voice Mode voice. The code uses OpenAI speech API, gpt-4o-mini-tts, voice coral,
+with instructions to speak Thai warmly and calmly. These are synthetic voices.
+OpenAI speech generation uses API billing on your OpenAI API account.
+This option is not activated by the update. It remains disabled without a key.
+
+To enable it on YOUR Windows computer:
+1. Stop app.py using Ctrl+C in PowerShell.
+2. Use the secure prompt below to set the key for this PowerShell session.
+   Do not paste your key in chat, JavaScript, screenshots or a project ZIP.
+3. Start app.py from your project folder, refresh the page, enable Sound and
+   choose OpenAI. The key stays on the Python server, not in the browser.
+
+$keyInput = Read-Host "OpenAI API key" -AsSecureString
+$keyPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($keyInput)
+try {
+    $env:OPENAI_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($keyPointer)
+}
+finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($keyPointer)
+    Remove-Variable keyInput, keyPointer
+}
+Set-Location -LiteralPath "D:\Robot Project\FitnessFormCoach_Python\FitnessFormCoach_Python"
+..\.venv\Scripts\python.exe app.py
+
+Only fixed coach phrases are sent. Health data, names, scores and images are
+not sent for speech generation. Generated phrases are cached under data/voice-v5
+so replaying a successfully cached phrase does not make another API request.
+Changing speed plays the cached audio at a different rate. It does not regenerate
+speech. Actual voice quality/language availability should be tested on the device.
+
+To remove the key from that PowerShell session after stopping the app:
+Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue
+
+References:
+https://developers.openai.com/api/docs/guides/text-to-speech
+https://developers.openai.com/api/docs/pricing

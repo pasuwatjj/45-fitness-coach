@@ -1,0 +1,10 @@
+45 Fitness Coach v18 — verification
+- Python regression suite: all 174 tests passed.
+- API open/recover/start/stop: 200 cycles; native detector retained; stale stop rejected; other user unaffected.
+- Actual MediaPipe CPU model: 200 start/frame/stop cycles using a recorded tutorial frame; landmarks detected every cycle; timestamps strictly increasing.
+  Native process threads remained 26 across sampled cycles 1/50/100/150/200. Peak RSS ~275 to 292 MiB.
+- Simulated browser DOM: 200 start/stop cycles per language (Thai and English), stale status, coin effects, VIP, profile, cardio completion and camera return.
+- Synthetic pose sequences: full vs upper mode, missing landmarks, stable pose, short noise, deadline, cancellation and exactly-once reward credits.
+- Calendar: completed-set preservation, replacement workout completion earns fire, finished day cannot be rewritten.
+- Access: admin-only member listing, pagination, VIP grant, full profile, cross-user camera/profile denial.
+LIMITS: no direct access to the user's Windows webcam or iPhone/Android hardware. A native browser binary could not be downloaded in this environment, so the DOM simulation is not a device/browser rendering certification. Exercise counting needs real-user field testing. No guarantee of 200 fault-free cycles on all hardware or networks. Google deployment is not performed.

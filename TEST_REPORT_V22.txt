@@ -1,0 +1,11 @@
+Python unittest discover: 206 passed in 36.376 seconds.
+Includes 8 independent accounts x 200 simulated start/stop cycles (1600),
+rotating 15 exercises; does not mean 200 cycles for every exercise.
+Browser jsdom: 3 independent contexts x 200 simulated getUserMedia open/close;
+all tracks released. No physical Windows/iOS/Android camera testing.
+TH/EN UI: logo moved outside hero, mascot removed, dumbbell toggle works;
+axis SVG charts, daily/per-set donut and unknown-calorie exclusion passed.
+Backend cardio persistence/calorie formula and duplicate finish covered by existing tests.
+Node syntax checks for changed scripts passed.
+PowerShell not executed on Windows. ZIP manifest is statically checked in each archive.
+No permanent domain deployment or real external phone test performed.

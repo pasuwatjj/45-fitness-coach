@@ -1,0 +1,3 @@
+{$FITNESS_DOMAIN} {
+    reverse_proxy coach:5000
+}

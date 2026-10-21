@@ -1,0 +1,29 @@
+services:
+  coach:
+    build: .
+    restart: unless-stopped
+    environment:
+      FITNESS_PUBLIC_URL: https://${FITNESS_DOMAIN:?Set FITNESS_DOMAIN to your domain}
+      FITNESS_DATA_PATH: /data/fitness.db
+    volumes:
+      - fitness-data:/data
+    expose:
+      - "5000"
+  https:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      FITNESS_DOMAIN: ${FITNESS_DOMAIN:?Set FITNESS_DOMAIN to your domain}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - coach
+volumes:
+  fitness-data:
+  caddy-data:
+  caddy-config:

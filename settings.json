@@ -1,0 +1,22 @@
+{
+  "default_tolerance_deg": 10,
+  "extension_target_deg": 160,
+  "flexion_target_deg": 50,
+  "torso_base_limit_deg": 8,
+  "upper_arm_base_limit_deg": 10,
+  "warning_hold_ms": 900,
+  "warning_clear_ms": 650,
+  "warning_deadband_deg": 5,
+  "extension_count_grace_deg": 20,
+  "flexion_count_grace_deg": 35,
+  "minimum_rep_excursion_deg": 45,
+  "partial_reversal_deg": 22,
+  "partial_warning_margin_deg": 12,
+  "partial_attempts_before_live_tip": 2,
+  "feedback_cooldown_ms": 6500,
+  "rest_timeout_ms": 8000,
+  "calibration_ms": 2000,
+  "tracking_reset_ms": 1500,
+  "minimum_lift_ms": 450,
+  "minimum_lower_ms": 600
+}

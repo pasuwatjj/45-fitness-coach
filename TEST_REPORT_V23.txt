@@ -1,0 +1,26 @@
+45 Fitness Coach v23 — Regression report, 2026-10-18
+
+Python: python -m unittest discover
+214 tests passed in 41.687 seconds.
+- Existing multi-account tests: 8 users x 200 open/close cycles, rotating dumbbell exercises.
+- New cardio tests: 2 users x 200 cycles, rotating push-ups, full-body and upper-body jumping jacks.
+- Closing one account's session does not stop another account's session.
+- Synthetic side-view push-up up/down/up counts once; holding still, missing joints, invalid body alignment and vertical posture do not earn reps.
+- Finished push-up round saves once and grants coins once; kcal stays null.
+- Favorite-number input accepts exactly 2–3 numeric digits; number-only recovery is disabled.
+- Emailed token is stored hashed, expires after 15 minutes, cannot be reused, and resets invalidate old logins.
+- Missing and registered email requests return the same successful response; rate limits persist in SQLite.
+- SMTP failure removes the failed token, and missing configuration does not claim that email was sent.
+- Shared detailed profiles require owner consent; non-friends can view after consent, cannot edit, and lose access after consent withdrawal.
+- Friend request inbox and acceptance tested.
+
+JavaScript: NODE_PATH=/tmp/fitness-v23-ui/node_modules node test_ui_v23.cjs
+- 3 isolated simulated browser contexts x 200 camera cycles = 600 opens.
+- Duplicate open is ignored; every created media track is stopped on close.
+- Streams are independent across simulated browsers.
+- TH/EN push-up selector, teaching text and start payload pass.
+- TH/EN shared profile uses shared chart endpoints, hides upload/edit tools and preserves own selected player.
+- Emailed URL fragment opens reset form and is cleared from the address bar.
+- Forgot-password form requires email only.
+
+Limitations: mocked camera streams, detector fixtures and SMTP delivery, not physical mobile/desktop cameras or live email delivery. No live deployment performed. PowerShell reviewed but not executed on Windows. Actual camera angle, lighting, occlusion and device performance still affect detection. No promise of 200 successful real-camera cycles on every device.

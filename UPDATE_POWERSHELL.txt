@@ -1,0 +1,9 @@
+# 45 Fitness Coach v22 — stop the old server before running this.
+$ErrorActionPreference = "Stop"
+Set-Location -LiteralPath "D:\Robot Project"
+$updateZip = Get-ChildItem -File -Filter "FitnessFormCoach_Update*.zip" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if (!$updateZip) { throw "Save FitnessFormCoach_Update.zip in D:\Robot Project first." }
+$extractPath = Join-Path $env:TEMP ("45Fitness-v22-" + [guid]::NewGuid().ToString("N"))
+Expand-Archive -LiteralPath $updateZip.FullName -DestinationPath $extractPath
+if (!(Select-String -LiteralPath (Join-Path $extractPath "app.py") -Pattern "GENTLE_COACH_VERSION = 22" -SimpleMatch -Quiet)) { throw "Wrong ZIP version. Download the v22 update." }
+powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $extractPath "Install-Update.ps1")

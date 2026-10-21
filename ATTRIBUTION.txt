@@ -1,0 +1,35 @@
+FORM IMAGES
+Primary online images (unmodified):
+Everkinetic, Biceps curl with dumbbell 1.svg and 2.svg, Wikimedia Commons.
+https://commons.wikimedia.org/wiki/File:Biceps_curl_with_dumbbell_1.svg
+https://commons.wikimedia.org/wiki/File:Biceps_curl_with_dumbbell_2.svg
+Licensed CC BY-SA 3.0: https://creativecommons.org/licenses/by-sa/3.0/
+Online images are loaded directly from Wikimedia, not included in this ZIP.
+
+Bundled fallback SVG illustrations: original simple side-view illustrations
+created for 45 Fitness Coach. May be reused and modified with this project.
+Qualitative technique reference: Mayo Clinic (text/video not redistributed).
+https://www.mayoclinic.org/healthy-lifestyle/fitness/multimedia/biceps-curl/vid-20084675
+
+V8 EXERCISE GUIDES
+Photographs: yuhonas/free-exercise-db, declared public-domain dataset.
+https://github.com/yuhonas/free-exercise-db
+Per-exercise source IDs are recorded in exercise_images.json.
+For front_raise, goblet_squat, rdl and split_squat, the UI uses original SVG
+diagrams created for this project, not photographs of a different variation.
+The dataset's example descriptions are not treated as medical instructions.
+
+V13 PAYMENT AND REWARD ASSETS
+Payment QR and whey product image supplied by the project owner, unchanged.
+No product variant, stock availability or delivery guarantee is inferred.
+Slip verification integration reference:
+https://slipok.com/api-documentation/check-slip/
+https://slipok.com/api-documentation/request-response-example/
+https://slipok.com/api-documentation/check-slip-quota/
+
+V14 JEFF GUIDES
+Exercise and portrait images rendered from the user-supplied
+Dumbbell Split Squat (1).pdf, preserving names and full page content.
+13 supplied exercise sequences replace the prior illustrations. The project
+owner requested the credit "Trainer Jeff"; no professional certification is asserted.
+Bench Press pages 17-18 depict floor exercise and are labelled accordingly.

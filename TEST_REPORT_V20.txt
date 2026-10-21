@@ -1,0 +1,19 @@
+45 Fitness Coach v20 verification
+- Full Python unittest discovery: 206 tests passed, 36.279 seconds.
+- Stress: 8 authenticated users, each 200 start/stop cycles (1,600 total), all 15 dumbbell exercises rotated.
+  Eight active sessions overlap; stopping each keeps all remaining sessions running.
+  Mock inference in API stress, distinct detector objects per user, reuse within each user.
+- Real MediaPipe native inference: 2 distinct detector instances x 200 start/frame/stop cycles = 400 cycles.
+  Synthetic blank frames, rotating all 15 exercises, no physical camera; detector reuse verified.
+- JavaScript camera controller: 3 isolated jsdom browser contexts x 200 open/start/close = 600 cycles.
+  Simulated getUserMedia; stale status cannot stop a new camera; all tracks released; other contexts remain active.
+- jsdom TH/EN progress UI: 8 chart sections, CSV buttons, no undefined text, custom timer request carries duration/weight/kind.
+- Python tests cover fixed/custom deadlines, legacy database migration, zero motion/hidden gaps, kcal formula,
+  missing weight and upper-body kcal null, invalid input cannot start camera, private progress access,
+  first/latest comparable-set trends, insufficient data, and reward deduplication/ranking exclusion.
+- Post-change focused cardio regression rerun and all static JavaScript syntax checks.
+Limits: no physical Windows/iOS/Android webcams; no claim every device can complete 200 cycles.
+No live Cloudflare tunnel, Windows PowerShell or public internet deployment executed here.
+No clinical validation of angle measurements, trend thresholds, motion time or calorie estimates.
+Frontend DOM tests are not visual full-browser rendering or hardware tests.
+No camera lifecycle edits were needed: session-camera.js and sessions.py remain byte-identical to v19.

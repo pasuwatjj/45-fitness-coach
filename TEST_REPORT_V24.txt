@@ -1,0 +1,26 @@
+45 Fitness Coach v24 — 2026-10-18
+
+Python: 222 tests passed (55.858 s) via unittest discover.
+Additional saved-cardio-tolerance / isolated leaderboard regression passed (0.488 s).
+Total 223 passing Python tests.
+
+New coverage:
+- All 15 exercises: metric and form-verdict invariance under 0/30/60/90/-90 degree synthetic camera yaw.
+- Front-view 65-degree bent-row torso retains the proper 3D lean.
+- Foreshortened projected arm can use valid 3D landmarks, while missing/degenerate geometry is rejected.
+- Thresholds remain ordered for every exercise at every 5-degree allowance through 50; stationary jitter does not award reps.
+- Shoulder press: thighs-down calibration, rack preparation without reward, then one press cycle.
+- Front/side push-up cycles at 10 and 50 degrees, hip-sag rejection and missing-joint reset.
+- Front/side jumping-jack world geometry and missing-joint reset.
+- All exercise APIs accept 50 and reject 51; cardio also rejects booleans.
+- Cardio allowance persisted and leaderboard filtered by matching allowance.
+
+Existing lifecycle stress retained:
+- 8 simulated accounts x 200 dumbbell camera open/close cycles each.
+- 2 simulated accounts x 200 cardio open/close cycles each.
+- JS/jsdom 3 isolated simulated browser contexts x 200 opens = 600; every track released.
+- TH/EN controls, 50-degree workout/cardio options, push-up start payload.
+- Shared profile charts/read-only state and emailed-reset form regressions.
+- All static JavaScript syntax checks passed.
+
+No physical webcam, mobile-device, Windows launcher or live SMTP delivery tests were performed. Synthetic tests establish logic consistency, not measured pose-estimation accuracy. Camera stream lifecycle files remain byte-identical to v23; frame-processing logic now passes 3D landmarks to cardio detection.

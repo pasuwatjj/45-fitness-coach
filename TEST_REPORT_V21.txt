@@ -1,0 +1,12 @@
+45 Fitness Coach v21 validation
+Python unittest discover: 206 tests passed, 37.169 s.
+Includes 8 independent accounts x 200 start/stop cycles = 1600 logical cycles,
+rotating all 15 exercises (not 200 cycles of each exercise). Fake detector.
+Browser jsdom: 3 isolated contexts x 200 open/close = 600 cycles; simulated
+getUserMedia, all tracks stopped. This is not physical webcam certification.
+TH/EN home rendering, mascot pause toggle, and 12 seeded chart columns passed.
+Node syntax checks home.js and progress.js passed.
+Camera files sessions.py and static/session-camera.js byte-identical to v20.
+No physical Windows/iOS/Android webcam, visual browser screenshot, PowerShell
+execution, real domain, Cloudflare deployment or external HTTPS validation.
+Existing active camera session cap is unchanged (8); hardware capacity varies.

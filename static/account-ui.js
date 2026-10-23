@@ -6,6 +6,12 @@ async function originalFetch(input,options={}){
  try{return await Promise.race([nativeFetch(input,{...options,signal:controller.signal}),new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Error('Connection timed out / การเชื่อมต่อหมดเวลา'))},20000)})])}
  finally{clearTimeout(timer);options.signal?.removeEventListener('abort',abort)}
 }
+// JSON requests keep their deadline until the response body has arrived.
+async function originalJSON(url,options={}){
+ const c=new AbortController();let timer;
+ try{return await Promise.race([(async()=>{const response=await originalFetch(url,{...options,signal:c.signal});return {response,data:await response.json()}})(),new Promise((_,reject)=>{timer=setTimeout(()=>{c.abort();reject(Error('Connection timed out / การเชื่อมต่อหมดเวลา'))},20000)})])}
+ finally{clearTimeout(timer)}
+}
 let fitnessToken='',sessionFlight=null;
 window.coachRevision=0;
 let resolveSession;
@@ -15,8 +21,8 @@ window.FitnessAccount={guest:true,email:null};
 async function enterAccount(){
  if(sessionFlight)return sessionFlight;
  sessionFlight=(async()=>{
-  const response=await originalFetch('/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({auto_profile:true})});
-  const data=await response.json();if(!response.ok)throw Error(data.error||'Cannot open session');
+  const {response,data}=await originalJSON('/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({auto_profile:true})});
+  if(!response.ok)throw Error(data.error||'Cannot open session');
   fitnessToken=data.session_token;window.FitnessAccount={guest:!!data.guest,email:data.email};
   window.defaultFitnessProfile=data.default_profile?.id;
   document.getElementById('accountEmail').textContent=data.guest?accountText('ผู้เยี่ยมชม','Guest'):data.email;
@@ -33,7 +39,17 @@ window.fetch=async(input,options={})=>{
  await sessionReady;
  const headers=new Headers(options.headers||(input instanceof Request?input.headers:undefined));
  const sentToken=fitnessToken;headers.set('X-Coach-Session',sentToken);
- const response=await originalFetch(input,{...options,headers});
+ let response=await originalFetch(input,{...options,headers});
+ // Restarted servers lose in-memory sessions, but the account cookie remains valid.
+ // Retry reads only; never replay a submitted workout, payment or registration.
+ if(response.status===401&&(options.method||(input instanceof Request?input.method:'GET')).toUpperCase()==='GET'&&!(typeof BrowserCamera!=='undefined'&&BrowserCamera.active)){
+  const expired=await response.clone().json().catch(()=>({}));
+  if(expired.session_expired){
+   if(sentToken===fitnessToken)await enterAccount();
+   headers.set('X-Coach-Session',fitnessToken);
+   response=await originalFetch(input,{...options,headers});
+  }
+ }
  // A failed background request must never close a newer workout or session.
  if(response.status===401&&sentToken===fitnessToken)document.getElementById('status').textContent=accountText('เซสชันหมดอายุ กดเริ่มอีกครั้งเพื่อเชื่อมต่อใหม่','Session expired. Press Start again to reconnect.');
  return response;
@@ -73,8 +89,8 @@ window.ensureFitnessSession=async()=>{
    if(['register','login'].includes(current)&&typeof BrowserCamera!=='undefined'&&BrowserCamera.active){
     leaveWorkout();await originalFetch('/stop',{method:'POST',headers:{'X-Coach-Session':fitnessToken}});
    }
-   const r=await originalFetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:el('authEmail').value,password,recovery_number:el('authRecovery').value,ticket})});
-   const data=await r.json();if(!r.ok)throw Error(data.error||'Please retry');
+   const {response:r,data}=await originalJSON(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:el('authEmail').value,password,recovery_number:el('authRecovery').value,ticket})});
+   if(!r.ok)throw Error(data.error||'Please retry');
    if(current==='forgot'){el('authStatus').textContent=data.message}
    else if(current==='reset'){ticket='';show('login');el('authStatus').textContent=t('ตั้งรหัสใหม่แล้ว เข้าสู่ระบบได้เลย','Password changed. Sign in with your new password.')}
    else if(current==='setup'){form.reset();el('authStatus').textContent=t('บันทึกเลขที่ชอบแล้ว','Favorite number saved.')}
@@ -85,5 +101,7 @@ window.ensureFitnessSession=async()=>{
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!el('authPage').hidden)el('closeAuth').click()});
  const resetToken=new URLSearchParams(location.hash.slice(1)).get('reset');
  if(resetToken&&/^[A-Za-z0-9_-]{43}$/.test(resetToken)){ticket=resetToken;history.replaceState(null,'',location.pathname+location.search);show('reset')}
- enterAccount().catch(e=>{el('status').textContent=t('เชื่อมต่อไม่ได้ กดรีเฟรชเมื่อเซิร์ฟเวอร์พร้อม','Connection unavailable. Refresh when the server is ready.');el('mainApp').hidden=false});
+ let bootstrapDelay=1000,bootstrapTimer;
+ async function bootstrap(){try{await enterAccount()}catch(e){el('status').textContent=t('กำลังเชื่อมต่อกับเซิร์ฟเวอร์ใหม่โดยอัตโนมัติ…','Reconnecting to the server automatically…');el('mainApp').hidden=false;bootstrapTimer=setTimeout(bootstrap,bootstrapDelay);bootstrapDelay=Math.min(10000,bootstrapDelay*2)}}
+ window.addEventListener('pagehide',()=>clearTimeout(bootstrapTimer));bootstrap();
 })();

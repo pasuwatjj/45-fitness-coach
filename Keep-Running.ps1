@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 Set-Location -LiteralPath $PSScriptRoot
 # Keep Windows awake while this explicitly enabled background runner is alive.
 Add-Type -TypeDefinition @"

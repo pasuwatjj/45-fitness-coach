@@ -41,7 +41,7 @@ class PaymentTests(unittest.TestCase):
         for field,value in [('amount',49),('receivingBank','006'),('countryCode','US'),('paidLocalCurrency','840'),('transDate','20200101'),('success',False),('transRef','')]:
             bad=provider();bad['data'][field]=value
             with self.subTest(field=field),self.assertRaises(ValueError):vip.validate_result(bad)
-        for account in ['xxx-x-x9999-x','xxxxxxxxxx','0000000009']:
+        for account in ['xxx-x-x9999-x','xxxxxxxxxx','1191841489']:
             bad=provider();bad['data']['receiver']['account']['value']=account
             with self.assertRaises(ValueError):vip.validate_result(bad)
     def test_provider_duplicate_payload_never_grants(self):
@@ -76,7 +76,7 @@ class PaymentTests(unittest.TestCase):
             client=smtp.return_value.__enter__.return_value
             client.starttls.assert_called_once()
             message=client.send_message.call_args.args[0]
-            self.assertEqual(message['To'],'receipts@example.com')
+            self.assertEqual(message['To'],'67011241@kmitl.ac.th')
             self.assertEqual(len(list(message.iter_attachments())),1)
             self.assertEqual(vip.status(self.store,'account:1')['receipts'][0]['mail_status'],'sent')
     def test_mail_failure_keeps_verified_vip_and_queues_retry(self):

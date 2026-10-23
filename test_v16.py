@@ -30,7 +30,7 @@ class V16Tests(unittest.TestCase):
         self.admin()
         with patch.object(membership,'payment_ready',return_value=False):r=self.b.post('/vip/slips',data=fixtures.picture(),content_type='image/png')
         rid=r.json['receipts'][0]['id'];self.assertFalse(r.json['active'])
-        data=dict(transaction='004:REALBANK0001',amount=50,receiver='0000000000',confirmed_bank_transfer=True)
+        data=dict(transaction='004:REALBANK0001',amount=50,receiver='1191841480',confirmed_bank_transfer=True)
         self.assertEqual(self.b.get(f'/admin/receipts/{rid}/image').status_code,403)
         self.assertEqual(self.a.get(f'/admin/receipts/{rid}/image').status_code,200)
         self.assertEqual(self.a.post(f'/admin/receipts/{rid}/approve',json={**data,'confirmed_bank_transfer':False}).status_code,400)

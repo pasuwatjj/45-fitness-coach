@@ -142,17 +142,17 @@ class FormCoach:
                            feedback=[dict(code='setup', text=text)])
                 return out
             self.samples.append((now, dict(m)))
-            # Require two seconds AND low angle variation, rather than a single snapshot.
+            # Allow modest landmark jitter while still requiring several neutral observations.
             leans = [s[1]['lean'] for s in self.samples if s[1]['lean'] is not None]
-            if ((leans and max(leans) - min(leans) > 6)
-                or max(s[1]['arm'] for s in self.samples) - min(s[1]['arm'] for s in self.samples) > 8):
+            if ((leans and max(leans) - min(leans) > 12)
+                or max(s[1]['arm'] for s in self.samples) - min(s[1]['arm'] for s in self.samples) > 16):
                 self.samples = [(now, dict(m))]
             elapsed = now - self.samples[0][0]
             out.update(calibration=min(100, round(100 * elapsed / self.settings['calibration_ms'])),
                        form_title='กำลังตั้งค่าท่าเริ่มต้น',
-                       message='ยืนด้านข้าง ตัวตรง แขนลง ค้างนิ่ง 2 วินาที',
+                       message='หันหน้าหรือด้านข้างให้เห็นแขน ตัวตรง แขนลง ค้างสักครู่',
                        feedback=[dict(code='setup', text='ค้างท่าเริ่มต้นนิ่ง ๆ แล้วระบบจะเริ่มนับ')])
-            if elapsed < self.settings['calibration_ms']:
+            if elapsed < self.settings['calibration_ms'] or len(self.samples) < 3:
                 return out
             self.baseline = {k: statistics.median([s[1][k] for s in self.samples if s[1][k] is not None])
                              if any(s[1][k] is not None for s in self.samples) else None for k in m}

@@ -1,4 +1,4 @@
-param([switch]$UpdateTunnel)
+﻿param([switch]$UpdateTunnel)
 $ErrorActionPreference = "Stop"
 $projectFolder = $PSScriptRoot
 $localApi = "http://127.0.0.1:5000"

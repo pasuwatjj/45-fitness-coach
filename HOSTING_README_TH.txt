@@ -17,7 +17,7 @@ Quick Tunnel เดิมสำหรับทดสอบ ไม่มีลิ
 6. ตั้ง reverse proxy ที่รองรับ HTTPS ให้ส่ง Host ของโดเมนเดิมไป 127.0.0.1:5000
    แอปยอมรับ Origin ตรง FITNESS_PUBLIC_URL และใช้ cookie แบบ Secure สำหรับโดเมนนั้น
 7. ถ้าต้องกำหนดแอดมินหลังย้ายฐานข้อมูล ให้รันในเครื่องผู้ดูแล:
-   docker exec fitness-coach python manage_admin.py --email admin@example.com
+   docker exec fitness-coach python manage_admin.py --email pasuwatoyasumi7@gmail.com
    บัญชีต้องมีอยู่แล้ว คำสั่งนี้ไม่เปิด endpoint ให้คนทั่วไปตั้งตนเองเป็นแอดมิน
 8. ใช้ serve.py / Waitress แบบหนึ่ง process มีหลาย threads เซสชันกล้องเก็บใน process
    อย่าเพิ่ม worker/process/replica โดยไม่ย้าย session state และฐานข้อมูลให้รองรับก่อน

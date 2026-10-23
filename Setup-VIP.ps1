@@ -1,14 +1,14 @@
 $ErrorActionPreference = "Stop"
 Set-Location -LiteralPath $PSScriptRoot
 Write-Host "Configure email and optional SlipOK. Secrets stay encrypted for this Windows user."
-Write-Host "Register ONLY Kasikorn 0000000000 as the receiving account for this SlipOK branch."
+Write-Host "Register ONLY Kasikorn 1191841480 as the receiving account for this SlipOK branch."
 $branch = Read-Host "SlipOK branch ID (press Enter for MANUAL review + email only)"
 $confirmed = ""
 $encryptedKey = ""
 if ($branch) {
     if ($branch -notmatch '^\d+$') { throw "Branch ID must contain digits only." }
-    $confirmed = Read-Host "Type 0000000000 AFTER registering that receiver in SlipOK"
-    if ($confirmed -ne "0000000000") { throw "Receiver not confirmed. No settings saved." }
+    $confirmed = Read-Host "Type 1191841480 AFTER registering that receiver in SlipOK"
+    if ($confirmed -ne "1191841480") { throw "Receiver not confirmed. No settings saved." }
     $apiKey = Read-Host "SlipOK API key (hidden)" -AsSecureString
     $encryptedKey = ($apiKey | ConvertFrom-SecureString)
 }

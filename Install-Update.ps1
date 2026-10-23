@@ -53,6 +53,7 @@ Set-Location -LiteralPath $projectFolder
 if ($LASTEXITCODE -ne 0) {
     throw "Dependency installation failed. Check internet and retry. Backup: $backupFolder"
 }
+& $pythonPath -X utf8 manage_admin.py --email "pasuwatoyasumi7@gmail.com"
 if ($LASTEXITCODE -ne 0) { Write-Warning "Admin account not found. Sign in and run Setup-Admin.ps1 afterwards." }
 Write-Host "45 Fitness Coach v24 updated." -ForegroundColor Green
 Write-Host "Backup: $backupFolder"

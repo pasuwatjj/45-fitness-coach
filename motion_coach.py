@@ -139,12 +139,12 @@ class MotionCoach:
                 out['feedback'] = [dict(code='position',text=self.exercise['setup'])]
                 return out
             self.samples.append((now,dict(m)))
-            if any(max(s[1][k] for s in self.samples)-min(s[1][k] for s in self.samples)>8
+            if any(max(s[1][k] for s in self.samples)-min(s[1][k] for s in self.samples)>16
                    for k in ('elbow','lean')):
                 self.samples = [(now,dict(m))]
             elapsed = now-self.samples[0][0]
             out['calibration'] = min(100,round(100*elapsed/self.settings['calibration_ms']))
-            if elapsed < self.settings['calibration_ms']:
+            if elapsed < self.settings['calibration_ms'] or len(self.samples)<3:
                 out['feedback'] = [dict(code='position',text=self.exercise['setup'])]
                 return out
             self.baseline = {k:statistics.median(s[1][k] for s in self.samples) for k in m}

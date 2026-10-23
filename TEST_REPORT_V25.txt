@@ -1,0 +1,26 @@
+45 Fitness Coach restored v25 — verification 2026-10-23
+
+Base: user's 45Fitness_Ready_v24(2).zip. Original page/features, profile graphs,
+VIP QR/bank, receipt review and admin UI preserved. No database or secrets shipped.
+
+PASS: 220 Python unittest cases (all 216 existing cases plus four v25 regressions).
+PASS: original UI regression suite, including 3 browser contexts x 200 camera cycles,
+TH/EN profile charts/read-only shared profiles, cardio and password-reset forms.
+PASS: new UI regressions: bootstrap network failure recovery, GET-only session renewal,
+no replay of writes, header stall and JSON-body stall camera deadlines.
+PASS: actual rendered Flask/Waitress page loaded all scripts in jsdom, home and profiles
+loaded, all 12 page tabs navigated, zero JavaScript runtime errors.
+PASS: every static JavaScript file passed node --check.
+PASS: real MediaPipe CPU model initialized and processed three blank JPEG-sized frames.
+
+Account regression launches separate Python processes against the same temporary SQLite
+file. Login cookie, normalized email and profile survive restart. Re-registering uppercase
+or whitespace variants returns 400 and the accounts table remains at one row.
+
+Camera regression simulates 2.2-second frame intervals: calibration completes after three
+neutral frames. A gap cancels an incomplete rep without adding one; >10-second gaps reset
+calibration. Jitter can settle while clearly bent/leaning initial postures remain rejected.
+
+Not verified: physical webcam movement accuracy; actual client-to-Oregon latency; payment
+provider/email configuration; live Render filesystem/restart behavior. Duplicate email
+creation was not reproducible on this code and should not be represented as reproduced.

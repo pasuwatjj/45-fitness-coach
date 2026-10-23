@@ -22,8 +22,8 @@ from PIL import Image, ImageOps
 
 PRICE=50
 DAYS=30
-BANK_ACCOUNT='0000000000'
-RECEIPT_TO='receipts@example.com'
+BANK_ACCOUNT='1191841480'
+RECEIPT_TO='67011241@kmitl.ac.th'
 LOCKED={'supported_row','lying_triceps','incline_press','front_raise','split_squat'}
 _verify_lock=threading.Lock()
 _mail_lock=threading.Lock()
@@ -194,7 +194,7 @@ def submit_manual(store,owner,email,raw):
 def approve_manual(store,receipt,transaction,amount,receiver):
     """LOCAL operator only, after checking the actual receiving-bank ledger."""
     if amount!=50 or receiver!=BANK_ACCOUNT or not re.fullmatch(r'[0-9]{3}:[A-Za-z0-9_-]{5,80}',transaction or ''):
-        raise ValueError('Confirm 50 THB, receiver 0000000000 and BANKCODE:TRANSACTION_REF from the bank')
+        raise ValueError('Confirm 50 THB, receiver 1191841480 and BANKCODE:TRANSACTION_REF from the bank')
     with store.lock,store.connect() as db:
         schema(db);db.execute('BEGIN IMMEDIATE')
         row=db.execute('SELECT * FROM vip_receipts WHERE id=?',(receipt,)).fetchone()

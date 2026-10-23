@@ -711,9 +711,15 @@ class BrowserCoach(CameraCoach):
             if not self.state['running'] or self.detector is None or set_id != self.state['set_id']:
                 raise ValueError('เซตเปลี่ยนหรือปิดกล้องแล้ว')
             now=time.monotonic()
-            # Delays cannot complete a rep across a missing camera sequence.
-            if now-self.last_frame_at > 2:
+            # A network pause cancels the incomplete repetition, not the neutral
+            # calibration. Otherwise >2 s round trips restart preparation forever.
+            gap = now-self.last_frame_at
+            if gap > 10:
                 self.recalibrate()
+            elif gap > 2:
+                for side in self.active_arms:
+                    self.forms[side].reset_motion()
+                self.reset_tracking()
             self.last_frame_at=now
             timestamp=max(self.timestamp+1,int(now*1000))
             self.timestamp=timestamp

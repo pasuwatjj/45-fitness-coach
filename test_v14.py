@@ -76,13 +76,13 @@ class GuestTests(unittest.TestCase):
                 self.assertFalse(d['active']);self.assertEqual(d['receipts'][0]['status'],'review')
         self.assertEqual(len(d['receipts']),1)
         rid=d['receipts'][0]['id']
-        with self.assertRaises(ValueError):membership.approve_manual(self.store,rid,'004:ACTUAL0001',49,'0000000000')
-        membership.approve_manual(self.store,rid,'004:ACTUAL0001',50,'0000000000')
+        with self.assertRaises(ValueError):membership.approve_manual(self.store,rid,'004:ACTUAL0001',49,'1191841480')
+        membership.approve_manual(self.store,rid,'004:ACTUAL0001',50,'1191841480')
         expires=membership.status(self.store,self.owner)['expires']
-        membership.approve_manual(self.store,rid,'004:ACTUAL0001',50,'0000000000')
+        membership.approve_manual(self.store,rid,'004:ACTUAL0001',50,'1191841480')
         self.assertEqual(expires,membership.status(self.store,self.owner)['expires'])
         other=membership.submit_manual(self.store,'account:999','other@example.com',picture('blue'))['receipts'][0]['id']
-        with self.assertRaises(ValueError):membership.approve_manual(self.store,other,'004:ACTUAL0001',50,'0000000000')
+        with self.assertRaises(ValueError):membership.approve_manual(self.store,other,'004:ACTUAL0001',50,'1191841480')
     def test_short_number_cannot_reset_password(self):
         email=self.a.get('/auth/me').json['email']
         with self.assertRaises(ValueError):recovery.verify(self.store,email,'48','network')

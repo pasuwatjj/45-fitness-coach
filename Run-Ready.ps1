@@ -1,7 +1,7 @@
 ﻿$ErrorActionPreference = "Stop"
 Set-Location -LiteralPath $PSScriptRoot
 try {
-    $projectFolder = $PSScriptRoot
+    $projectFolder = "D:\Robot Project\FitnessFormCoach_Python\FitnessFormCoach_Python"
     if (!(Test-Path -LiteralPath (Join-Path $projectFolder "app.py"))) {
         Write-Host "1 = Select your EXISTING project (keeps accounts and history)"
         Write-Host "2 = Start a NEW project here (separate empty database)"

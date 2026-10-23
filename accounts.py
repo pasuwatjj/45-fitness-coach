@@ -2,6 +2,7 @@
 import hashlib
 import re
 import secrets
+import sqlite3
 import time
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -45,7 +46,10 @@ def register(store,data):
     with store.lock,store.connect() as db:
         if db.execute('SELECT 1 FROM accounts WHERE email=?',(email,)).fetchone():
             raise ValueError('อีเมลนี้สมัครแล้ว ลองเข้าสู่ระบบ')
-        row=db.execute('INSERT INTO accounts(email,password_hash) VALUES(?,?)',(email,hashed))
+        try:
+            row=db.execute('INSERT INTO accounts(email,password_hash) VALUES(?,?)',(email,hashed))
+        except sqlite3.IntegrityError as error:
+            raise ValueError('อีเมลนี้สมัครแล้ว ลองเข้าสู่ระบบ') from error
         return dict(id=row.lastrowid,email=email,owner='account:'+str(row.lastrowid))
 
 

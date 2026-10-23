@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 Set-Location -LiteralPath $PSScriptRoot
 $pythonPath = Join-Path $PSScriptRoot "..\.venv\Scripts\python.exe"
 if (!(Test-Path -LiteralPath $pythonPath)) { throw "Python environment not found: $pythonPath" }

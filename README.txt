@@ -39,7 +39,7 @@ VIP Home: 50 THB / 30 days. QR/account are visible. Sign in before paying.
 With configured SlipOK and SMTP, verified payments activate VIP automatically.
 Otherwise receipts are stored for manual bank-transfer review; upload alone
 does NOT grant VIP. A local operator can confirm actual payment with manage_shop.py.
-SMTP must be configured for receipts to reach receipts@example.com; otherwise
+SMTP must be configured for receipts to reach 67011241@kmitl.ac.th; otherwise
 they remain queued. Setup-VIP.ps1 supports email-only/manual mode (blank Branch).
 Keep Start-Configured.ps1 running for the durable email worker.
 

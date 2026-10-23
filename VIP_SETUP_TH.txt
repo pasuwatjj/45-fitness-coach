@@ -1,4 +1,4 @@
-การรับโอนใน v14 เปิดแสดง QR/บัญชีแล้ว: กสิกร 000-0-00000-0 ยอด 50 บาท / 30 วัน
+การรับโอนใน v14 เปิดแสดง QR/บัญชีแล้ว: กสิกร 119-1-84148-0 ยอด 50 บาท / 30 วัน
 ผู้เล่นต้องสร้างบัญชีก่อนโอน เพื่อผูก VIP ให้ถูกบัญชี
 ยังไม่มี SlipOK: รับสลิปเก็บในฐานข้อมูล รอผู้ดูแลตรวจยอดเงินจริงในบัญชีธนาคาร
 มี SlipOK และ SMTP พร้อม: ตรวจอัตโนมัติตามเงื่อนไขเดิม ไม่ผ่านให้รอตรวจ
@@ -10,7 +10,7 @@ Set-Location -LiteralPath "D:\Robot Project\FitnessFormCoach_Python\FitnessFormC
 & "..\.venv\Scripts\python.exe" -X utf8 .\manage_shop.py view-slip RECEIPT_ID
 
 หลังตรวจว่ารับเงินจริง 50 บาทเข้าบัญชีที่กำหนดแล้ว:
-& "..\.venv\Scripts\python.exe" -X utf8 .\manage_shop.py approve-vip RECEIPT_ID --transaction BANKCODE:TRANSACTION_REF --confirm-amount 50 --confirm-account 0000000000
+& "..\.venv\Scripts\python.exe" -X utf8 .\manage_shop.py approve-vip RECEIPT_ID --transaction BANKCODE:TRANSACTION_REF --confirm-amount 50 --confirm-account 1191841480
 
 แทน RECEIPT_ID ด้วยรหัสสลิป และ BANKCODE:TRANSACTION_REF ด้วยรหัสธนาคารผู้ส่ง 3 หลัก
 กับหมายเลขธุรกรรมจากธนาคาร เช่น 004: ตามด้วยเลขอ้างอิงจริง ห้ามใช้เลขที่แต่งขึ้น
@@ -28,10 +28,10 @@ Set-Location -LiteralPath "D:\Robot Project\FitnessFormCoach_Python\FitnessFormC
 1. อัปเดตเว็บก่อนตาม UPDATE_POWERSHELL.txt ข้อมูลบัญชีและประวัติเดิมยังอยู่
 2. สมัครใช้งาน SlipOK API และรับ Branch ID กับ API key ของคุณ
    https://slipok.com/api-documentation/
-   ตั้งบัญชีรับเงินของสาขา API ให้เป็นกสิกรไทย 0000000000 บัญชีเดียวเท่านั้น
+   ตั้งบัญชีรับเงินของสาขา API ให้เป็นกสิกรไทย 1191841480 บัญชีเดียวเท่านั้น
    ต้องมีโควต้าตรวจสลิปเพียงพอ เงื่อนไขและค่าบริการขึ้นกับ SlipOK
 3. เตรียม SMTP host, port 587/465, อีเมลผู้ส่ง และรหัสสำหรับแอป/SMTP จากผู้ให้บริการอีเมล
-   อีเมลปลายทางกำหนดไว้เป็น receipts@example.com
+   อีเมลปลายทางกำหนดไว้เป็น 67011241@kmitl.ac.th
    ไม่ต้องส่ง API key หรือรหัสผ่านมาทางแชต ไม่ใช้รหัสผู้เล่นเป็นรหัส SMTP
 4. กด Ctrl+C เพื่อหยุดเว็บใน PowerShell หน้าต่างแรก แล้วรัน:
 

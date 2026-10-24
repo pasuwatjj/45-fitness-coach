@@ -65,14 +65,19 @@ class LeaderboardStore(PlannerMixin):
             row = db.execute('SELECT id,name FROM profiles WHERE id=?', (profile_id,)).fetchone()
             return dict(row) if row else None
 
-    def save_set(self, set_id, profile_id, exercise, arm_mode, reps, flagged, left, right, observations, plan=None):
+    def save_set(self, set_id, profile_id, exercise, arm_mode, reps, flagged, left, right, observations, plan=None, difficulty=None):
         if reps <= 0:
             return False
         with self.lock, self.connect() as db:
+            if difficulty is not None:
+                from training_economy import schema, credit_db
+                schema(db)
+            db.execute('BEGIN IMMEDIATE')
             result = db.execute('''INSERT OR IGNORE INTO workout_sets
                 (id,profile_id,exercise,arm_mode,reps,flagged,left_reps,right_reps,observations)
                 VALUES(?,?,?,?,?,?,?,?,?)''', (set_id,profile_id,exercise,arm_mode,reps,flagged,left,right,
                                               json.dumps(observations,ensure_ascii=False)))
+            if difficulty is not None:credit_db(db,set_id,profile_id,difficulty)
             if plan is not None:
                 credited = self.credit_plan(db,set_id,profile_id,exercise,arm_mode,reps,plan)
                 return dict(saved=True,credited=credited)

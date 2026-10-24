@@ -31,6 +31,9 @@ from flask import Flask, Response, jsonify, redirect, render_template, request
 
 from curl_counter import elbow_angle
 from form_rules import FormCoach, measurements
+import training_modes
+import training_economy
+import character
 from grip import GripCoach, assess_grip
 from leaderboard import LeaderboardStore
 from voice import VoiceCache, PHRASES
@@ -44,7 +47,7 @@ from planner import today_thailand
 ROOT = Path(__file__).resolve().parent
 MODEL = ROOT / 'models' / 'pose_landmarker_lite.task'
 SETTINGS = json.loads((ROOT / 'settings.json').read_text(encoding='utf-8-sig'))
-GENTLE_COACH_VERSION = 24
+GENTLE_COACH_VERSION = 26
 store = LeaderboardStore(os.environ.get('FITNESS_DATA_PATH', str(ROOT / 'data' / 'fitness.db')))
 voice_cache = VoiceCache(store.path.parent / 'voice-v13')
 app = Flask(__name__)
@@ -135,10 +138,15 @@ class CameraCoach:
         self.angle_stats=SetAngles()
         self.exercise = exercise
         if hasattr(self,'grip_coach'):self.grip_coach=GripCoach()
+        self.difficulty=getattr(self,'requested_difficulty','beginner')
+        self.user_tolerance=tolerance
+        cfg,effective=training_modes.options(exercise,self.difficulty,tolerance,SETTINGS,getattr(self,'curl_target',80))
+        if getattr(self,'requested_auto_arm',False) and training_modes.supports_auto(exercise):arm='auto'
         self.selected_arm, self.focus = arm, focus
-        self.active_arms = ['left', 'right'] if arm == 'both' else [arm]
-        self.forms = {a: FormCoach(dict(SETTINGS, curl_target_deg=self.curl_target),tolerance) if hasattr(self,'curl_target') and CATALOG[exercise]['family']=='curl' else FormCoach(SETTINGS,tolerance) if CATALOG[exercise]['family']=='curl'
-                      else MotionCoach(exercise,SETTINGS,tolerance) for a in self.active_arms}
+        self.active_arms = ['left', 'right'] if arm in ('both','auto') else [arm]
+        self.arm_selector=training_modes.ArmSelector()
+        self.auto_side='right'
+        self.forms = {a: FormCoach(cfg,effective) if CATALOG[exercise]['family']=='curl' else MotionCoach(exercise,cfg,effective) for a in self.active_arms}
         self.outputs = {a: self.forms[a].base() for a in self.active_arms}
         self.smooth = {a: None for a in self.active_arms}
         self.last_good = {a: None for a in self.active_arms}
@@ -148,16 +156,18 @@ class CameraCoach:
         self.rep_events=[];self.attempt_serial=0;self.rejected=0;self.unverified=0;self.strict_notice=None
 
     def aggregate(self):
-        outputs = list(self.outputs.values())
+        auto=self.selected_arm=='auto'
+        shown={self.auto_side:self.outputs[self.auto_side]} if auto else self.outputs
+        outputs = list(shown.values())
         feedback, checks = [], []
-        for arm, o in self.outputs.items():
+        for arm, o in shown.items():
             for f in o['feedback']:
                 feedback.append(dict(f, arm=arm, text=f'{ARM_LABELS[arm]}: {f["text"]}'))
             for c in o['checks']:
                 checks.append(dict(c, arm=arm, label=f'{ARM_LABELS[arm]} · {c["label"]}'))
         both = self.selected_arm == 'both'
-        reps = min(o['reps'] for o in outputs) if both else outputs[0]['reps']
-        flagged = sum(l or r for l, r in zip(self.rep_flags['left'], self.rep_flags['right'])) if both else outputs[0]['flagged']
+        reps = sum(o['reps'] for o in self.outputs.values()) if auto else min(o['reps'] for o in outputs) if both else outputs[0]['reps']
+        flagged = sum(o['flagged'] for o in self.outputs.values()) if auto else sum(l or r for l, r in zip(self.rep_flags['left'], self.rep_flags['right'])) if both else outputs[0]['flagged']
         calibrated = all(o['calibrated'] for o in outputs)
         unknown = any(o['form_level'] == 'unknown' for o in outputs)
         warning = any(o['form_level'] == 'warn' for o in outputs)
@@ -173,9 +183,11 @@ class CameraCoach:
                           form_level=level, form_title='ลองปรับอีกนิดนะ' if warning else
                           'จัดแขนให้กล้องเห็นชัด' if unknown else 'ทำต่อได้เลย ตามจังหวะที่สบาย',
                           feedback=feedback, checks=checks, thresholds=outputs[0]['thresholds'],
-                          phase=' · '.join(f'{ARM_LABELS[a]}: {phases[o["phase"]]}' for a, o in self.outputs.items()),
+                          phase=' · '.join(f'{ARM_LABELS[a]}: {phases[o["phase"]]}' for a, o in shown.items()),
                           angle=None if both else outputs[0]['angle'])
 
+        self.state.update(difficulty=self.difficulty,auto_arm=auto,tracking_side=self.auto_side if auto else self.selected_arm,user_tolerance=self.user_tolerance)
+        if auto:self.state['arm']='auto'
         self.state.update(rejected=self.rejected,unverified=self.unverified,rep_events=copy.deepcopy(self.rep_events),challenge=dict(remaining=self.challenge_remaining,target=20) if getattr(self,'challenge_id',None) else None)
         if self.strict_notice and time.monotonic()*1000<self.strict_notice['until']:
             f={k:v for k,v in self.strict_notice.items() if k!='until'}
@@ -312,6 +324,7 @@ class CameraCoach:
             if self.state['reps'] > 0 and profile:
                 try:
                     extra = dict(plan=self.state['plan']) if self.state.get('plan') else {}
+                    if getattr(self,'quality_enabled',False):extra['difficulty']=self.difficulty
                     result = self.scoreboard.save_set(self.state['set_id'], profile['id'], self.exercise, self.selected_arm,
                         self.state['reps'], self.state['flagged'],
                         self.forms['left'].counter.reps if 'left' in self.forms else 0,
@@ -325,6 +338,7 @@ class CameraCoach:
                 try:
                     from rewards import save_quality
                     save_quality(self.scoreboard,self.state['set_id'],profile['id'],self.exercise,self.selected_arm,self.state['reps'],self.rejected,self.unverified,accepted=sum(f.counter.reps for f in self.forms.values()))
+                    training_economy.credit(self.scoreboard,self.state['set_id'],profile['id'],self.difficulty)
                     from challenges import credit
                     credit(self.scoreboard,getattr(self,'challenge_id',None),self.state['set_id'],profile['id'])
                     if getattr(self,'challenge_id',None):
@@ -453,7 +467,16 @@ class CameraCoach:
             self.unavailable(now_ms, 'ยังไม่เห็นคน — เพิ่มแสงและให้แขนอยู่ในภาพ')
             self.maybe_rest(now_ms)
             return
+        if self.selected_arm=='auto':
+            self.auto_side,switched=self.arm_selector.choose(landmarks,now_ms)
+            if switched:
+                # Keep per-side totals and calibration, cancel all unfinished cycles.
+                for side in self.active_arms:
+                    self.forms[side].reset_motion()
+                    self.outputs[side]=self.forms[side].base()
+                self.reset_tracking()
         for a in self.active_arms:
+            if self.selected_arm=='auto' and a!=self.auto_side:continue
             ids = ARM_IDS[a]
             hip = 23 if a == 'left' else 24
             generic = CATALOG[self.exercise]['family']!='curl'
@@ -497,7 +520,7 @@ class CameraCoach:
             self.outputs[a] = form.update(self.smooth[a], now_ms)
             if form.counter.reps>old_reps:self.angle_stats.completed(a,source)
             if getattr(self,'quality_enabled',False):
-                known,bad=geometry(self.exercise,a,landmarks,world,self.smooth[a])
+                known,bad=geometry(self.exercise,a,landmarks,world,self.smooth[a],self.difficulty)
                 mapped={'arm':'upper_position','torso':'body_position','steady':'body_position','upper_still':'upper_still','soft_elbow':'elbow_shape','raise_height':'raise_height','knee_bend':'leg_position'}
                 if CATALOG[self.exercise]['family']=='curl':
                     # Image-space arm/lean varies with camera rotation. For Curl,
@@ -515,7 +538,7 @@ class CameraCoach:
                 if form.counter.reps>old_reps:
                     verdict,reasons=self.gates[a].finish()
                     self.attempt_serial+=1
-                    self.rep_events.append(dict(id=self.attempt_serial,arm=a,result=verdict,reasons=reasons))
+                    self.rep_events.append(dict(id=self.attempt_serial,arm=a,result=verdict,reasons=reasons,difficulty=self.difficulty))
                     self.rep_events=self.rep_events[-24:]
                     if verdict!='accepted':
                         form.counter.reps=old_reps;form.flagged=old_flagged
@@ -820,7 +843,7 @@ def authorize():
 @app.before_request
 def private_session():
     protected = request.path in ('/start','/stop','/reset','/pause','/resume','/calibrate','/frame',
-        '/profiles','/plans/today/start','/health/analyze','/camera/recover') or request.path.startswith(('/profiles/','/vip','/admin/','/social/','/cardio/'))
+        '/camera/auto-arm','/profiles','/plans/today/start','/health/analyze','/camera/recover') or request.path.startswith(('/profiles/','/vip','/admin/','/social/','/cardio/'))
     token=request.headers.get('X-Coach-Session','')
     if request.path == '/status' and token:
         protected=True
@@ -1122,6 +1145,12 @@ def status():
 
 
 def apply_coach_options(data):
+    level=data.get('difficulty','beginner');auto=data.get('auto_arm',False)
+    if level not in training_modes.LEVELS or type(auto) is not bool:return jsonify(error='Invalid training mode / โหมดไม่ถูกต้อง'),400
+    if request.path=='/plans/today/start' and auto:return jsonify(error='ตารางใช้ข้างตามแผน / Planned sets use their prescribed side'),400
+    if request.path=='/start' and auto and not training_modes.supports_auto(data.get('exercise','curl')):return jsonify(error='Auto arms is for upper-body exercises / สลับแขนอัตโนมัติใช้กับท่าช่วงบน'),400
+    if coach.state['running'] and not (request.path=='/plans/today/start' and coach.state['paused'] and coach.state.get('plan')):return jsonify(error='Stop the current set before changing training mode / ปิดเซตก่อนเปลี่ยนโหมด'),409
+    coach.requested_difficulty=level;coach.requested_auto_arm=auto
     target=data.get('curl_target',80)
     grip=data.get('grip_enabled',True)
     if type(target) is not int or not 40<=target<=100 or type(grip) is not bool:
@@ -1344,7 +1373,7 @@ def profile_challenges(profile_id):
 @app.route('/profiles/<int:profile_id>/rewards',methods=['GET','POST'])
 def profile_rewards(profile_id):
     owner=g.coach_session['owner']
-    if not membership.active(store,owner):return jsonify(error='VIP Home required',vip_required=True),403
+    if request.method=='POST' and not g.account:return jsonify(error='Sign in to exchange / เข้าสู่ระบบเพื่อแลกเหรียญ'),401
     if request.method=='GET':return jsonify(shop.overview(store,owner,profile_id))
     try:return jsonify(shop.act(store,owner,profile_id,request.get_json(silent=True)))
     except PermissionError as error:return jsonify(error=str(error),vip_required=True),403
@@ -1415,6 +1444,36 @@ def profile_avatar(profile_id):
     return Response(raw,mimetype='image/jpeg',headers={'Cache-Control':'private, no-store'})
 
 
+@app.route('/profiles/<int:profile_id>/character',methods=['GET','POST'])
+def profile_character(profile_id):
+    try:
+        if request.method=='GET':return jsonify(character.overview(store,profile_id,True))
+        return jsonify(character.save(store,g.coach_session['owner'],profile_id,request.get_json(silent=True)))
+    except PermissionError as error:return jsonify(error=str(error)),403
+    except ValueError as error:return jsonify(error=str(error)),400
+
+
+@app.post('/camera/auto-arm')
+def camera_auto_arm():
+    data=request.get_json(silent=True)
+    if not isinstance(data,dict) or type(data.get('enabled')) is not bool:return jsonify(error='Invalid toggle'),400
+    with coach.condition:
+        if request.headers.get('X-Set-ID')!=coach.state['set_id']:return jsonify(error='Set changed'),409
+        if not coach.state['running'] or coach.state.get('cardio') or coach.state.get('plan') or not training_modes.supports_auto(coach.exercise):return jsonify(error='Use auto arms in a free upper-body workout / ใช้ในเซตช่วงบนแบบอิสระ'),409
+        if data['enabled']==(coach.selected_arm=='auto'):return jsonify(ok=True,state=coach.snapshot())
+        was_paused=coach.state['paused']
+        summary=coach.pause()
+        if summary['save_error']:return jsonify(error=summary['save_error']),409
+        side=coach.auto_side if coach.selected_arm=='auto' else coach.selected_arm
+        if side not in ('left','right'):side='right'
+        coach.requested_auto_arm=data['enabled']
+        coach.configure(side,coach.user_tolerance,coach.focus,coach.exercise)
+        coach.state.update(arm=coach.selected_arm,paused=was_paused,summary=None,set_id=str(uuid.uuid4()))
+        coach.last_activity=None;coach.activity_angles={}
+        coach.aggregate()
+        return jsonify(ok=True,state=coach.snapshot())
+
+
 @app.get('/profiles/<int:profile_id>/health')
 def health_history(profile_id):
     profile = store.profile(profile_id)
@@ -1427,6 +1486,7 @@ def health_history(profile_id):
 def save_health(profile_id):
     try:
         record = store.save_health(profile_id,request.get_json(silent=True))
+        character.sync_dimensions(store,profile_id,request.get_json(silent=True))
         return jsonify(record=record)
     except ValueError as error:
         return jsonify(error=str(error)), 400
@@ -1440,7 +1500,7 @@ def streak_board():
 @app.get('/leaderboard')
 def leaderboard():
     exercise, arm = request.args.get('exercise', 'curl'), request.args.get('arm', 'both')
-    if exercise not in CATALOG and exercise!='exercise2' or arm not in ('left', 'right', 'both'):
+    if exercise not in CATALOG and exercise!='exercise2' or arm not in ('left', 'right', 'both', 'auto'):
         return jsonify(error='ท่าหรือแขนไม่ถูกต้อง'), 400
     return jsonify(exercise=exercise, arm=arm, rows=store.standings(exercise, arm), metric='total_saved_reps')
 

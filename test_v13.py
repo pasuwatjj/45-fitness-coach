@@ -89,38 +89,36 @@ class PaymentTests(unittest.TestCase):
         with self.assertRaises(ValueError):vip.normalize_image(b'<svg>fake receipt</svg>')
 
 class CommerceTests(unittest.TestCase):
+    """v26 migration regressions for existing v13 balances/orders (not new sales)."""
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.store=LeaderboardStore(Path(self.tmp.name)/'db');self.p=self.store.create_profile('One')['id']
+        self.key=str(uuid.uuid4())
         with self.store.connect() as db:
-            shop.schema(db);db.execute('INSERT INTO vip_memberships VALUES(?,?)',('account:1',time.time()+86400))
+            # Exact pre-v26 order shape: schema() must add original charge metadata.
+            db.execute('CREATE TABLE shop_orders(id TEXT PRIMARY KEY,owner TEXT NOT NULL,profile_id INTEGER NOT NULL,status TEXT NOT NULL,name TEXT NOT NULL,phone TEXT NOT NULL,address TEXT NOT NULL,created REAL NOT NULL)')
+            db.execute('INSERT INTO shop_orders VALUES(?,?,?,?,?,?,?,?)',(self.key,'account:1',self.p,'pending','Tester','0800000000','Test address',time.time()))
+            shop.schema(db)
             db.execute("INSERT INTO reward_ledger(id,profile_id,amount,kind) VALUES('earned',?,1000,'workout')",(self.p,))
-    def convert(self,key=None,quantity=1):return shop.act(self.store,'account:1',self.p,dict(action='convert',request_id=key or str(uuid.uuid4()),quantity=quantity))
-    def order(self,key=None):return shop.act(self.store,'account:1',self.p,dict(action='redeem',request_id=key or str(uuid.uuid4()),name='Tester',phone='0800000000',address='Test address'))
-    def test_conversion_retry_and_purple_balance_consistency(self):
-        key=str(uuid.uuid4());self.convert(key);d=self.convert(key)
-        self.assertEqual((d['gold'],d['purple']),(990,1));self.assertEqual(challenges.overview(self.store,self.p)['purple_coins'],1)
-        with self.assertRaises(ValueError):self.convert(key,2)
-    def test_redeem_reserve_duplicate_cancel_refund_once(self):
-        self.convert(quantity=50);key=str(uuid.uuid4());self.order(key);d=self.order(key)
-        self.assertEqual(d['purple'],0);self.assertEqual(len(d['orders']),1)
-        with self.assertRaises(ValueError):shop.resolve(self.store,key,'cancelled','account:2')
-        for _ in range(2):shop.resolve(self.store,key,'cancelled','account:1')
-        self.assertEqual(shop.overview(self.store,'account:1',self.p)['purple'],50)
-    def test_fulfilled_order_cannot_refund(self):
-        self.convert(quantity=50);key=str(uuid.uuid4());self.order(key);shop.resolve(self.store,key,'fulfilled')
-        with self.assertRaises(ValueError):shop.resolve(self.store,key,'cancelled','account:1')
-    def test_expired_and_nonvip_conversion_denied(self):
-        with self.store.connect() as db:db.execute('UPDATE vip_memberships SET expires=0')
-        with self.assertRaises(PermissionError):self.convert()
+            db.execute("INSERT INTO currency_moves VALUES('old-charge',?,'purple',-50)",(self.p,))
+    def test_legacy_balances_are_not_converted_into_training_coins(self):
+        for _ in range(3):d=shop.overview(self.store,'account:1',self.p)
+        self.assertEqual((d['gold'],d['purple']),(1000,-50));self.assertEqual(sum(d['wallet'].values()),0)
+        self.assertEqual((d['orders'][0]['charge_currency'],d['orders'][0]['charge_amount']),('purple',50))
+    def test_old_order_refund_original_fifty_purple_once(self):
+        with self.assertRaises(ValueError):shop.resolve(self.store,self.key,'cancelled','account:2')
+        for _ in range(3):shop.resolve(self.store,self.key,'cancelled','account:1')
+        d=shop.overview(self.store,'account:1',self.p);self.assertEqual(d['purple'],0);self.assertEqual(d['wallet']['universal'],0)
+    def test_fulfilled_old_order_cannot_refund(self):
+        shop.resolve(self.store,self.key,'fulfilled')
+        with self.assertRaises(ValueError):shop.resolve(self.store,self.key,'cancelled','account:1')
+    def test_retired_conversion_cannot_spend_old_gold(self):
+        with self.assertRaises(ValueError):shop.act(self.store,'account:1',self.p,dict(action='convert',quantity=1,request_id=str(uuid.uuid4())))
         self.assertEqual(shop.overview(self.store,'account:1',self.p)['gold'],1000)
-    def test_concurrent_spending_cannot_go_negative(self):
-        self.convert(quantity=99)
-        def attempt(_):
-            try:self.convert();return True
-            except ValueError:return False
-        with ThreadPoolExecutor(max_workers=2) as pool:results=list(pool.map(attempt,range(2)))
-        self.assertEqual(sum(results),1);self.assertEqual(shop.overview(self.store,'account:1',self.p)['gold'],0)
+    def test_concurrent_old_refunds_are_exactly_once(self):
+        def cancel(_):shop.resolve(LeaderboardStore(self.store.path),self.key,'cancelled','account:1')
+        with ThreadPoolExecutor(max_workers=6) as pool:list(pool.map(cancel,range(6)))
+        self.assertEqual(shop.overview(self.store,'account:1',self.p)['purple'],0)
 
 class RouteTests(unittest.TestCase):
     def setUp(self):
@@ -140,7 +138,7 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(expected,vip.LOCKED)
         for ex in vip.LOCKED:
             self.assertEqual(self.a.post('/start',json=dict(profile_id=self.pa,exercise=ex,arm=server.CATALOG[ex]['default_arm'])).status_code,403)
-        self.assertEqual(self.a.get(f'/profiles/{self.pa}/rewards').status_code,403)
+        self.assertEqual(self.a.get(f'/profiles/{self.pa}/rewards').status_code,200)
         self.grant();self.assertEqual(self.a.post('/start',json=dict(profile_id=self.pa,exercise='front_raise',arm='right')).status_code,200)
         self.assertEqual(self.a.get(f'/profiles/{self.pa}/rewards').status_code,200)
         self.assertEqual(self.b.get(f'/profiles/{self.pa}/rewards').status_code,404)

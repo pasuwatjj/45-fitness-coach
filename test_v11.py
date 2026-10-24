@@ -127,7 +127,7 @@ class RewardTests(unittest.TestCase):
             self.assertEqual(b.get(f'/profiles/{p}/rewards').status_code,404)
             self.assertEqual(b.post(f'/profiles/{p}/rewards',json={'action':'claim'}).status_code,404)
             # v12 retires legacy redemption endpoints; clients cannot mint or spend purple coins.
-            self.assertEqual(a.post(f'/profiles/{p}/rewards',json={'action':'claim','coins':999}).status_code,403)
+            self.assertEqual(a.post(f'/profiles/{p}/rewards',json={'action':'claim','coins':999}).status_code,400)
             self.assertEqual(server.app.test_client().get(f'/profiles/{p}/rewards').status_code,401)
 
 if __name__=='__main__':unittest.main()

@@ -1,0 +1,67 @@
+45 Fitness Coach v26 — release 2026-10-24 (Asia/Bangkok); tests 2026-10-23 UTC
+
+Build: complete existing restored application with additive v26 training modes,
+automatic arm selection, isolated training currency ledger and original Canvas 3D
+adult characters. No user database, credentials, deployment or live writes included.
+
+PASS: 234 Python unittest cases.
+- Existing 220 cases retained in scope; superseded commerce assertions updated for
+  all-account training exchange and retirement of old gold conversion. Five legacy
+  commerce cases now exercise real pre-v26 order schema migration, unchanged balances,
+  original 50-purple refunds, fulfilled-order protection and concurrent refund safety.
+- 14 new v26 tests cover progressively tighter endpoints for every exercise, arm-only
+  selection/hysteresis, preserving per-side calibration, cancelling unfinished reps,
+  saving automatic-arm left/right totals, immutable session difficulty, stale/cross-user
+  controls, all exchange rates, idempotency, concurrent spending, atomic workout/coin
+  storage rollback, VIP-only 100-universal reward requests and original-currency refunds.
+- Character tests cover account-wide appearance persistence, profile-specific growth,
+  5,000-rep visual cap, access control, invalid payload rejection, dimensions shared with
+  the owner's profile, and public appearance without raw private measurements.
+- Prior authentication, restart persistence, exercise geometry, health/planner, camera,
+  social privacy, receipts, administrator permissions and challenge regressions passed.
+
+PASS: test_ui_v23.cjs and test_ui_v25.cjs.
+- 3 independent simulated browser contexts x 200 camera open/close cycles = 600 cycles;
+  every simulated media track released. These are not physical camera device tests.
+- TH/EN shared charts/read-only profiles, push-up controls and password reset forms.
+- Bootstrap/network recovery, GET-only session renewal, no automatic replay of writes,
+  stalled response headers and stalled JSON bodies both time out without closing camera.
+
+PASS: test_ui_v26.cjs using real Flask-rendered HTML and controlled API/media stubs.
+- TH/EN character edit/save failure/retry, read-only measurement privacy, keyboard
+  rotation, and 192 gender/hair/growth/yaw renderer combinations without exceptions.
+- Default beginner/custom controls, Pro locked angles, active-session level locking,
+  auto-arm control next to fullscreen, set-ID payload, toggle failure rollback and
+  disabled auto selection for unsupported leg exercises.
+- Non-VIP exchange enabled, VIP reward request gated, legacy balances separate,
+  retry uses the same request ID, three accepted coin colours and rejected split coin.
+- Invalid currency types return 400 without modifying the wallet; toggle failure
+  remains visible alongside the restored checkbox state.
+- Glass sound uses separate high-pass synthesized noise and respects mute.
+
+PASS: actual headless Chromium browser on the running Flask/Waitress application.
+- Registration, authenticated session, profile creation, opening/customizing character,
+  hair colour and height 175/weight 70 save, home navigation, non-VIP rewards page,
+  Pro locks angles / beginner unlocks, automatic-arm checkbox and TH/EN routes.
+- Desktop character/rewards and 390px mobile character screenshots visually reviewed.
+  Mobile document width remained 390px with no horizontal overflow. Zero page errors.
+- All 13 destinations navigated, returning home after each: home, workout, leaderboard,
+  health, calendar, profile, rewards, challenges, VIP, friends, admin, cardio, character.
+  Normal-account administrator denial remained graceful.
+
+PASS: all 20 static JavaScript files pass node --check.
+
+Limits: simulated landmarks are not proof of physical-camera accuracy for all bodies,
+exercises, lighting, views or devices. Actual camera permission/device performance,
+audible output on user hardware, client-to-Render network latency, production disk
+restart persistence, SMTP/payment provider settings and live fulfillment were not tested.
+Difficulty thresholds and character growth are game mechanics, not clinical standards
+or estimates of real muscle mass. No deployment has been performed.
+
+Re-run:
+  python -m unittest discover -p 'test*.py'
+  npm install --prefix /path/to/separate-tools jsdom@26
+  NODE_PATH=/path/to/separate-tools/node_modules node test_ui_v23.cjs
+  NODE_PATH=/path/to/separate-tools/node_modules node test_ui_v25.cjs
+  NODE_PATH=/path/to/separate-tools/node_modules node test_ui_v26.cjs
+Run tests using a temporary FITNESS_DATA_PATH, not the production database.

@@ -19,6 +19,9 @@ def schema(db):
       id TEXT PRIMARY KEY,owner TEXT NOT NULL,profile_id INTEGER NOT NULL,
       status TEXT NOT NULL,name TEXT NOT NULL,phone TEXT NOT NULL,address TEXT NOT NULL,
       created REAL NOT NULL);''')
+    columns={r[1] for r in db.execute('PRAGMA table_info(shop_orders)')}
+    if 'charge_currency' not in columns:db.execute("ALTER TABLE shop_orders ADD COLUMN charge_currency TEXT NOT NULL DEFAULT 'purple'")
+    if 'charge_amount' not in columns:db.execute('ALTER TABLE shop_orders ADD COLUMN charge_amount INTEGER NOT NULL DEFAULT 50')
 
 
 def balance_db(db,profile):
@@ -34,8 +37,9 @@ def overview(store,owner,profile):
     with store.lock,store.connect() as db:
         schema(db)
         balance=balance_db(db,profile)
-        orders=[dict(row) for row in db.execute('SELECT id,status,created FROM shop_orders WHERE owner=? AND profile_id=? ORDER BY created DESC LIMIT 30',(owner,profile))]
-    return dict(**balance,orders=orders,product='Banvit Godzilla Absolute Zero',cost=50,rate=10)
+        orders=[dict(row) for row in db.execute('SELECT id,status,created,charge_currency,charge_amount FROM shop_orders WHERE owner=? AND profile_id=? ORDER BY created DESC LIMIT 30',(owner,profile))]
+    from training_economy import overview as training_overview
+    return dict(**balance,orders=orders,product='Banvit Godzilla Absolute Zero',legacy=True,**training_overview(store,owner,profile))
 
 
 def operation_id(value):
@@ -44,47 +48,24 @@ def operation_id(value):
 
 
 def act(store,owner,profile,data):
-    if not isinstance(data,dict):raise ValueError('Invalid request')
-    key=operation_id(data.get('request_id'));kind=data.get('action')
-    if kind not in ('convert','redeem'):raise ValueError('Unknown shop action')
-    quantity=data.get('quantity',1)
-    if type(quantity) is not int or not 1<=quantity<=100 or kind=='redeem' and quantity!=1:
-        raise ValueError('Invalid quantity')
-    contact={}
-    if kind=='redeem':
-        for field,limit in [('name',100),('phone',30),('address',1000)]:
-            val=data.get(field)
-            if not isinstance(val,str) or not val.strip() or len(val)>limit:raise ValueError('Complete recipient name, phone and address')
-            contact[field]=val.strip()
-    with store.lock,store.connect() as db:
-        schema(db);db.execute('BEGIN IMMEDIATE')
-        if not membership.active_db(db,owner):raise PermissionError('VIP Home required')
-        old=db.execute('SELECT * FROM shop_operations WHERE id=?',(key,)).fetchone()
-        if old:
-            if old['owner']!=owner or old['profile_id']!=profile or old['kind']!=kind or old['quantity']!=quantity:
-                raise ValueError('Request ID already used')
-        else:
-            wallet=balance_db(db,profile)
-            if kind=='convert' and wallet['gold']<10*quantity:raise ValueError('Not enough gold coins')
-            if kind=='redeem' and wallet['purple']<50:raise ValueError('Not enough purple coins')
-            db.execute('INSERT INTO shop_operations VALUES(?,?,?,?,?,?)',(key,owner,profile,kind,quantity,time.time()))
-            if kind=='convert':
-                db.execute('INSERT INTO currency_moves VALUES(?,?,?,?)',(key+':gold',profile,'gold',-10*quantity))
-                db.execute('INSERT INTO currency_moves VALUES(?,?,?,?)',(key+':purple',profile,'purple',quantity))
-            else:
-                db.execute('INSERT INTO currency_moves VALUES(?,?,?,?)',(key+':reserve',profile,'purple',-50))
-                db.execute('INSERT INTO shop_orders VALUES(?,?,?,?,?,?,?,?)',(key,owner,profile,'pending',contact['name'],contact['phone'],contact['address'],time.time()))
+    from training_economy import act as training_act
+    training_act(store,owner,profile,data)
     return overview(store,owner,profile)
 
 
 def resolve(store,order_id,result,owner=None):
     if result not in ('cancelled','fulfilled'):raise ValueError('Invalid order status')
     with store.lock,store.connect() as db:
-        schema(db);db.execute('BEGIN IMMEDIATE')
+        schema(db)
+        from training_economy import schema as training_schema
+        training_schema(db);db.execute('BEGIN IMMEDIATE')
         row=db.execute('SELECT * FROM shop_orders WHERE id=?',(order_id,)).fetchone()
         if not row or owner and row['owner']!=owner:raise ValueError('Order not found')
         if owner and result!='cancelled':raise PermissionError('Only administrator can fulfill orders')
         if row['status']==result:return
         if row['status']!='pending':raise ValueError('Order already resolved')
-        if result=='cancelled':db.execute('INSERT INTO currency_moves VALUES(?,?,?,50)',(order_id+':refund',row['profile_id'],'purple'))
+        if result=='cancelled':
+            if row['charge_currency']=='universal':
+                db.execute('INSERT INTO training_ledger VALUES(?,?,?,?,?,?)',(order_id+':refund',row['profile_id'],'universal',row['charge_amount'],'refund',time.time()))
+            else:db.execute('INSERT INTO currency_moves VALUES(?,?,?,?)',(order_id+':refund',row['profile_id'],row['charge_currency'],row['charge_amount']))
         db.execute('UPDATE shop_orders SET status=? WHERE id=?',(result,order_id))

@@ -74,7 +74,7 @@ class SessionLifecycle(unittest.TestCase):
         self.assertEqual(b.post(path,json={'action':'begin'}).status_code,404)
         self.assertEqual(self.client.post(path,json={'action':'award','purple_coins':999}).status_code,400)
         self.assertEqual(self.client.post(path,json={'action':'begin','purple_coins':999}).json['purple_coins'],0)
-        self.assertEqual(self.client.post(f"/profiles/{self.profile['id']}/rewards",json={'action':'redeem','item':'whey'}).status_code,403)
+        self.assertEqual(self.client.post(f"/profiles/{self.profile['id']}/rewards",json={'action':'redeem','item':'whey'}).status_code,400)
 
 class UpperArmTests(unittest.TestCase):
     def test_forward_upper_arm_not_parallel_rejected(self):

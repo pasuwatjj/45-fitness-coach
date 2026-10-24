@@ -96,6 +96,12 @@ def register(app,get_store):
                 db.execute('INSERT INTO profile_sharing VALUES(?,?) ON CONFLICT(profile_id) DO UPDATE SET enabled=excluded.enabled',(pid,int(enabled)))
         return jsonify(enabled=enabled)
 
+    @bp.get('/social/characters/<int:pid>')
+    def public_character(pid):
+        from character import overview
+        try:return jsonify(overview(get_store(),pid,False))
+        except ValueError as error:return jsonify(error=str(error)),404
+
     @bp.get('/social/profiles/<int:pid>/<view>')
     def shared_profile(pid,view):
         owner,enabled=sharing(pid)

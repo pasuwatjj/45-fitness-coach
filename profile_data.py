@@ -71,5 +71,6 @@ def overview(store, profile_id):
     plan=store.plan_month(profile_id,today_thailand().strftime('%Y-%m'))
     from rewards import overview as reward_overview
     badges=reward_overview(store,profile_id)
-    return dict(muscle_groups=list(groups.values()),rewards=badges,profile=store.profile(profile_id),has_avatar=has_avatar,totals=totals,
+    from character import dimensions
+    return dict(dimensions=dimensions(store,profile_id),muscle_groups=list(groups.values()),rewards=badges,profile=store.profile(profile_id),has_avatar=has_avatar,totals=totals,
                 sets=rows,history_limit=60,health=store.health_history(profile_id),streak=plan['streak'])

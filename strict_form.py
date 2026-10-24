@@ -23,7 +23,7 @@ def unit(v):
     n=float(np.linalg.norm(v))
     return v/n if n>.04 and np.isfinite(v).all() else None
 
-def geometry(exercise,side,pose,world,m):
+def geometry(exercise,side,pose,world,m,difficulty='beginner'):
     """Unknown is distinct from a confirmed mismatch. Thresholds have margin."""
     off=0 if side=='left' else 1
     ids=[11,12,23,24,11+off,13+off,15+off]
@@ -39,14 +39,15 @@ def geometry(exercise,side,pose,world,m):
     if front is None:return False,[]
     # Anatomical left/right fixes the normal's sign; do not flip from noisy nose depth.
     family=CATALOG[exercise]['family'];bad=[]
+    rank={'beginner':0,'pro':1,'expert':2}.get(difficulty,0)
     lean=math.degrees(math.acos(float(np.clip(np.dot(up,np.array([0.,-1.,0.])), -1, 1))))
-    if family in ('curl','raise','shoulder_press') and lean>32:bad.append('body_position')
-    if family=='row' and not 20<=lean<=130:bad.append('body_position')
-    if family in ('chest_press','triceps') and not 45<=lean<=135:bad.append('body_position')
-    if family=='incline_press' and not 20<=lean<=95:bad.append('body_position')
+    if family in ('curl','raise','shoulder_press') and lean>[32,24,18][rank]:bad.append('body_position')
+    if family=='row' and not [20,25,30][rank]<=lean<=[130,120,110][rank]:bad.append('body_position')
+    if family in ('chest_press','triceps') and not [45,55,65][rank]<=lean<=[135,125,115][rank]:bad.append('body_position')
+    if family=='incline_press' and not [20,25,30][rank]<=lean<=[95,85,75][rank]:bad.append('body_position')
     if family in ('squat','hinge'):
-        if family=='squat' and lean>65:bad.append('leg_position')
-        if family=='hinge' and m.get('knee',180)<110:bad.append('leg_position')
+        if family=='squat' and lean>[65,55,45][rank]:bad.append('leg_position')
+        if family=='hinge' and m.get('knee',180)<[110,120,130][rank]:bad.append('leg_position')
         return True,bad
     upper=unit(xyz(13+off)-xyz(11+off));fore=unit(xyz(15+off)-xyz(13+off))
     if upper is None or fore is None:return False,[]
@@ -56,8 +57,8 @@ def geometry(exercise,side,pose,world,m):
     if family=='curl':
         # Body-relative axes let the whole person turn without being penalized.
         # A small upper-arm drift is advice; only a clear mismatch rejects a rep.
-        if arm>45 or float(np.dot(upper,front))>.65:bad.append('upper_position')
-        if joint is not None and joint<125 and (forward<-.25 or lateral>.82):bad.append('curl_path')
+        if arm>[45,32,24][rank] or float(np.dot(upper,front))>[.65,.5,.4][rank]:bad.append('upper_position')
+        if joint is not None and joint<125 and (forward<[-.25,-.1,0][rank] or lateral>[.82,.7,.6][rank]):bad.append('curl_path')
     elif family=='row':
         if joint is not None and joint<110 and float(np.dot(upper,front))>.45:bad.append('row_path')
     elif family in ('chest_press','incline_press','triceps'):

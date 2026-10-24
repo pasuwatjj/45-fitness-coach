@@ -1,0 +1,48 @@
+45 Fitness Coach v28 — verification report — 24 October 2026
+
+PASS: 234 existing backend unittest cases (49.226 seconds).
+PASS: 3 additional v28 backend cases (1.563 seconds):
+- Two actual email/password registrations save different appearances; logout, recreate the store and
+  session registry, then alternate both accounts in the SAME browser client. Each retains its saved
+  appearance. Other-owner GET/POST is denied; guest has the default character and cannot save.
+- Every local JS/CSS referenced by the rendered HTML exists, returns 200, uses ?v=28 and revalidation.
+  HTML is no-store; application version is 28.
+- Both inactive accounts receive VIP status and the packaged QR image is a real nonempty PNG.
+
+PASS: Existing Node/jsdom test_ui_v23.cjs, test_ui_v25.cjs and test_ui_v26.cjs.
+This retains coverage for 3 camera contexts × 200 independent open/close cycles, session recovery,
+frame timeout handling, shared profile privacy, 192 character/render combinations, difficulties,
+auto-arm toggle/rollback, coin categories, exchange idempotency, VIP gates and rejected-rep sound.
+
+PASS: New test_ui_v28.cjs:
+- Thai and English rewards: empty profiles, one fresh retry for transient bootstrap data, invalid data
+  shape, failed network request, visible retry controls, successful recovery and VIP-only redemption.
+- Missing unrelated character HTML cannot stop Rewards or VIP navigation dispatch.
+  Character navigation passes explicit profile/read-only state.
+- Renderer curl phase changes; RAF scheduling is limited to 30 fps, reduced-motion pauses and destroy
+  cancels outstanding frames/listeners. Destroyed renderer cannot restart.
+- VIP fetch failure offers retry; inactive accounts render payment QR and receipt upload without an
+  automatic receipt provider configured.
+- A selected online voice provider failure never triggers a second provider or device voice.
+  A selected device voice uses only speech synthesis and makes no online speech request.
+
+PASS: Actual Chromium browser QA run by parent agent, using local app + temporary database:
+- Existing v26 account/signup/profile/custom character workflows.
+- Own-profile preview canvas pixels change across 300 ms (animated dumbbell curls).
+- VIP QR image loads successfully with naturalWidth > 0.
+- Decoration, motion button, refresh button, three sidebar cards, external big cue, old distance/sound
+  buttons hidden; in-camera overlay element retained.
+- All 13 page destinations and home navigation; 390 px mobile without horizontal overflow; Thai/English.
+- Deliberately remove characterTab and characterPage, then open Rewards/VIP: wallet/QR still load.
+- Zero page JavaScript errors in that run.
+
+Diagnosis: Mixed-version HTML missing character nodes causes the old setTab loop to throw before the
+Rewards/VIP loaders run. This was reproduced by removing those nodes. v28 guards navigation, reports
+incomplete installed modules, versions all local scripts/styles coherently, and separately handles real
+profile/network failures. The user's production installation was not modified or directly inspected.
+
+Scope: local synthetic/API/browser tests. No deployment, live payment, receipt submission or mail sent.
+Playback behavior and provider selection were tested; audible output on the user's speakers and live
+online speech-provider availability are not certified. Real camera/body tracking quality must be checked
+on the intended device. No user database, credentials, API keys, node_modules or generated cache is
+included in the release ZIP. Keep the existing persistent data disk and environment when updating.

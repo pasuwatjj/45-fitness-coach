@@ -33,3 +33,10 @@ Dumbbell Split Squat (1).pdf, preserving names and full page content.
 13 supplied exercise sequences replace the prior illustrations. The project
 owner requested the credit "Trainer Jeff"; no professional certification is asserted.
 Bench Press pages 17-18 depict floor exercise and are labelled accordingly.
+
+v29 theme artwork (24 October 2026)
+static/images/themes/: 40 original semantic SVG icons and 2 original decorative
+scenes drawn for this release. Spicylifter uses generic pastel bunny/cloud/bow/
+heart/star motifs; Powerlifter uses generic friendly ghost/pumpkin/bat/moon motifs.
+No LINE, Sanrio or other third-party character/logo assets are incorporated.
+The existing 45 team logo and all prior exercise/media attributions remain unchanged.

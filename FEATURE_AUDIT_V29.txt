@@ -1,0 +1,68 @@
+45 Fitness Coach v29 — รายการตรวจความครบถ้วน / Feature audit
+24 October 2026 — complete source package; not deployed
+
+This release contains all previous modules, not only theme changes. The actual
+behavior of protected features depends on the signed-in account, VIP/admin role
+and configured services. A guest seeing a sign-in message is not a missing page.
+
+13 page entry points present in the delivered template
+01 Home: original 45 logo, full overview, muscle groups, exercise images and VIP locks.
+   New original Spicylifter bunny/cloud or Powerlifter ghost/pumpkin hero + icons.
+02 Workout: 15 exercises, images/videos, camera preview, fullscreen, start/pause/
+   resume/stop/reset/calibrate, saved sets, tutorial, angle/tolerance controls,
+   Beginner/Pro/Expert, automatic arm switching and compact voice settings.
+03 Calendar: month/day plan editor, per-set credits, daily completion and streak.
+04 Leaderboard: saved training ranking, side/mode filters and streaks.
+05 Cardio: jumping jacks/pushups, upper/full body mode, timer, rewards and rankings.
+06 Health: private measurements, BMI summary, saved history and progress.
+07 Character: account-owned appearance, muscle growth, keyboard/pointer rotation,
+   animated dumbbell curl, read-only member preview and saved style after login.
+08 Profile: history, charts, muscle totals, photos, privacy/share controls,
+   character animation in own and shared member profiles.
+09 VIP: status/expiry, real local payment QR, receipt file form, visible failure/retry,
+   server-side premium gates; configured verification or manual review.
+10 Rewards: four training currencies, exchange buttons for signed-in accounts,
+   VIP whey redemption, order/history, stable retries, legacy balance separation.
+11 Challenges: progress and daily completed-plan reward claims.
+12 Friends: search, incoming requests, accept/cancel, member profiles and private chat.
+13 Admin: role-protected member list/search/paging, profiles, VIP grant, receipt
+   review, maintenance and site controls. Hidden from normal accounts as before.
+
+Retained v28 repairs (included even if v28 was never installed)
+- Navigation tolerates an absent unrelated character element: rewards/VIP still load.
+- Clear incomplete-upload notice, rewards/VIP visible errors and retry actions.
+- Per-email character persistence; guest and other-account isolation.
+- Own/member profile curl animation, RAF cleanup, <=30fps, offscreen and reduced motion.
+- v26 navigation dimensions; intentionally removed refresh/decorative dumbbell,
+  three side observation cards and outside-camera cue/distance/sound controls
+  remain hidden. Their underlying live IDs remain for processing compatibility.
+- Small voice settings checkbox; selected provider only, no automatic audio fallback.
+
+New v29 coverage
+- Original locally stored SVG icon family: 20 semantic icons per theme + 2 hero scenes.
+- Home, navigation, account shortcuts, all muscle groups, page headings, cards, chat.
+- Existing buttons, handlers, IDs, badges, counts and labels retained; dynamic refresh
+  observes relevant content only, disconnects during edits and settles without loops.
+- Theme remembered by existing browser preference; light Spicylifter/dark Powerlifter.
+- All code assets use ?v=29; new SVG URLs use ?v=29; all static assets revalidate.
+- Full source, static images/videos, QR and MediaPipe model included in ZIP.
+
+Regression evidence map
+- test_v13/test_v14/test_v16: VIP/slip exact checks, private receipt routes, manual
+  approval, idempotency, guest/account boundaries, admin/friend access controls.
+- test_v18/test_v20/test_v23/test_v24: cardio lifecycle/credits/timer, chart privacy,
+  consent/revocation, synthetic motion/view rules, reset and session stress cycles.
+- test_v25/test_v26/test_v28: account restart persistence, training difficulty/auto-arm,
+  atomic coin credits/exchanges/refunds, account-private character and load recovery.
+- test_form_rules/test_gentle_coach/test_health_voice/test_planner_motion/test_sessions:
+  original synthetic form, health, voice, plan and session behavior.
+- test_ui_v23/v25/v26/v28: DOM/media-simulated controls, character, reward retry,
+  VIP QR/form, navigation missing-element resilience and single selected voice.
+- test_v29 + test_ui_v29: all 13 entry points, local complete SVG assets, original
+  control identity/listeners, dynamic labels, observer settling, theme persistence.
+- Actual Chromium page/navigation/responsive checks are recorded in TEST_REPORT_V29.txt.
+
+Physical camera accuracy, actual bank transfer/SlipOK, SMTP delivery, online voice
+provider availability and production Render deployment are not established by
+these automated tests. No actual payment, public deployment or outbound message
+was performed for this release. Test your camera/audio on your own device.

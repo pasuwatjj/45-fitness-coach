@@ -1,3 +1,14 @@
+45 Fitness Coach v29 — 24 October 2026
+Complete release: includes v26 + v28 repairs + whole-app cute themes.
+อ่าน DEPLOY_V29_TH.txt และ FEATURE_AUDIT_V29.txt ก่อนอัปโหลดทั้งชุด
+ไม่ต้องติดตั้ง v27/v28 ก่อน — ผลทดสอบ TEST_REPORT_V29.txt — ยังไม่ได้ Deploy
+
+Historical notes follow; v29 guide takes precedence.
+
+45 Fitness Coach v28 — 24 October 2026
+อ่าน DEPLOY_V28_TH.txt สำหรับการอัปโหลดทั้งชุดจาก v26 และการเปลี่ยนหน้าจอ/เสียงล่าสุด
+ผลการทดสอบ: TEST_REPORT_V28.txt — ยังไม่ได้ Deploy
+
 45 Fitness Coach v22 — see V22_README_TH.txt.
 45 Fitness Coach v21 — see V21_README_TH.txt for new features and permanent domain setup.
 45 FITNESS COACH v20

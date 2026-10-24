@@ -1,0 +1,46 @@
+45 Fitness Coach v29 — 24 October 2026
+
+Complete release, usable directly from v26. No separate v27/v28 install required.
+
+ADDED
+- Whole-app original cute skins: Spicylifter pastel bunny/cloud/bow/heart/stars;
+  Powerlifter friendly Halloween ghost/pumpkin/bat/moon in orange and purple.
+- 42 local SVG assets, themed home scenes, home/category/navigation/account icons,
+  dynamic page heading/chat icons and themed surfaces across the application.
+- New release completeness and theme behavior regressions; feature audit and Thai guide.
+
+PRESERVED AND INCLUDED
+- All v26 training difficulty, four-coin economy, automatic arm switching,
+  character customization/growth and every existing backend/page module.
+- All v28 navigation, rewards loading/retry, VIP QR/receipt and account-private
+  animated character/profile repairs. Compact v26 navigation and v28 hidden UI.
+- Original 45 logo, exercise photos/videos, provider selection and payment rules.
+
+FIXED
+- Theme switch and page navigation now toggle active state without deleting decorative classes.
+- LAN/share QR rendering uses uniform integer pixels per QR module. Fixed-size
+  fractional resizing was intermittently unreadable for long access URLs.
+- Decorative icons survive asynchronous account labels and page refreshes while
+  preserving actual controls and event handlers. No self-triggering observer loop.
+- All static responses revalidate, with v29 cache keys for all loaded code and new art.
+
+NEW FILES
+static/themes-v29.js
+static/themes-v29.css
+static/theme-icons-v29.css
+static/images/themes/*.svg (42)
+test_v29.py
+test_ui_v29.cjs
+DEPLOY_V29_TH.txt / FEATURE_AUDIT_V29.txt / TEST_REPORT_V29.txt / CHANGELOG_V29.txt
+
+CHANGED FROM RESTORED v28
+app.py: release 29 + static asset cache revalidation + uniform QR module scaling.
+templates/index.html: v29 asset keys + local theme assets/module.
+static/app.js: preserve theme-button decoration classes when switching theme.
+static/navigation-v28.js: incomplete-upload notice points to complete v29 release.
+test_v28.py: coherence assertion follows current release rather than old cache key.
+test_ui_v28.cjs: isolated voice fixture includes the actual accountText dependency.
+README.txt: v29 release and installation entry point.
+ATTRIBUTION.txt: original local theme artwork note.
+
+No production deployment, database or secrets included in the release archive.

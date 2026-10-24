@@ -47,7 +47,7 @@ from planner import today_thailand
 ROOT = Path(__file__).resolve().parent
 MODEL = ROOT / 'models' / 'pose_landmarker_lite.task'
 SETTINGS = json.loads((ROOT / 'settings.json').read_text(encoding='utf-8-sig'))
-GENTLE_COACH_VERSION = 26
+GENTLE_COACH_VERSION = 29
 store = LeaderboardStore(os.environ.get('FITNESS_DATA_PATH', str(ROOT / 'data' / 'fitness.db')))
 voice_cache = VoiceCache(store.path.parent / 'voice-v13')
 app = Flask(__name__)
@@ -1061,6 +1061,8 @@ def new_session():
 def private_headers(response):
     if not request.path.startswith('/static/') and not request.path.startswith('/speech/'):
         response.headers['Cache-Control']='no-store'
+    if request.path.startswith('/static/'):
+        response.headers['Cache-Control']='no-cache, must-revalidate'
     response.headers['Referrer-Policy']='no-referrer'
     if request.path not in ('/','/45-fitness-coach','/robots.txt','/sitemap.xml') and not request.path.startswith('/static/'):
         response.headers['X-Robots-Tag']='noindex, nofollow'
@@ -1118,7 +1120,10 @@ def share_qr():
         return 'Sharing is not running',404
     qr=cv2.QRCodeEncoder_create().encode(url)
     qr=cv2.copyMakeBorder(qr,8,8,8,8,cv2.BORDER_CONSTANT,value=255)
-    qr=cv2.resize(qr,(480,480),interpolation=cv2.INTER_NEAREST)
+    # Keep each QR module an equal integer number of pixels; fractional scaling
+    # can create uneven cells that some scanners cannot decode.
+    scale=max(1,round(480/qr.shape[0]))
+    qr=cv2.resize(qr,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST)
     ok,encoded=cv2.imencode('.png',qr)
     return Response(encoded.tobytes(),mimetype='image/png',headers={'Cache-Control':'no-store'}) if ok else ('QR unavailable',500)
 
@@ -1130,7 +1135,8 @@ def connection_qr(number):
         return 'No LAN address', 404
     qr = cv2.QRCodeEncoder_create().encode(links[number]['url'])
     qr = cv2.copyMakeBorder(qr, 8, 8, 8, 8, cv2.BORDER_CONSTANT, value=255)
-    qr = cv2.resize(qr, (420, 420), interpolation=cv2.INTER_NEAREST)
+    scale = max(1, round(420 / qr.shape[0]))
+    qr = cv2.resize(qr, None, fx=scale, fy=scale, interpolation=cv2.INTER_NEAREST)
     ok, encoded = cv2.imencode('.png', qr)
     if not ok:
         return 'QR unavailable', 500

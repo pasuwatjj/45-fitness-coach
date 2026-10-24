@@ -1,0 +1,69 @@
+45 Fitness Coach v29 — verification report — 24 October 2026
+Complete release, not deployed. Includes all retained v26/v28 features and repairs.
+
+PASS: full Python unittest discovery — 241 tests, 107.340 seconds, no failures/errors.
+Includes 237 retained cases and 4 new v29 release/QR cases.
+
+PASS: five Node/jsdom suites rerun on final source: test_ui_v23.cjs,
+test_ui_v25.cjs, test_ui_v26.cjs, test_ui_v28.cjs and test_ui_v29.cjs.
+This includes 3 browser contexts x 200 camera cycles, frame timeout/recovery,
+shared-profile privacy, 192 character/render combinations, difficulty/auto-arm,
+coin exchange idempotency, VIP/reward retries, and selected-provider-only voice.
+The isolated v28 voice test initially omitted accountText from its extracted script;
+its fixture now loads the real helper from account-ui.js, and all five v28 groups pass.
+No production voice change was needed for that test fixture correction.
+
+Additional release regressions (test_v29.py):
+- All 13 page/tab pairs and all restored modules are present in one rendered HTML.
+- Code references use ?v=29; original v28 compatibility CSS/navigation remain loaded;
+  expanded v27 navigation CSS is not loaded. Compact sound settings/reset camera remain.
+- All 42 original SVG theme assets parse as valid XML, exist and return HTTP 200 with
+  cache revalidation. Every theme asset reference is local and versioned.
+- QR, original logo and MediaPipe model are included and nonempty.
+- Sixteen deterministic long LAN access URLs round-trip through the generated PNG and
+  OpenCV decoder; rendered modules have an integer number of pixels.
+
+PASS: Node/jsdom test_ui_v29.cjs, both Thai and English:
+- Thirteen page shortcuts, eight home tiles and five muscle categories get themed icons.
+- Real control nodes, IDs and click listeners remain intact after decoration.
+- Asynchronous friends counts/badges and new rewards/chat headings retain labels and icons.
+- Existing theme controls retain persistence and mutually correct aria-pressed states.
+- Repeated decoration yields one hero scene; MutationObserver settles without triggering
+  itself; frequent camera status text updates do not cause decoration passes.
+- Page navigation and theme switching preserve decorative classes and working controls.
+- All 42 original SVG assets (44 CSS references), no CDN dependency, reduced-motion rules.
+
+PASS: Actual Chromium QA on a local server and temporary database, run by parent agent:
+- All 13 page destinations, existing registration/profile/custom-character workflow.
+- Own profile's animated curl preview visibly changes canvas pixels over 300 ms.
+- VIP QR loads (naturalWidth > 0), receipt input available; rewards wallet renders.
+- Both full visual themes in Thai and English; selected theme survives browser reload.
+- Theme icon background URLs verified after navigation and repeated theme switching.
+- Desktop width 1365 px and mobile width 390 px; no horizontal page overflow.
+- Original logo retained; explicitly removed refresh/dumbbell/motion button/three side
+  cards/outside-camera cue and old distance/sound buttons remain hidden.
+- Deliberately remove characterTab and characterPage: rewards and VIP still load.
+- Zero page JavaScript errors in the checked browser flows.
+
+QR regression discovered and fixed during this release:
+The inherited phone QR test intermittently failed. Fixed 420px resizing gave uneven
+module widths: an additional random experiment failed 2 of 30 URL round-trips, whereas
+integer 8x modules passed all 30. Both LAN/share QR generators now choose an integer
+scale near their original target size and preserve the existing quiet border. The
+original QR test and the new deterministic multi-key regression pass. The payment QR
+is the same existing packaged PNG and was not altered.
+
+Existing v28 repairs retained:
+Missing unrelated navigation DOM does not block rewards/VIP dispatch. Rewards and VIP
+show actionable failure/retry states. Character appearance stays private per email/
+profile through login/logout/restart; guest and other-account writes remain denied.
+Character animation has cleanup/offscreen/reduced-motion behavior. Voice selection
+uses only the chosen provider without automatic device/online fallback.
+
+Scope and delivery:
+Local synthetic/API/DOM/browser verification does not certify physical camera form
+accuracy, real bank transfer/SlipOK, SMTP delivery or online voice availability on the
+user's devices. No production deployment, live payment, mail or chat message was sent.
+Full source/static assets/model ship together. Runtime data, account databases, secrets,
+node_modules, caches and logs are excluded. Preserve the existing production data disk
+and environment. Follow DEPLOY_V29_TH.txt; no v27/v28 intermediate install is needed.

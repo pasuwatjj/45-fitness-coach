@@ -1,0 +1,57 @@
+/* v29: whole-app pastel stationery / friendly Halloween. Original local artwork. */
+body[data-theme="spicy"]{color-scheme:light;--bg:#fff7f8;--panel:#fffcf7;--line:#e6cedd;--mint:#f7e2ed;--green:#85405f;--text:#5b3654;--muted:#7d6076;--pink:#f5d5e3;--lavender:#eee1f5;--warn:#8c5125;--theme-wash:#f9edf5;--theme-soft:#ead9f2;--theme-shadow:#b97c9d13;--home-bg:#fff4f6;--home-ink:#5b3654;--home-accent:#f5d5e3;background:radial-gradient(circle at 12px 12px,#ddb9cf66 1px,transparent 1.7px) 0 0/28px 28px,var(--bg)}
+body[data-theme="power"]{color-scheme:dark;--bg:#211a2b;--panel:#30253d;--line:#685174;--mint:#513848;--green:#ffce9b;--text:#fff0df;--muted:#dbc6de;--pink:#5b3c52;--lavender:#44314f;--warn:#ffd19b;--theme-wash:#392b48;--theme-soft:#614771;--theme-shadow:#0b071b40;--home-bg:#372742;--home-ink:#fff0df;--home-accent:#684358;background:radial-gradient(circle at 12px 12px,#c7a4e82e 1px,transparent 1.7px) 0 0/28px 28px,var(--bg)}
+body[data-theme] #homePage{--home-bg:var(--panel);--home-ink:var(--text);--home-accent:var(--pink)}
+body[data-theme] .home-hero{min-height:0;background:var(--panel)!important;color:var(--text);padding:38px 28px 0!important;border:2px solid var(--line);box-shadow:0 10px 0 var(--theme-shadow);border-radius:32px}
+body[data-theme] .home-hero::before{inset:12px;border:1px dashed var(--line);border-radius:24px;background:none;opacity:1;z-index:-1}
+body[data-theme] .home-hero::after{display:none}
+body[data-theme] .home-hero h2,body[data-theme] .home-hero h3,body[data-theme] .home-hero p{color:var(--text)!important;text-shadow:none}
+.home-hero h2{font-size:clamp(36px,6vw,74px);letter-spacing:-2px;margin:24px auto 12px;line-height:1.05}
+.home-hero h3{font-size:clamp(19px,2.6vw,28px)}
+body[data-theme] .home-hero p{color:var(--muted)!important;max-width:650px;margin:12px auto}
+.home-tag{background:var(--pink);color:var(--text);font-size:12px;letter-spacing:.6px;padding:10px 18px;border:1px solid var(--line)}
+.theme-garden{width:min(440px,100%);height:190px;margin:12px auto 0;background:var(--theme-garden) center bottom/contain no-repeat;pointer-events:none}
+body[data-theme="spicy"]{--theme-garden:url('/static/images/themes/spicy-garden.svg?v=29');--theme-motif:url('/static/images/themes/spicy-star.svg?v=29')}
+body[data-theme="power"]{--theme-garden:url('/static/images/themes/power-garden.svg?v=29');--theme-motif:url('/static/images/themes/power-star.svg?v=29')}
+body[data-theme] .home-tile{background:var(--panel)!important;border:1px solid var(--line)!important;color:var(--text)!important;box-shadow:0 5px 0 var(--theme-shadow);border-radius:24px;min-height:230px;padding:26px}
+body[data-theme] .home-tile:nth-child(3n+2){background:var(--theme-wash)!important}
+body[data-theme] .home-tile:nth-child(3n){background:var(--lavender)!important}
+body[data-theme] .home-tile strong{color:var(--text)!important;font-size:clamp(24px,3vw,34px)}
+body[data-theme] .home-tile small{color:var(--muted)!important;max-width:85%;line-height:1.7}
+.home-tile::after{content:"";position:absolute;right:18px;top:16px;width:62px;height:62px;background:var(--theme-motif) center/contain no-repeat;opacity:.65;pointer-events:none;transform:rotate(12deg);z-index:-1}
+body[data-theme] .home-tile:first-child{min-height:270px}
+.home-tile img{opacity:.08;object-position:center 35%}
+.home-tile-copy{gap:8px}.home-setup p{font-size:14px}
+/* The same compact button padding and type sizes are retained from v26. */
+.theme-sticker::before{content:"";display:inline-block;width:26px;height:26px;margin-inline-end:6px;vertical-align:middle;background:var(--theme-icon) center/contain no-repeat;flex-shrink:0;pointer-events:none}
+.theme-sticker-only{font-size:0;line-height:1}.theme-sticker-only::before{width:62px;height:62px;margin:0}
+.home-group summary.theme-sticker::before{width:38px;height:38px;margin-inline-end:10px}
+#mainApp h2.theme-sticker::before,.friend-chat h3.theme-sticker::before{width:38px;height:38px;margin-inline-end:10px}
+.tabs .theme-sticker::before{width:23px;height:23px;margin-inline-end:5px}
+body[data-theme] .tabs{border:1px solid var(--line);background:var(--lavender)}
+body[data-theme] .tab.active{background:var(--panel);box-shadow:0 2px 6px var(--theme-shadow)}
+body[data-theme] .theme-button.active{background:var(--pink);border-color:var(--green);box-shadow:0 2px 0 var(--theme-shadow)}
+body[data-theme] .secondary,body[data-theme] summary{color:var(--text)}
+body[data-theme] .panel,body[data-theme] .card{box-shadow:0 4px 0 var(--theme-shadow)}
+body[data-theme] .profile-bar,body[data-theme] .training-modes,body[data-theme] .count-card,body[data-theme] .rest-panel,body[data-theme] .health-result-top{background:var(--theme-wash);border-color:var(--line)}
+body[data-theme] .arm-stats div,body[data-theme] figure,body[data-theme] .profile-metric,body[data-theme] .training-wallet>div,body[data-theme] .profile-photo{background:var(--theme-wash)}
+body[data-theme] .tag,body[data-theme] h1 span{color:var(--green)}
+body[data-theme] .hero-chip{background:var(--pink);color:var(--text)}
+body[data-theme] .home-group{border-left:5px solid var(--theme-soft)!important}
+body[data-theme] .home-group[open]{background:var(--theme-wash)}
+body[data-theme] .exercise-choice{background:var(--panel);border-color:var(--line)}
+body[data-theme] .friend-chat{border:2px solid var(--line);box-shadow:0 16px 70px #0005;background:var(--panel)}
+body[data-theme] .friend-chat textarea{background:var(--theme-wash);color:var(--text);border:1px solid var(--line);border-radius:14px;font:inherit}
+body[data-theme] .chat-messages{background:var(--bg);border-radius:16px}
+body[data-theme] .chat-bubble{background:var(--panel);border-color:var(--line);border-radius:18px 18px 18px 4px}
+body[data-theme] .chat-bubble.mine{background:var(--pink);border-radius:18px 18px 4px 18px}
+body[data-theme] .chat-bubble p,body[data-theme] .chat-bubble small{color:var(--text)}
+body[data-theme] .set-ring span{background:var(--panel);color:var(--text)}
+body[data-theme] button:focus-visible,body[data-theme] a:focus-visible,body[data-theme] input:focus-visible,body[data-theme] select:focus-visible,body[data-theme] summary:focus-visible{outline:3px solid var(--green);outline-offset:3px}
+body[data-theme="spicy"] .screen{background:#f6edf6}
+body[data-theme="power"] .screen{background:#251f30}
+@media(max-width:650px){body[data-theme] .home-hero{padding:26px 18px 0!important;border-radius:24px}.home-hero h2{letter-spacing:-1px}.theme-garden{height:155px}.home-tag{max-width:100%;font-size:11px}.home-tile::after{width:48px;height:48px;right:12px;top:12px}}
+@media(max-width:480px){.theme-sticker::before{width:22px;height:22px;margin-inline-end:4px}.tabs .theme-sticker::before{width:20px;height:20px}.theme-sticker-only::before{width:56px;height:56px}body[data-theme] .home-tile{padding:22px;min-height:200px}body[data-theme] .home-tile:first-child{min-height:235px}.home-tile small{max-width:100%}.friend-chat form{flex-wrap:wrap}.friend-chat textarea{width:100%;flex-basis:100%}}
+@media(prefers-reduced-motion:reduce){.theme-sticker,.home-tile,.theme-garden{animation:none!important;transition:none!important}}
+/* Keep language controls compact inside the existing logo clearance area. */
+.lang-bar{align-items:flex-start}

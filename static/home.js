@@ -9,8 +9,7 @@
  const brandBox=el('aside',null,'corner-brand');brandBox.setAttribute('data-i18n-ignore','');
  const brandButton=el('button',null,'brand-home');brandButton.type='button';brandButton.setAttribute('aria-label',en?'Back to home':'กลับหน้าหลัก');brandButton.onclick=()=>setTab('home');
  const brand=el('img');brand.src='/static/images/45-team-logo.png';brand.alt='45 Fitness Coach';brand.width=1536;brand.height=1024;brandButton.append(brand);brandBox.append(brandButton);
- const dumbbell=el('div',null,'mini-dumbbell');dumbbell.setAttribute('aria-hidden','true');dumbbell.innerHTML='<svg viewBox="0 0 120 44"><path d="M32 22H88" stroke="#b9c8dd" stroke-width="9"/><rect x="10" y="10" width="12" height="24" rx="4" fill="#38bdf8"/><rect x="22" y="3" width="17" height="38" rx="5" fill="#ffe157"/><rect x="81" y="3" width="17" height="38" rx="5" fill="#ffe157"/><rect x="98" y="10" width="12" height="24" rx="4" fill="#38bdf8"/></svg>';brandBox.append(dumbbell);
- const motion=el('button',en?'Pause motion':'หยุดขยับ','brand-motion');motion.type='button';motion.setAttribute('aria-pressed','false');motion.onclick=()=>{const paused=dumbbell.classList.toggle('paused');motion.setAttribute('aria-pressed',String(paused));motion.textContent=paused?(en?'Play motion':'ให้ขยับ'):(en?'Pause motion':'หยุดขยับ')};brandBox.append(motion);document.body.prepend(brandBox);
+ document.body.prepend(brandBox);
  const setup=el('div',null,'home-setup'),create=el('button',words.add,'secondary');setup.append(el('p',words.name),create);home.append(setup);
  create.onclick=()=>{setTab('workout');$('profileName').focus();$('profileName').scrollIntoView({block:'center',behavior:'smooth'})};
  const tiles=el('div',null,'home-tiles'),categories=el('section',null,'home-categories');categories.hidden=true;categories.append(el('h2',words.choose));

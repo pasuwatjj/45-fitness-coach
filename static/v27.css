@@ -1,0 +1,82 @@
+/* Keep live tracking targets in the DOM while hiding duplicate profile details. */
+#refreshApp,
+#workoutObservationsCard,
+#workoutAngleCard,
+#workoutChecksCard {
+  display: none !important;
+}
+
+/* Give the camera more room and keep the live rep count easy to read. */
+#curlPanel > .layout {
+  grid-template-columns: minmax(0, 1fr) 240px;
+  align-items: start;
+}
+
+#curlPanel > .layout > section,
+#curlPanel > .layout > aside {
+  min-width: 0;
+}
+
+#curlPanel > .layout > aside {
+  display: block;
+}
+
+#curlPanel > .layout > aside > .count-card {
+  margin: 0;
+}
+
+/* All six primary destinations share the available content width. */
+#mainApp > nav.tabs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  width: 100%;
+  box-sizing: border-box;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px;
+}
+
+#mainApp > nav.tabs > .tab {
+  width: 100%;
+  min-width: 0;
+  min-height: 62px;
+  padding: 14px 10px;
+  font-size: 16px;
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Preserve the existing distance-reading mode. */
+.far-view #mainApp > nav.tabs {
+  display: none;
+}
+
+.far-view #curlPanel > .layout {
+  grid-template-columns: minmax(0, 1fr) 350px;
+}
+
+@media (max-width: 880px) {
+  #curlPanel > .layout,
+  .far-view #curlPanel > .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #mainApp > nav.tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 540px) {
+  #mainApp > nav.tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 6px;
+  }
+
+  #mainApp > nav.tabs > .tab {
+    min-height: 58px;
+    padding: 12px 8px;
+    font-size: 15px;
+  }
+}

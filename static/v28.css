@@ -1,0 +1,10 @@
+/* v28 retains v26 navigation and camera/sidebar dimensions. Keep tracking IDs. */
+#refreshApp, #workoutObservationsCard, #workoutAngleCard, #workoutChecksCard,
+.distance-panel, #bigCue, #distance, #sound, .mini-dumbbell, .brand-motion { display:none !important; }
+.sound-settings { margin: 10px 0 16px; padding: 10px 14px; }
+.sound-settings > label { display:flex; gap:8px; align-items:center; margin-top:12px; }
+.sound-settings input[type=checkbox] { width:auto; }
+.profile-character-preview { margin:18px 0; max-width:340px; }
+.profile-character-preview canvas { display:block; width:100%; height:auto; border-radius:20px; }
+.page-recovery { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+#appLoadNotice { padding:12px 18px; border:1px solid #eab83e; border-radius:12px; }

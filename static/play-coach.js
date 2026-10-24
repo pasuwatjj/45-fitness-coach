@@ -13,7 +13,7 @@
   const h=window.coachHands;
   info.textContent=h&&Date.now()-h.at<1500&&h.count?(en?`Tracking ${h.count} hand(s), 21 points per hand. Yellow lines show fingers; grip is experimental, not certified.`:`พบมือ ${h.count} ข้าง · ติดตาม 21 จุดต่อมือ เส้นเหลืองคือแนวนิ้ว การจับเป็นการประเมินทดลอง`):(en?'Hand unclear: keep it in frame and well lit. Grip cannot be confirmed.':'มือยังไม่ชัด: จัดมือให้อยู่ในภาพและมีแสงพอ ยังยืนยันการจับไม่ได้');
  },700);
- window.spawnCoachCoins=(mode,result="accepted",label=null)=>{
+ window.spawnCoachCoins=(mode,result="accepted",label=null,difficulty=window.fitnessState?.difficulty||"beginner")=>{
   if(!BrowserCamera.active)return;
   const data=window.coachLandmarks,rect=screen.getBoundingClientRect(),video=document.getElementById('liveVideo');
   const vw=video.videoWidth||640,vh=video.videoHeight||480,scale=Math.min(rect.width/vw,rect.height/vh),w=vw*scale,h=vh*scale;
@@ -22,6 +22,7 @@
    const p=data&&Date.now()-data.at<1000?data.points[side==='left'?13:14]:null;
    const good=p&&p[2]>.65,x=good?(data.mirrored?1-p[0]:p[0]):.5,y=good?p[1]:.5;
    const coin=document.createElement('span');coin.className='rep-coin '+result;coin.setAttribute('aria-hidden','true');coin.textContent=label||(result==='rejected'?(en?'🔴 No count':'🔴 ไม่นับ'):result==='unverified'?(en?'⚪ Unclear':'⚪ รอตรวจ'):'🪙 +1');
+   if(result==='accepted'){coin.replaceChildren();const disc=document.createElement('i');disc.className='training-coin '+difficulty;disc.textContent='45';const caption=document.createElement('b');caption.textContent=label||'+1';coin.append(disc,caption)}
    if(result==='rejected'){coin.replaceChildren();for(const half of ['left','right']){const shard=document.createElement('i');shard.className='coin-shard '+half;shard.textContent='🪙';coin.append(shard)}const caption=document.createElement('b');caption.textContent=en?'No count':'ไม่นับ';coin.append(caption)}
    coin.style.left=((rect.width-w)/2+x*w)+'px';coin.style.top=((rect.height-h)/2+y*h)+'px';screen.append(coin);
    coin.addEventListener('animationend',()=>coin.remove(),{once:true});setTimeout(()=>coin.remove(),1300);

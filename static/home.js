@@ -20,7 +20,8 @@
  tile(words.plan,words.planSub,'▦',()=>setTab('calendar'));
  tile(words.rank,words.rankSub,'🔥',()=>setTab('leader'));
  tile(words.health,words.healthSub,'♡',()=>setTab('health'));
- tile(en?'Redeem rewards':'แลกของรางวัล',en?'VIP Home · 50 purple coins for whey':'VIP Home · 50 เหรียญม่วงแลกเวย์','🎁',()=>setTab('rewards'));
+ tile(en?'Create character':'สร้างตัวละคร',en?'Your 3D character · grow through training':'ตัวละคร 3 มิติ · เติบโตจากการฝึก','◈',()=>window.CharacterPage.show());
+ tile(en?'Redeem rewards':'แลกของรางวัล',en?'Exchange coins · VIP whey: 100 universal':'แลกเหรียญ · VIP แลกเวย์ 100 เหรียญสากล','🎁',()=>setTab('rewards'));
  tile(en?'Administrator dashboard':'หลังบ้านแอดมิน',en?'Members · profiles · VIP':'สมาชิก · โปรไฟล์ · ให้ยศ VIP','🛡',()=>setTab('admin'));tiles.lastElementChild.dataset.adminOnly='';tiles.lastElementChild.hidden=true;
  home.append(tiles,categories);
  for(const group of ['back','arms','chest','shoulders','legs']){const box=el('details',null,'home-group');box.dataset.group=group;box.append(el('summary',words[group]));for(const ex of exerciseCatalog.filter(e=>e.group===group)){const b=el('button',null,'secondary'),title=el('span',ex.name,'exercise-choice-title');b.append(title);b.type='button';if(['supported_row','lying_triceps','incline_press','front_raise','split_squat'].includes(ex.id)){b.dataset.vipExercise=ex.id;title.textContent=ex.name+' · 🔒 VIP'}const preview=el('img');preview.src=ex.images[0];preview.alt=ex.name;preview.loading='lazy';preview.className='exercise-tile-image';b.prepend(preview);b.classList.add('exercise-choice');b.onclick=()=>{if(window.VIPPage&&!window.VIPPage.can(ex.id)){setTab('vip');return}setTab('workout');if(wasRunning){$('stop').scrollIntoView({block:'center'});return}$('exercise').value=ex.id;$('exercise').onchange();$('start').scrollIntoView({behavior:'smooth',block:'start'})};box.append(b)}categories.append(box)}

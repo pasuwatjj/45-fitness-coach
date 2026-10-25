@@ -1,7 +1,7 @@
 'use strict';
 (()=>{
  const t=(th,en)=>window.I18N?.lang==='en'?en:th,el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n};
- async function api(url,body){const r=await fetch(url,body===undefined?{cache:'no-store'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw Error(d.error||'Request failed');return d}
+ async function api(url,body){const r=await fetch(url,body===undefined?{cache:'no-store'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw Error(window.I18N.t(d.error)||'Request failed');return d}
  const button=(text,fn)=>{const b=el('button',text,'secondary');b.type='button';b.onclick=fn;return b};
  const maintenance=el('aside','','maintenance-banner');maintenance.hidden=true;maintenance.setAttribute('data-i18n-ignore','');maintenance.append(el('strong',t('🔧 เว็บอยู่ในโหมดปรับปรุง กรุณากลับมาใหม่ภายหลัง','🔧 Maintenance mode. Please return later.')),el('p',t('แอดมินยังเข้าสู่ระบบเพื่อเปิดเว็บกลับได้','Administrators can still sign in to reopen the site.')),button(t('เข้าสู่ระบบแอดมิน','Administrator sign in'),()=>window.openFitnessAccount()));document.querySelector('main').prepend(maintenance);
  async function heartbeat(){if(document.hidden)return;try{const s=await api('/site/status');maintenance.hidden=!s.maintenance;if(!window.FitnessAccount?.guest)await api('/social/presence',{});}catch(e){/* visible controls report individual request errors */}}

@@ -1,0 +1,15 @@
+/* v30 compact account toolbar and public display-name roles. */
+.account-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0}
+.account-bar button{font-size:12px;padding:8px 11px;min-height:38px;margin:0}
+.account-bar .profile-shortcuts,.account-bar .rewards-shortcuts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+#accountEmail{font-size:12px;overflow-wrap:anywhere;max-width:230px}#accountRole{font-size:11px}#logout{margin-left:auto}
+.profile-tools{flex-wrap:wrap}.profile-hero input{max-width:100%;min-width:0}
+.vip-player-name{color:#d99b16!important;font-weight:800;animation:vip-rgb-glow 4s linear infinite}
+.admin-player-name{font-weight:800;color:#ed3b67!important;animation:admin-rainbow 5s linear infinite}
+@keyframes vip-rgb-glow{0%,100%{text-shadow:0 0 6px #ff3c70,0 0 12px #ff3c7055}33%{text-shadow:0 0 6px #1bcc8a,0 0 12px #1bcc8a55}66%{text-shadow:0 0 6px #468cff,0 0 12px #468cff55}}
+@keyframes admin-rainbow{0%,100%{color:#e53865}20%{color:#d88d08}40%{color:#15966d}60%{color:#287bea}80%{color:#a247d9}}
+@media(max-width:600px){.account-bar{gap:6px}.account-bar button{font-size:11px;padding:7px 9px}.account-bar #accountEmail{max-width:150px}.profile-shortcuts,.rewards-shortcuts{display:contents!important}#accountRole{order:2;width:100%}#logout{margin-left:0}.profile-tools input{width:100%}}
+@media(prefers-reduced-motion:reduce){.vip-player-name,.admin-player-name{animation:none!important}.vip-player-name{text-shadow:0 0 4px #9474d4}.admin-player-name{color:#8e46c7!important}}
+.account-bar .profile-shortcuts,.account-bar .rewards-shortcuts{flex-direction:row;margin-left:0}
+.profile-hero>div{min-width:0;max-width:100%}.profile-hero input{box-sizing:border-box}#profilePage .panel{min-width:0;overflow-wrap:anywhere}
+@media(max-width:600px){.rep-bar-row{grid-template-columns:minmax(65px,1fr) minmax(30px,1fr) 24px;gap:6px}.profile-hero input[type=file]{width:100%}}

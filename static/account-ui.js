@@ -22,7 +22,7 @@ async function enterAccount(){
  if(sessionFlight)return sessionFlight;
  sessionFlight=(async()=>{
   const {response,data}=await originalJSON('/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({auto_profile:true})});
-  if(!response.ok)throw Error(data.error||'Cannot open session');
+  if(!response.ok)throw Error(window.I18N.t(data.error)||'Cannot open session');
   fitnessToken=data.session_token;window.FitnessAccount={guest:!!data.guest,email:data.email};
   window.defaultFitnessProfile=data.default_profile?.id;
   document.getElementById('accountEmail').textContent=data.guest?accountText('ผู้เยี่ยมชม','Guest'):data.email;
@@ -90,7 +90,7 @@ window.ensureFitnessSession=async()=>{
     leaveWorkout();await originalFetch('/stop',{method:'POST',headers:{'X-Coach-Session':fitnessToken}});
    }
    const {response:r,data}=await originalJSON(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:el('authEmail').value,password,recovery_number:el('authRecovery').value,ticket})});
-   if(!r.ok)throw Error(data.error||'Please retry');
+   if(!r.ok)throw Error(window.I18N.t(data.error)||'Please retry');
    if(current==='forgot'){el('authStatus').textContent=data.message}
    else if(current==='reset'){ticket='';show('login');el('authStatus').textContent=t('ตั้งรหัสใหม่แล้ว เข้าสู่ระบบได้เลย','Password changed. Sign in with your new password.')}
    else if(current==='setup'){form.reset();el('authStatus').textContent=t('บันทึกเลขที่ชอบแล้ว','Favorite number saved.')}

@@ -6,9 +6,11 @@
  home.setAttribute('data-i18n-ignore','');
  const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n};
  const hero=el('div',null,'home-hero');hero.append(el('span',words.tag,'home-tag'),el('h2',words.title),el('h3',words.sub),el('p',words.intro),el('span','✦  45  ✦','home-emblem'));home.append(hero);
- const brandBox=el('aside',null,'corner-brand');brandBox.setAttribute('data-i18n-ignore','');
+ const brandBox=el('aside',null,'corner-brand');
  const brandButton=el('button',null,'brand-home');brandButton.type='button';brandButton.setAttribute('aria-label',en?'Back to home':'กลับหน้าหลัก');brandButton.onclick=()=>setTab('home');
  const brand=el('img');brand.src='/static/images/45-team-logo.png';brand.alt='45 Fitness Coach';brand.width=1536;brand.height=1024;brandButton.append(brand);brandBox.append(brandButton);
+ const styleSwitch=document.querySelector('.theme-switch');
+ if(styleSwitch)brandBox.append(styleSwitch);
  document.body.prepend(brandBox);
  const setup=el('div',null,'home-setup'),create=el('button',words.add,'secondary');setup.append(el('p',words.name),create);home.append(setup);
  create.onclick=()=>setTab('profile');

@@ -56,7 +56,9 @@ const BrowserCamera=(()=>{
   try{
    if(video.readyState<2||!video.videoWidth){timer=setTimeout(()=>frame(mine),200);return}
    const scale=Math.min(640/video.videoWidth,640/video.videoHeight,1);
-   canvas.width=Math.round(video.videoWidth*scale);canvas.height=Math.round(video.videoHeight*scale);
+   // Resizing clears canvas state and reallocates its backing store; resize only when dimensions change.
+   const width=Math.round(video.videoWidth*scale),height=Math.round(video.videoHeight*scale);
+   if(canvas.width!==width)canvas.width=width;if(canvas.height!==height)canvas.height=height;
    context.drawImage(video,0,0,canvas.width,canvas.height);
    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.75));
    if(mine!==generation)return;if(!blob)throw Error('อ่านภาพกล้องไม่สำเร็จ');

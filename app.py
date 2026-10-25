@@ -18,7 +18,7 @@ import uuid
 import numpy as np
 from werkzeug.local import LocalProxy
 from flask import g
-from sessions import SessionRegistry, owned_profiles, owns, add_profile, migrate_legacy
+from sessions import SessionRegistry, owned_profiles, owns, add_profile, migrate_legacy, rename_profile
 import accounts
 import recovery
 import visitors
@@ -47,7 +47,7 @@ from planner import today_thailand
 ROOT = Path(__file__).resolve().parent
 MODEL = ROOT / 'models' / 'pose_landmarker_lite.task'
 SETTINGS = json.loads((ROOT / 'settings.json').read_text(encoding='utf-8-sig'))
-GENTLE_COACH_VERSION = 29
+GENTLE_COACH_VERSION = 30
 store = LeaderboardStore(os.environ.get('FITNESS_DATA_PATH', str(ROOT / 'data' / 'fitness.db')))
 voice_cache = VoiceCache(store.path.parent / 'voice-v13')
 app = Flask(__name__)
@@ -1342,7 +1342,8 @@ def start_today_plan():
 
 @app.get('/profiles')
 def profiles():
-    return jsonify(profiles=owned_profiles(store,g.coach_session['owner']))
+    rows=owned_profiles(store,g.coach_session['owner'])
+    return jsonify(profiles=rows,primary_profile_id=rows[0]['id'] if rows else None,can_create=not bool(rows))
 
 
 @app.post('/profiles')
@@ -1354,6 +1355,14 @@ def create_profile():
         return jsonify(profile=add_profile(store,g.coach_session['owner'],data.get('name')))
     except ValueError as error:
         return jsonify(error=str(error)), 400
+
+
+@app.post('/profiles/<int:profile_id>/name')
+def change_profile_name(profile_id):
+    data=request.get_json(silent=True)
+    if not isinstance(data,dict):return jsonify(error='Expected a JSON object'),400
+    try:return jsonify(profile=rename_profile(store,g.coach_session['owner'],profile_id,data.get('name')))
+    except ValueError as error:return jsonify(error=str(error)),400
 
 
 @app.post('/health/analyze')
@@ -1431,7 +1440,9 @@ def vip_private_slip(receipt_id):
 @app.get('/profiles/<int:profile_id>/overview')
 def profile_overview(profile_id):
     from profile_data import overview
-    return jsonify(overview(store,profile_id))
+    result=overview(store,profile_id)
+    community.profile_roles(store,[result['profile']])
+    return jsonify(result)
 
 
 @app.route('/profiles/<int:profile_id>/avatar',methods=['GET','POST'])
@@ -1500,7 +1511,7 @@ def save_health(profile_id):
 
 @app.get('/leaderboard/streaks')
 def streak_board():
-    return jsonify(rows=store.streak_standings(),server_today=today_thailand().isoformat())
+    return jsonify(rows=community.profile_roles(store,store.streak_standings()),server_today=today_thailand().isoformat())
 
 
 @app.get('/leaderboard')
@@ -1508,7 +1519,7 @@ def leaderboard():
     exercise, arm = request.args.get('exercise', 'curl'), request.args.get('arm', 'both')
     if exercise not in CATALOG and exercise!='exercise2' or arm not in ('left', 'right', 'both', 'auto'):
         return jsonify(error='ท่าหรือแขนไม่ถูกต้อง'), 400
-    return jsonify(exercise=exercise, arm=arm, rows=store.standings(exercise, arm), metric='total_saved_reps')
+    return jsonify(exercise=exercise, arm=arm, rows=community.profile_roles(store,store.standings(exercise, arm)), metric='total_saved_reps')
 
 
 @app.get('/speech/<code>.mp3')
@@ -1567,7 +1578,7 @@ def cardio_ranks():
     try:tolerance=int(request.args.get('tolerance','10'))
     except ValueError:return jsonify(error='Invalid tolerance'),400
     if not 5<=tolerance<=50:return jsonify(error='Invalid tolerance'),400
-    return jsonify(mode=mode,tolerance=tolerance,players=ranking(store,mode,tolerance))
+    return jsonify(mode=mode,tolerance=tolerance,players=community.profile_roles(store,ranking(store,mode,tolerance)))
 
 @app.post('/frame')
 def browser_frame():

@@ -59,7 +59,7 @@ def owned_profiles(store, owner):
     install_ownership(store)
     with store.lock, store.connect() as db:
         return [dict(r) for r in db.execute('''SELECT p.id,p.name FROM profiles p
-            JOIN profile_owners o ON o.profile_id=p.id WHERE o.owner=? ORDER BY p.name''',(owner,))]
+            JOIN profile_owners o ON o.profile_id=p.id WHERE o.owner=? ORDER BY p.id''',(owner,))]
 
 
 def owns(store, owner, profile_id):
@@ -77,6 +77,10 @@ def add_profile(store, owner, name):
     if not name or len(name)>30 or not name.isprintable():
         raise ValueError('ชื่อผู้เล่นต้องยาว 1–30 ตัวอักษร')
     with store.lock, store.connect() as db:
+        db.execute('BEGIN IMMEDIATE')
+        existing=db.execute('SELECT p.id,p.name FROM profiles p JOIN profile_owners o ON o.profile_id=p.id WHERE o.owner=? ORDER BY p.id LIMIT 1',(owner,)).fetchone()
+        if existing:
+            raise ValueError('บัญชีนี้มีโปรไฟล์แล้ว เปลี่ยนชื่อได้ในโปรไฟล์ของฉัน / This account already has a profile. Rename it in My profile.')
         old=db.execute('SELECT id,name FROM profiles WHERE name=? COLLATE NOCASE',(name,)).fetchone()
         if old:
             row=db.execute('SELECT owner FROM profile_owners WHERE profile_id=?',(old['id'],)).fetchone()
@@ -95,3 +99,17 @@ def migrate_legacy(store, owner):
         db.execute('''INSERT INTO profile_owners(profile_id,owner)
             SELECT p.id,? FROM profiles p LEFT JOIN profile_owners o ON o.profile_id=p.id
             WHERE o.profile_id IS NULL''',(owner,))
+
+
+def rename_profile(store, owner, profile_id, name):
+    install_ownership(store)
+    if not isinstance(name,str):raise ValueError('Enter a player name')
+    name=' '.join(name.split())
+    if not name or len(name)>30 or not name.isprintable():raise ValueError('Player name must contain 1–30 printable characters')
+    with store.lock,store.connect() as db:
+        db.execute('BEGIN IMMEDIATE')
+        first=db.execute('SELECT profile_id FROM profile_owners WHERE owner=? ORDER BY profile_id LIMIT 1',(owner,)).fetchone()
+        if not first or first['profile_id']!=profile_id:raise ValueError('Only your primary profile can be renamed. Legacy history is preserved.')
+        if db.execute('SELECT 1 FROM profiles WHERE name=? COLLATE NOCASE AND id<>?',(name,profile_id)).fetchone():raise ValueError('This player name is already taken')
+        db.execute('UPDATE profiles SET name=? WHERE id=?',(name,profile_id))
+        return dict(id=profile_id,name=name)

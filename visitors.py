@@ -12,7 +12,10 @@ def owner(token):
 def ensure_profile(store,identity):
     profiles=owned_profiles(store,identity)
     if profiles:return profiles[0]
-    return add_profile(store,identity,('Guest ' if identity.startswith('guest:') else 'Player ')+secrets.token_hex(4))
+    with store.lock:
+        profiles=owned_profiles(store,identity)
+        if profiles:return profiles[0]
+        return add_profile(store,identity,('Guest ' if identity.startswith('guest:') else 'Player ')+secrets.token_hex(4))
 def adopt(store,token,account):
     previous=owner(token)
     if not previous:return

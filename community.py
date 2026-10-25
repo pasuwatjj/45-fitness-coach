@@ -33,6 +33,19 @@ def grant_admin(store,email):
         db.execute('INSERT INTO admin_audit VALUES(?,?,?,?,?)',(str(uuid.uuid4()),row['id'],'local-admin-grant',str(row['id']),time.time()))
 
 
+def profile_roles(store, rows):
+    """Attach public role flags without exposing account identifiers or email."""
+    from sessions import install_ownership
+    install_ownership(store);schema(store)
+    for row in rows:
+        with store.lock,store.connect() as db:
+            owner=db.execute('SELECT owner FROM profile_owners WHERE profile_id=?',(row.get('profile_id',row.get('id')),)).fetchone()
+        identity=owner['owner'] if owner else ''
+        row['admin']=bool(identity.startswith('account:') and is_admin(store,{'id':int(identity.split(':')[1])}))
+        row['vip']=bool(identity and membership.active(store,identity))
+    return rows
+
+
 def register(app,get_store):
     bp=Blueprint('community',__name__)
     @bp.before_request
@@ -51,7 +64,7 @@ def register(app,get_store):
         from collaboration_features import online
         return dict(online=online(store,account_id),id=account_id,name=profiles[0]['name'] if profiles else 'Player '+str(account_id),
                     vip=membership.active(store,owner),admin=is_admin(store,{'id':account_id}),
-                    profiles=[dict(id=p['id'],name=p['name'],has_avatar=bool(get_avatar(store,p['id']))) for p in profiles])
+                    profiles=[dict(id=p['id'],name=p['name'],vip=membership.active(store,owner),admin=is_admin(store,{'id':account_id}),has_avatar=bool(get_avatar(store,p['id']))) for p in profiles])
 
     @bp.get('/social/me')
     def me():
@@ -110,6 +123,7 @@ def register(app,get_store):
         if view=='overview':
             from profile_data import overview
             data=overview(get_store(),pid)
+            profile_roles(get_store(),[data['profile']])
         elif view=='progress':
             from progress_analysis import report
             data=report(get_store(),pid)

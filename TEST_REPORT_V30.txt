@@ -1,0 +1,33 @@
+45 Fitness Coach v30 — verification report
+
+PASS 52 Python tests:
+python -m unittest test_sessions test_v26 test_v28 test_v29 test_v25 test_v24 test_v30 -q
+Includes private sessions, camera lifecycle, training/auto-arm, economy, character,
+VIP/QR, app assets and 7 new identity/localization tests. Historical tests were
+updated only for v30 version expectations and deliberate legacy-profile fixtures.
+
+PASS existing test_ui_v29.cjs: 13 page actions, both themes, icons, dynamic UI,
+control listeners, theme persistence and reduced-motion behavior.
+PASS new test_ui_v30.cjs: Thai word boundaries, dynamically recreated toolbar
+labels, weekday phrases, preserving user names and VIP/admin class precedence.
+PASS node --check for every static JavaScript file.
+
+PASS actual headless Chromium browser-v30.cjs:
+- Create once, rename through own profile, reload persistence, duplicate POST rejected.
+- All 13 English pages, planner editor, account modal, saved-history profile:
+  no untranslated Thai UI text found (Thai language button and user names excluded).
+- No JavaScript page errors.
+- Admin precedence over VIP; gold VIP RGB glow; reduced-motion animation disabled.
+- Character edits saved, visible profile character animates, payment QR image loads,
+  rewards wallet loads, difficulty lock/unlock and auto-arm controls work.
+- Logo and Home navigation work; removed top Home button absent.
+- Home and populated profile have no horizontal overflow at 1365, 390 and 320 px.
+- TH/EN switching and English selection survive reload.
+
+New server tests additionally verify foreign-owner rename rejection, unchanged
+workout history, legacy profile preservation, stable primary ID, invalid/taken
+names, concurrent create protection and concurrent default-profile creation.
+
+Scope: synthetic camera regressions and browser controls were tested. This run
+did not use a physical camera, send payment/email, fulfill rewards or deploy live.
+No user database, secrets, credentials or uploaded receipts are in this patch.

@@ -1,0 +1,127 @@
+{
+  "release": 30,
+  "base_release": 29,
+  "kind": "minimal-source-patch",
+  "files": [
+    {
+      "path": "app.py",
+      "sha256": "f16deab91aa7ea405769e0f850848e2d029c21d13adb3eb33353c190bc82943e",
+      "bytes": 91217
+    },
+    {
+      "path": "community.py",
+      "sha256": "9c482f2a418bfdae5059f3e4fd7922d08b027b6331de6e7173aeaf51d41ef0fb",
+      "bytes": 14149
+    },
+    {
+      "path": "localization.py",
+      "sha256": "60ae2391b5a074ff9ab9b319211992bc79fd0d1cfc9e8855f9bd3ec8929c6ad3",
+      "bytes": 678
+    },
+    {
+      "path": "sessions.py",
+      "sha256": "74a760d3bcf978ba5be012664ad2579507c31e99cad3a34f649a03219d41b7c4",
+      "bytes": 5912
+    },
+    {
+      "path": "static/account-ui.js",
+      "sha256": "617d40229084707f0f577dacb6c3b14038c5b462cd3f27130c09c312c575b2ca",
+      "bytes": 10048
+    },
+    {
+      "path": "static/app.js",
+      "sha256": "d37cabc84149c415d0ead79f2c3bc3201abf7e4b91ac95852e8629d393c8a2ad",
+      "bytes": 49443
+    },
+    {
+      "path": "static/cardio.js",
+      "sha256": "b4da4dd20bddc8d5fa2424e6142f0312275b5d32c98e97527a3c94a0c8789481",
+      "bytes": 19692
+    },
+    {
+      "path": "static/challenges.js",
+      "sha256": "3449ac08a3042e4c3fabdef0f4efe2acdf8ea48a4d3def39f8a6dbdb824ff40e",
+      "bytes": 4598
+    },
+    {
+      "path": "static/character.js",
+      "sha256": "913a5bf3c49120efdd6f01ac3e11becb8ce15c12c5f97bc18891239e303d0fe5",
+      "bytes": 10954
+    },
+    {
+      "path": "static/community.js",
+      "sha256": "0e07fdd53adfd12d91e8aa4fbb161a3258b5f95f5509c8ac0c5698a39071f283",
+      "bytes": 13926
+    },
+    {
+      "path": "static/home.js",
+      "sha256": "8694dd27717df0a3fa4d438b4b4a49901ae8dd546e10b3d2225962295fb34a11",
+      "bytes": 6440
+    },
+    {
+      "path": "static/i18n.js",
+      "sha256": "a34e7710fb8703252b04b3ba05392fe78dfaa5e466e8307c0f22ee0482926a85",
+      "bytes": 3153
+    },
+    {
+      "path": "static/navigation-v28.js",
+      "sha256": "5a4dbd1499ad19d4b42928b3839dbd73711f106d92995c313fa469ec45298977",
+      "bytes": 1183
+    },
+    {
+      "path": "static/planner.js",
+      "sha256": "f2e6b50920a4e7f42ecd72f6d118e7f959f51bc79deb63ae3d1a8b95dfc6e306",
+      "bytes": 20912
+    },
+    {
+      "path": "static/profile.js",
+      "sha256": "bb1e8d5ef5ea67c111c144dc2a9d93c134bb1a5306b1efa682138d31205a042b",
+      "bytes": 25635
+    },
+    {
+      "path": "static/progress.js",
+      "sha256": "529112850ce3485290b1d9a6f890245045c947234f519645d448aa6f8d6b7b11",
+      "bytes": 17388
+    },
+    {
+      "path": "static/rewards.js",
+      "sha256": "3da46a781912819440aa6e7a7ff4b0b480ab1ba74cc4c1a6935d787fb39b2b1a",
+      "bytes": 11158
+    },
+    {
+      "path": "static/training-modes.js",
+      "sha256": "590253dbcff7ca11e668f5b86ded24fb4726e7f9ac54436b63074850385e0a8f",
+      "bytes": 4332
+    },
+    {
+      "path": "static/translations.json",
+      "sha256": "5ec551beabaf2a6f3bcc7fd7f60569643d07eebf321b30c8ac1a7f15298ab3ca",
+      "bytes": 126237
+    },
+    {
+      "path": "static/v19.js",
+      "sha256": "926907bc2b5d2e74cb9a3527e505111be9896794a5ceb825a492b0a58a57ba28",
+      "bytes": 12525
+    },
+    {
+      "path": "static/v30.css",
+      "sha256": "35557a6db42387f50ae359d012bf6cc1def6e2f3856cfa4cf0d3f1d0c04a2f1f",
+      "bytes": 1926
+    },
+    {
+      "path": "static/vip.js",
+      "sha256": "1e69a7c42e647e8ca35f5da66f80e479c16e1521d0eb2ad7b169539ad2546405",
+      "bytes": 10870
+    },
+    {
+      "path": "templates/index.html",
+      "sha256": "1dfd205182a34093fe3c9ff546f15db66d88b6e7a7c2e2cc31ba727770e67296",
+      "bytes": 40755
+    },
+    {
+      "path": "visitors.py",
+      "sha256": "4b7f3749c88eb092b46b29a2c18fcbe53eb9974238eafd422ab8429b98d3ffe5",
+      "bytes": 1017
+    }
+  ]
+}

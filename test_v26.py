@@ -143,9 +143,14 @@ class ApiAndCharacterTests(unittest.TestCase):
         self.assertEqual(self.b.post(url,json=payload).status_code,404);self.assertEqual(self.b.get(url).status_code,404)
         self.store.save_set('left',self.pa,'curl','left',25,0,25,0,{})
         self.store.save_set('leg',self.pa,'goblet_squat','right',9000,0,0,9000,{})
-        d=character.overview(LeaderboardStore(self.store.path),self.pa,True);self.assertEqual(d['appearance'],payload['appearance']);self.assertEqual(d['dimensions'],payload['dimensions']);self.assertEqual(d['growth']['levels']['legs'],1);self.assertEqual(d['growth']['arm_reps'],dict(left=25,right=0));self.assertEqual(d['growth']['reps']['chest'],0)
+        d=character.overview(LeaderboardStore(self.store.path),self.pa,True);self.assertEqual(d['appearance'],payload['appearance']);self.assertEqual(d['dimensions'],payload['dimensions']);self.assertEqual(d['growth']['parts']['legs']['total_exp'],90000);self.assertGreater(d['growth']['levels']['legs'],0);self.assertLess(d['growth']['levels']['legs'],1);self.assertEqual(d['growth']['arm_reps'],dict(left=25,right=0));self.assertEqual(d['growth']['reps']['chest'],0)
         public=self.b.get(f'/social/characters/{self.pa}');self.assertEqual(public.status_code,200);self.assertNotIn('dimensions',public.json);self.assertEqual(public.json['visual'],d['visual']);self.assertEqual(public.json['appearance'],d['appearance'])
-        other=self.a.post('/profiles',json={'name':'Second'}).json['profile']['id'];self.assertEqual(self.a.get(f'/profiles/{other}/character').json['appearance'],payload['appearance'])
+        self.assertEqual(self.a.post('/profiles',json={'name':'Second'}).status_code,400)
+        # A pre-v30 profile remains available without permitting new duplicates.
+        with self.store.connect() as db:
+            other=db.execute("INSERT INTO profiles(name) VALUES('Second')").lastrowid
+            db.execute('INSERT INTO profile_owners(profile_id,owner) SELECT ?,owner FROM profile_owners WHERE profile_id=?',(other,self.pa))
+        self.assertEqual(self.a.get(f'/profiles/{other}/character').json['appearance'],payload['appearance'])
         self.assertEqual(self.a.get(f'/profiles/{self.pa}/overview').json['dimensions'],payload['dimensions'])
     def test_character_validation_does_not_overwrite(self):
         url=f'/profiles/{self.pa}/character';before=self.a.get(url).json['appearance']

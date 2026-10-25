@@ -123,7 +123,8 @@ class RewardTests(unittest.TestCase):
         reg=SessionRegistry(lambda:server.BrowserCoach(self.store));self.addCleanup(reg.stop_all)
         with patch.object(server,'store',self.store),patch.object(server,'sessions',reg):
             a=server.app.test_client();b=server.app.test_client();authorize_client(server,a);authorize_client(server,b)
-            p=a.post('/profiles',json={'name':'Owned'}).json['profile']['id']
+            existing=a.get('/profiles').json['profiles']
+            p=existing[0]['id'] if existing else a.post('/profiles',json={'name':'Owned'}).json['profile']['id']
             self.assertEqual(b.get(f'/profiles/{p}/rewards').status_code,404)
             self.assertEqual(b.post(f'/profiles/{p}/rewards',json={'action':'claim'}).status_code,404)
             # v12 retires legacy redemption endpoints; clients cannot mint or spend purple coins.

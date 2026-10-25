@@ -43,7 +43,7 @@ class V28Tests(unittest.TestCase):
             self.assertTrue(url.endswith('?v='+str(server.GENTLE_COACH_VERSION)),url)
             asset=self.a.get(url);self.assertEqual(asset.status_code,200,url);asset.close()
             self.assertIn('must-revalidate',asset.headers['Cache-Control'])
-        self.assertEqual(server.GENTLE_COACH_VERSION,29)
+        self.assertEqual(server.GENTLE_COACH_VERSION,31)
     def test_inactive_vip_data_and_qr_file_remain_available(self):
         for client in (self.a,self.b):
             response=client.get('/vip');self.assertEqual(response.status_code,200);self.assertFalse(response.json['active'])

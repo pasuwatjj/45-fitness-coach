@@ -1,0 +1,35 @@
+45 Fitness Coach v31 — PATCH สำหรับอัปเดตจาก v30
+
+แตก ZIP ก่อน แล้วอัปโหลดไฟล์ที่อยู่ด้านใน ไม่อัปโหลด ZIP เป็นไฟล์โค้ด และไม่สร้างโฟลเดอร์ 45Fitness-PATCH-v31 ซ้อนใน repository
+ใช้กับ repository ที่มี v30 ครบแล้วเท่านั้น แพตช์นี้ไม่มีฐานข้อมูล รูปภาพ โมเดล หรือไฟล์ตั้งค่าลับ
+
+ไฟล์ใช้งานจริง 9 ไฟล์ — ใส่ตำแหน่งนี้ให้ตรง:
+ROOT (หน้าแรกของ repository ระดับเดียวกับ requirements.txt):
+  app.py
+  character.py
+  profile_data.py
+โฟลเดอร์ templates:
+  index.html
+โฟลเดอร์ static:
+  character-renderer.js
+  character.js
+  profile.js
+  training-modes.js
+  v30.css  (ชื่อไฟล์เดิมถูกต้อง เนื้อหาเพิ่มการจัดวาง EXP ของ v31)
+
+วิธีผ่านหน้า GitHub:
+1. สำรอง repository/ฐานข้อมูลปัจจุบัน และเลือก branch ที่โฮสต์เว็บใช้งาน
+2. ที่หน้าแรกของ repository กด Add file > Upload files แล้วลาก app.py, character.py, profile_data.py จาก ZIP ลงไป กด Commit changes
+3. เปิดโฟลเดอร์ templates ใน GitHub > Add file > Upload files > เลือก index.html จากโฟลเดอร์ templates ของ ZIP > Commit changes
+4. เปิดโฟลเดอร์ static ใน GitHub > Add file > Upload files > เลือกไฟล์ static ทั้ง 5 ไฟล์ตามรายการ > Commit changes
+5. ตรวจชื่อ path บน GitHub ต้องเป็น templates/index.html และ static/character.js (ไม่ใช่ไฟล์ชื่อเดียวกันวางที่ root)
+6. เมื่ออัปโหลดครบทุกไฟล์แล้วจึง deploy/restart แอป ให้ระบบโฮสต์ดึง commit ล่าสุด ถ้าเปิด auto-deploy ควรอัปโหลดผ่าน branch แล้วรวมครั้งเดียวเพื่อไม่ให้มีไฟล์คนละรุ่นระหว่าง deploy
+7. เปิดเว็บแล้วรีเฟรชแบบล้างแคช Ctrl+Shift+R; /session และ /status ใช้หมายเลขรุ่นจากแอป และลิงก์ CSS/JS ในหน้าเว็บใช้ ?v=31
+8. ตรวจหน้าออกกำลังกายว่าระดับมี 10/100/1,000 EXP ต่อครั้ง และหน้าโปรไฟล์/ตัวละครมี LV กับแถบ EXP ทั้ง 5 ส่วน
+
+ไฟล์ทดสอบและเอกสารที่ root ใน ZIP อัปโหลดได้ แต่ไม่จำเป็นต่อการรันเว็บ:
+test_v31.py, test_ui_v31.cjs, test_v26.py, test_v28.py, test_v29.py, test_v30.py,
+test_gentle_coach.py, test_v11.py, DEPLOY_V31_TH.txt, CHANGELOG_V31.txt,
+TEST_REPORT_V31.txt, PATCH_MANIFEST_V31.json
+อย่าลบหรือแทนที่ data/, settings.json, environment variables หรือไฟล์อื่นที่ไม่มีในแพตช์
+ไม่ต้องล้างฐานข้อมูล ไม่ต้องรันคำสั่งเติม EXP และไม่ต้องติดตั้ง dependency ใหม่เพื่อใช้แพตช์

@@ -1,0 +1,37 @@
+45 Fitness Coach v31 — ผลตรวจระบบ (2026-10-25)
+
+PASS: Python unittest discover — 255 tests, 53.071 seconds
+PASS: ชุดใหม่ test_v31.py ตรวจ 0/9/10/109/110/1109/1110/1111/11110 EXP; ค่าเลื่อนระดับและ carryover
+PASS: อัตรา beginner/pro/expert แบบผสม; หมวดหลักครบ 5 ส่วน; แขนซ้าย/ขวาและขนาดตาม LV
+PASS: จำนวนครั้งเท่ากันแต่อัตราต่างกันได้ EXP ต่างกัน; EXP เพิ่มใน LV เดิมไม่เปลี่ยนขนาดจนขึ้น LV
+PASS: รอบผิด/ยืนยันไม่ได้/เซต 0 ครั้งไม่ได้ EXP; ธุรกรรมล้มเหลวไม่มี EXP ค้าง
+PASS: retry ซ้ำ, concurrent 12 requests, เปิดฐานข้อมูลใหม่; ไม่เพิ่มซ้ำและไม่เปลี่ยน difficulty ของเซต
+PASS: รับ difficulty ที่เซิร์ฟเวอร์ล็อกไว้, ไม่รับ reps/EXP ปลอมจาก request; ป้องกันข้ามเจ้าของ
+PASS: ประวัติเก่าที่ยังไม่มี difficulty ใช้ beginner; จำนวนเซต/reps เดิมยังอยู่; ประวัติอื่นไม่ถูกนำมารวม
+PASS: own overview และ public character ใช้ EXP ชุดเดียวกัน; private overview ของคนอื่นถูกปฏิเสธ; แชร์แล้วดูได้; ไม่เปิดเผย measurements ใน public character
+
+PASS: Real Chromium / Playwright v31 smoke
+- โปรไฟล์และตัวละครตนเองครบ 5 ส่วน พร้อม LV/EXP สะสม/แถบ current-to-next
+- บัญชีที่สองดูโปรไฟล์ที่แชร์และตัวละครแบบ read-only; LV/EXP ตรงกัน
+- ระดับการฝึกแสดง 10/100/1,000 EXP ต่อครั้งทั้ง TH/EN
+- Desktop 1365px และ mobile 390/320px ไม่มี document horizontal overflow
+- ยืนยันภาพ canvas เปลี่ยนตาม level-based geometry ด้วย model ควบคุม
+- สลับภาษา EN→TH→EN; ข้อความ EXP อังกฤษไม่มีภาษาไทยปน; page errors = 0
+- ตรวจภาพหน้าจอ desktop profile และ mobile character แล้ว
+
+PASS: Existing v30 browser regression บนโค้ด v31
+13 หน้าอังกฤษ, planner editor, auth modal, rename/persist, ป้องกัน profile ซ้ำ,
+VIP/Admin display, reduced motion, character save/animation, QR/rewards,
+auto-arm/difficulty, logo-home, 1365/390/320px, TH/EN persistence.
+Untranslated visible text = {}; page errors = []
+PASS: v30 jsdom translation/dynamic label/name regression; syntax ของ JS ที่เปลี่ยนทั้ง 4 ไฟล์
+
+การปรับชุดทดสอบเก่า: เปลี่ยน assertion รุ่น/asset เป็น31, เปลี่ยน assertion ขนาดจาก cap ที่5,000 reps เป็น LV-based, และแก้ fixture 2 ตัวให้ใช้โปรไฟล์เริ่มต้นเดิมตามกติกา v30 บัญชีละหนึ่งโปรไฟล์
+
+ขอบเขตผลตรวจ: ข้อมูลการฝึกในการทดสอบเป็นข้อมูลสังเคราะห์/ตัวนับฝั่งเซิร์ฟเวอร์ที่ควบคุมได้
+ไม่ได้ทดลองออกกำลังผ่านกล้องจริงกับคน และไม่ได้ deploy ขึ้นเว็บจริงหรือทดสอบชำระเงินจริง
+โค้ดกล้อง เกณฑ์ฟอร์ม และระบบชำระเงินไม่เปลี่ยน; app.py เปลี่ยนเฉพาะ version=31
+
+รันทดสอบในโฟลเดอร์แอป: python -m unittest discover -p 'test_*.py' -q
+ทดสอบ browser: ติดตั้ง Playwright ในเครื่องทดสอบและ Chromium ก่อน แล้ว node test_ui_v31.cjs
+แพตช์ไม่มีฐานข้อมูลผู้ใช้ ไม่มี secret และไม่มี node_modules/ไฟล์ runtime ทดสอบ

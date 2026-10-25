@@ -142,7 +142,8 @@ class SessionTests(unittest.TestCase):
         with patch.object(self.app,'store',self.store):
             from test_sessions import authorize_client
             authorize_client(self.app,client)
-            result=client.post('/profiles',json={'name':'Student'}).json['profile']
+            existing=client.get('/profiles').json['profiles']
+            result=existing[0] if existing else client.post('/profiles',json={'name':'Student'}).json['profile']
             self.assertEqual(client.post('/profiles',json={'name':''}).status_code,400)
             self.assertEqual(client.post('/start',json={'profile_id':True}).status_code,400)
             self.assertEqual(client.post('/start',json={'profile_id':99999}).status_code,404)

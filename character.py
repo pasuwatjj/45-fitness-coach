@@ -1,5 +1,5 @@
 """Saved adult game characters and capped workout-based growth, not body measurements."""
-import json,math,re
+import json,re
 from exercises import CATALOG
 DEFAULT={'gender':'male','hair':'short','hair_color':'#292536','skin_color':'#c78f68','shorts_color':'#252d40'}
 HAIRS=('short','swept','curly','bob','ponytail','bald')
@@ -31,17 +31,44 @@ def sync_dimensions(store,profile,data):
         schema(db)
         db.execute('INSERT INTO profile_dimensions(profile_id,height_cm,weight_kg) VALUES(?,?,?) ON CONFLICT(profile_id) DO UPDATE SET height_cm=excluded.height_cm,weight_kg=excluded.weight_kg,updated=CURRENT_TIMESTAMP',(profile,values['height_cm'],values['weight_kg']))
 
+EXP_PER_REP={'beginner':10,'pro':100,'expert':1000}
+GROUPS=('arms','chest','back','legs','shoulders')
+
+def progression(total):
+    """LV1 starts at 0; successive level costs are 10, 100, 1000, ... ."""
+    total=max(0,int(total));remaining=total;level=1;cost=10
+    while remaining>=cost:
+        remaining-=cost;level+=1;cost*=10
+    return dict(level=level,total_exp=total,exp=remaining,next_exp=cost,
+                remaining_exp=cost-remaining,progress=remaining/cost)
+
 def growth(store,profile):
-    reps=dict.fromkeys(('arms','chest','back','legs','shoulders'),0)
-    sides={'left':0,'right':0}
+    # Derive from unique, server-saved sets; no additive migration or second ledger.
+    # Old sets without a recorded difficulty retain the beginner rate.
+    reps=dict.fromkeys(GROUPS,0);exp=dict.fromkeys(GROUPS,0)
+    sides={'left':0,'right':0};side_exp={'left':0,'right':0}
+    from training_economy import schema as training_schema
     with store.lock,store.connect() as db:
-        for r in db.execute('SELECT exercise,reps,left_reps,right_reps FROM workout_sets WHERE profile_id=?',(profile,)):
+        training_schema(db)
+        for r in db.execute("""SELECT w.exercise,w.reps,w.left_reps,w.right_reps,
+            COALESCE(t.difficulty,'beginner') difficulty FROM workout_sets w
+            LEFT JOIN training_sets t ON t.set_id=w.id AND t.profile_id=w.profile_id
+            WHERE w.profile_id=?""",(profile,)):
             group=CATALOG.get(r['exercise'],{}).get('group')
-            if group in reps:reps[group]+=max(0,r['reps'])
+            rate=EXP_PER_REP[r['difficulty']]
+            if group in reps:
+                reps[group]+=max(0,r['reps']);exp[group]+=max(0,r['reps'])*rate
             if group=='arms':
-                sides['left']+=max(0,r['left_reps']);sides['right']+=max(0,r['right_reps'])
-    level=lambda n:round(min(1,math.log1p(n)/math.log1p(5000)),4)
-    return dict(reps=reps,levels={k:level(v) for k,v in reps.items()},arm_reps=sides,arm_levels={k:level(v) for k,v in sides.items()},cap_reps=5000)
+                for side in sides:
+                    accepted=max(0,min(r['reps'],r[side+'_reps']))
+                    sides[side]+=accepted;side_exp[side]+=accepted*rate
+    parts={k:progression(v) for k,v in exp.items()}
+    arm_parts={k:progression(v) for k,v in side_exp.items()}
+    # Monotone, bounded game geometry: LV1 is thin; every higher LV is larger.
+    visual=lambda p:round(1-1/p['level'],6)
+    return dict(reps=reps,parts=parts,arm_reps=sides,arm_parts=arm_parts,
+                levels={k:visual(p) for k,p in parts.items()},
+                arm_levels={k:visual(p) for k,p in arm_parts.items()},exp_per_rep=EXP_PER_REP)
 
 def overview(store,profile,private=False):
     with store.lock,store.connect() as db:

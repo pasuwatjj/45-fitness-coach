@@ -1,0 +1,24 @@
+45 Fitness v32 — isolated verification, 2026-10-25
+No live site deployment, real coin grant/debit, account ban, bank call, payment approval or email send was performed.
+
+PASS: python -m unittest test_v26 test_v30 test_v31 test_v32 test_v13 test_sessions test_v16 test_v20 -q
+102 tests passed in 37.813s. Includes inherited fixtures (count is unittest-discovered cases, not 102 newly written cases).
+PASS: focused test_v32 rerun after final bounds/version changes: 9 discovered tests (4 new v32 methods plus 5 imported fixture regression methods).
+PASS: test_v28 + test_v29 + test_v30 after aligning template asset cache versions and test expectations to 32.
+PASS: Python compilation and JavaScript syntax check.
+
+New backend coverage:
+- Ordinary member denied every new admin operation/read; missing session and authenticated guest denied; client role spoof ignored; revoked administrator denied.
+- Administrator self and another registered user's owned profiles: all four currencies credited and debited. EXP/growth unchanged.
+- Wrong account/profile relation, nonexistent account, invalid currencies, booleans/floats/strings/zero/negative-overdraw/NaN/infinity/oversized amounts, invalid reason and operation key rejected.
+- Trigger-induced audit failure rolls back coin credit. Ten concurrent identical requests across independent store connections create exactly one credit/audit. Replay returns original result; changed payload conflicts; reopening DB retains balance. Safe balance ceiling enforced.
+- Ban/unban audit; self-ban denied (includes last administrator scenario); banned existing session denied profile changes, character changes and new session; password login denied; unban restores access without deleting data. Role revoked mid-session denied.
+- Exchange each of beginner/pro/expert: exact source deduction and universal credit, replay no duplication, global history reads real paired entries. Trigger failure at universal insertion rolls source deduction back.
+
+PASS actual Chromium headless shell via Playwright:
+- test_ui_v32.cjs: administrator panel English/Thai; actual local grant and debit; unchanged form repeated submit does not grant again; self-ban error; audit content; persisted balance after language reload; 1365/390/320px no horizontal overflow; no JavaScript page errors.
+- test_ui_v31.cjs: five body-part LV/EXP/progress, difficulty labels, own/other profile and character views, level geometry, desktop/mobile widths, EN/TH switch and no page errors.
+- Visual inspection of desktop English and mobile Thai screenshots. Container initially lacked Thai font; Noto Sans Thai installed only for QA and screenshots rerun. Some emoji glyphs are unavailable in the QA container; text labels remain readable.
+
+Scope limits:
+No physical camera accuracy certification, real device test, live deployment/production migration, real payment or external service integration was performed. Backend tests cover ban/unban for another user; browser smoke covers own account coin form and self-ban denial. Existing exchange code was verified, not rewritten. History is derived from actual ledger pairs; it cannot reconstruct absent legacy records or historical balances not originally saved. Existing sessions become usable again after unban if their login cookie remains valid. Concurrent requests already executing before ban may complete; subsequent requests are blocked.

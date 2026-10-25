@@ -14,11 +14,11 @@ class V29ReleaseTests(unittest.TestCase):
                 self.assertIn(f'id="{name}Page"',html,name)
                 self.assertIn(f'id="{name}Tab"',html,name)
             for name in ['v28.css','navigation-v28.js','character.js','character-renderer.js','rewards.js','vip.js','themes-v29.js','theme-icons-v29.css','themes-v29.css']:
-                self.assertIn(f'/static/{name}?v=31',html)
+                self.assertIn(f'/static/{name}?v=32',html)
             self.assertNotIn('/static/v27.css',html)
             self.assertIn('id="coachAudioEnabled"',html)
             self.assertIn('id="resetCamera"',html)
-            self.assertEqual(server.GENTLE_COACH_VERSION,31)
+            self.assertEqual(server.GENTLE_COACH_VERSION,32)
 
     def test_all_original_theme_assets_are_local_valid_and_served(self):
         paths=list((ROOT/'static/images/themes').glob('*.svg'))

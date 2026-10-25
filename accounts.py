@@ -19,6 +19,7 @@ def schema(store):
         db.executescript('''CREATE TABLE IF NOT EXISTS accounts (
             id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE COLLATE NOCASE,
             password_hash TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS account_bans(account_id INTEGER PRIMARY KEY,banned INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS account_logins (
             token_hash TEXT PRIMARY KEY, account_id INTEGER NOT NULL REFERENCES accounts(id),
             expires REAL NOT NULL);
@@ -61,7 +62,7 @@ def login(store,data):
     # Same expensive check for unknown emails limits account-enumeration timing.
     candidate=row['password_hash'] if row else DUMMY_HASH
     valid=check_password_hash(candidate,password)
-    if not row or not valid:
+    if not row or not valid or is_banned(store,row['id']):
         raise ValueError('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
     return dict(id=row['id'],email=row['email'],owner='account:'+str(row['id']))
 
@@ -92,3 +93,9 @@ def revoke(store,token):
 
 
 DUMMY_HASH=generate_password_hash('unused-account-password')
+
+
+def is_banned(store,account_id):
+    schema(store)
+    with store.lock,store.connect() as db:
+        return bool(db.execute('SELECT 1 FROM account_bans WHERE account_id=? AND banned=1',(account_id,)).fetchone())

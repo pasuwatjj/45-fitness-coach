@@ -47,7 +47,7 @@ from planner import today_thailand
 ROOT = Path(__file__).resolve().parent
 MODEL = ROOT / 'models' / 'pose_landmarker_lite.task'
 SETTINGS = json.loads((ROOT / 'settings.json').read_text(encoding='utf-8-sig'))
-GENTLE_COACH_VERSION = 31
+GENTLE_COACH_VERSION = 32
 store = LeaderboardStore(os.environ.get('FITNESS_DATA_PATH', str(ROOT / 'data' / 'fitness.db')))
 voice_cache = VoiceCache(store.path.parent / 'voice-v13')
 app = Flask(__name__)
@@ -838,6 +838,13 @@ def authorize():
         return response
     if not secret_matches(request.cookies.get('coach_access', '')):
         return 'เปิดด้วยลิงก์หรือ QR จากหน้าเว็บบนคอมที่รัน 45 Fitness Coach', 403
+
+
+@app.before_request
+def banned_account_guard():
+    account=accounts.lookup(store,request.cookies.get(accounts.COOKIE,''))
+    if account and accounts.is_banned(store,account['id']) and request.path!='/auth/logout':
+        return jsonify(error='Account suspended / บัญชีถูกระงับ'),403
 
 
 @app.before_request

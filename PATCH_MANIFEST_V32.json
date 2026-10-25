@@ -1,0 +1,30 @@
+{
+  "version": 32,
+  "requires": "Complete v31",
+  "runtime_files": [
+    "administration.py",
+    "accounts.py",
+    "app.py",
+    "community.py",
+    "templates/index.html",
+    "static/admin-management.js",
+    "static/community.js"
+  ],
+  "files": {
+    "administration.py": "85134a82525cf71a1194a5902045ff83c03e8aeff37fd625a2e6dcf32f4af405",
+    "accounts.py": "7c5ce4fffc8c56e51c2b9662d078931f24ed50a42c5163b7f906934071361459",
+    "app.py": "53fce80e1fef8c99bb962ce4696de12244548fb47fecf958e4213c570d6d8919",
+    "community.py": "22efb368fff3be5aae516be02f160c2c00f509e44923df574d31823768137727",
+    "templates/index.html": "c3c1a0a9672f0151865a52a4d6083144e6c2aa4ad0582fa20f35806864494e8b",
+    "static/admin-management.js": "8be97e498f6dfdd67f970c76614d619077969afcb9b22c0c6cbcd504b047b7fc",
+    "static/community.js": "5248fd5c06a65bfdc3fcde31b3da2f2bc899c135e9f1b637c3348a21d361dd3f",
+    "test_v32.py": "c346cefdf1eace0f8c4b96548bab20724c2ff5aa28ec80926dc12614fb24c23d",
+    "test_ui_v32.cjs": "bba0baee4d87642eb5fa35198741f657f80df190ef2446aeae3ccf9d06ae0b97",
+    "test_v28.py": "5f5b76b32e1f02b99f3d1062dbe6b5b7474bd27473174c1c650a1730e7eae3f6",
+    "test_v29.py": "63474e2c94c3639f8252c18d064b4091f0132eda80f63db23375000ce6e7a72f",
+    "test_v30.py": "54f07946c08dc2fa0d9f39b916d9c22a87ab257bd0eee872623f2b7261425483",
+    "DEPLOY_V32_TH.txt": "ecf1801e31a5353410cfa0fc81ccd4f9bb1e96dbe15636db850cd872d4b77833",
+    "CHANGELOG_V32.txt": "59319feec8dddbb31149bdb55000fea51af73b6824f207a9fa294be91d349fff",
+    "TEST_REPORT_V32.txt": "222124a517b519b3fbbd58032eeca5a54d2aa7107782049f9a919d1a7a2cc941"
+  }
+}

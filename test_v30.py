@@ -75,6 +75,6 @@ class TranslationTests(unittest.TestCase):
         html=server.app.test_client().get('/').get_data(as_text=True)
         self.assertNotIn('id="backHome"',html)
         self.assertIn('id="homeTab"',html)
-        self.assertIn('/static/v30.css?v=31',html)
+        self.assertIn('/static/v30.css?v=32',html)
 
 if __name__=='__main__':unittest.main()

@@ -1,0 +1,9 @@
+v32 atop v31 — administrator account controls
+- Add/subtract beginner/pro/expert/universal training currency for a registered account's verified owned profile, including administrator self.
+- Mandatory bounded reason; signed integer adjustment capped at 1,000,000 per operation; nonnegative safe-integer balance ceiling.
+- Server role authorization at every endpoint, plus transactional authorization for changes. No client-supplied role trusted.
+- Atomic ledger and immutable audit row; UUID idempotency, conflicting reuse rejected. UI reuses a completed request for unchanged details and preserves request key on ambiguous failure.
+- Ban/unban with reason and audit, self/last-administrator protection. Banned login denied and every subsequent cookie-authenticated request denied except logout; unban preserves data/session validity.
+- Paginated administrator audit and serverwide exchange history derived from existing paired ledger entries. Existing exchange already uses one transaction for source debit + universal credit; explicit rollback/replay tests confirm this.
+- TH/EN admin controls, balances and history. v31 EXP/LV/character and v30 translations retained; no workout, EXP or ranking writes from adjustments.
+- No new runtime dependency. No live account mutation or deployment.

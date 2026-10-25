@@ -63,3 +63,23 @@ window.FitnessCharacterRenderer=class {
  ctx.fillStyle='#c4d7e7';ctx.font='600 12px sans-serif';ctx.textAlign='center';ctx.fillText('45  /  TRAINING CHARACTER',W/2,H-17);this.onRotate?.(this.yaw);
  }
 };
+
+// Shared, server-backed LV/EXP presentation for own and member profiles/characters.
+window.FitnessGrowthPanel=function(growth){
+ const en=window.I18N?.lang==='en',t=(th,enText)=>en?enText:th;
+ const el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;n.className=cls;return n};
+ const box=el('section','','character-growth exp-growth');box.dataset.i18nIgnore='';
+ box.append(el('h3',t('LV และ EXP รายส่วน','Body-part LV & EXP')),el('p',t('ครั้งที่ผ่านและบันทึกแล้ว: ผู้เริ่มต้น 10 · Pro 100 · Expert 1,000 EXP/ครั้ง เฉพาะส่วนหลักของท่า','Saved accepted reps: beginner 10 · pro 100 · expert 1,000 EXP/rep, for the exercise’s primary body part.')));
+ box.append(el('p',t('เริ่ม LV 1 ที่ 0 EXP · ค่าเลื่อน LV ถัดไป: 10 → 100 → 1,000 → … EXP สะสมส่วนเกินต่อไป ตัวละครโตตาม LV เป็นความก้าวหน้าในเกม','Start LV 1 at 0 EXP. Next-level costs: 10 → 100 → 1,000 → … EXP; excess carries over. Character size follows LV as game progression.')));
+ for(const [key,th,name] of [['arms','แขน','Arms'],['chest','อก','Chest'],['back','หลัง','Back'],['legs','ขา','Legs'],['shoulders','ไหล่','Shoulders']]){
+  const part=growth?.parts?.[key]||{level:1,exp:0,next_exp:10,total_exp:0,progress:0};
+  const row=el('div','','exp-part');row.dataset.part=key;
+  const fmt=n=>Number(n).toLocaleString(en?'en-US':'th-TH');
+  row.append(el('strong',t(th,name)+' · LV '+part.level),el('span',fmt(part.total_exp)+' EXP '+t('สะสม','total')));
+  const bar=el('progress');bar.max=1;bar.value=part.progress;bar.setAttribute('aria-label',t(th,name)+' LV '+part.level+' · '+part.exp+' / '+part.next_exp+' EXP');
+  row.append(bar,el('small',fmt(part.exp)+' / '+fmt(part.next_exp)+' EXP '+t('สู่ LV ','to LV ')+(part.level+1)));box.append(row);
+ }
+ if(growth?.arm_parts)box.append(el('p',t('แขนซ้าย / ขวา: ','Left / right arm: ')+'LV '+growth.arm_parts.left.level+' / LV '+growth.arm_parts.right.level));
+ box.append(el('small',t('ประวัติเก่าที่ไม่มีระดับ ใช้อัตราผู้เริ่มต้น · ไม่นับรอบผิดหรือรอบที่ยังยืนยันไม่ได้ · ไม่ใช่มวลกล้ามเนื้อจริง','Older sets without saved difficulty use beginner. Rejected and unverified attempts earn no EXP. This does not measure real muscle mass.')));
+ return box;
+};

@@ -13,3 +13,6 @@
 .account-bar .profile-shortcuts,.account-bar .rewards-shortcuts{flex-direction:row;margin-left:0}
 .profile-hero>div{min-width:0;max-width:100%}.profile-hero input{box-sizing:border-box}#profilePage .panel{min-width:0;overflow-wrap:anywhere}
 @media(max-width:600px){.rep-bar-row{grid-template-columns:minmax(65px,1fr) minmax(30px,1fr) 24px;gap:6px}.profile-hero input[type=file]{width:100%}}
+
+/* v31: readable per-part progression at narrow mobile widths. */
+.exp-growth{padding:18px;border:1px solid var(--line,#35465d);border-radius:16px;margin:18px 0;overflow-wrap:anywhere}.exp-part{display:grid;grid-template-columns:1fr auto;gap:6px 12px;margin:16px 0}.exp-part progress{width:100%;grid-column:1/-1;accent-color:#59d7bd}.exp-part small{grid-column:1/-1}.exp-part span{font-size:.88rem}@media(max-width:400px){.exp-part{grid-template-columns:1fr}.exp-part span{grid-column:1}}

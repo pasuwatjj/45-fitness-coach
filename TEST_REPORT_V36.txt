@@ -1,0 +1,9 @@
+v36 local verification 2026-10-27
+PASS 26 backend tests: original5 new side tracking tests, all15exercise yaw invariance, auto-arm interruption, v35 readiness and pose API suite.
+PASS final7 v36 tests after adding full-process temporary confidence dip/occlusion cancellation and left/right near-arm tracking in both-arm mode. All hidden far arms remain unknown and no paired rep fabricated.
+PASS simulated worker hand-init and hand-inference failures: valid pose output survives, transferred frame closes.
+PASS existing network timeout, body/header stall and overlapping request ownership tests.
+PASS Python compilation and changed JavaScript syntax.
+
+Confidence hysteresis: acquisition remains0.65; measured current points may be retained at0.5 for<=400ms after strong observation with<=0.12 normalized displacement. No stale pose interpolation or hidden landmark invention. Display threshold0.5 is independent of rep quality acceptance. Auto-selection incorporates the required same-side hip. Strict body-axis uncertainty stays unverified; no new form score exemption.
+No physical webcam side-on accuracy/FPS experiment, no guarantee against full occlusion. No200cycle hardware rerun in this patch; priorv35 results not recounted as newtests. No live deployment.

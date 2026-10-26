@@ -26,12 +26,13 @@ class ArmSelector:
     """Prefer the clearly visible arm; never oscillate when both are equally visible."""
     def __init__(self,side='right'):
         self.side=side;self.candidate=None;self.since=None;self.samples=0
-    def choose(self,landmarks,now):
+    def choose(self,landmarks,now,include_hip=False):
         scores={}
         for side,ids in [('left',(11,13,15)),('right',(12,14,16))]:
-            points=[landmarks[i] for i in ids] if landmarks and len(landmarks)>16 else []
+            ids=ids+((23 if side=='left' else 24),) if include_hip else ids
+            points=[landmarks[i] for i in ids] if landmarks and len(landmarks)>max(ids) else []
             good=points and all((p.visibility or 0)>=.65 and (getattr(p,'presence',1) or 0)>=.65 and 0<=p.x<=1 and 0<=p.y<=1 for p in points)
-            scores[side]=sum(min(p.visibility or 0,getattr(p,'presence',1) or 0) for p in points)/3 if good else 0
+            scores[side]=sum(min(p.visibility or 0,getattr(p,'presence',1) or 0) for p in points)/len(points) if good else 0
         other='left' if self.side=='right' else 'right'
         candidate=other if scores[other]>.65 and (scores[self.side]==0 or scores[other]>scores[self.side]+.18) else None
         if candidate!=self.candidate:self.candidate=candidate;self.since=now;self.samples=0

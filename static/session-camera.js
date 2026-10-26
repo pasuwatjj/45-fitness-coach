@@ -11,7 +11,7 @@ const BrowserCamera=(()=>{
  let stream=null,generation=0,timer=null,imageURL=null,controller=null,failures=0,openedAt=0,opening=false,activeSet=null;
  function report(message){window.cameraFailure=message;document.getElementById('status').textContent=message;console.warn('[45 Fitness camera]',message)}
  function stopCurrent(){const id=activeSet||window.fitnessState?.set_id;return fetch('/stop',{method:'POST',headers:id?{'X-Set-ID':id}:{}})}
- function close(){window.latestFrameState=null;opening=false;activeSet=null;generation++;cancelAnimationFrame(raf);video.hidden=true;landmarks=[];draw.clearRect(0,0,drawing.width,drawing.height);clearTimeout(timer);if(controller)controller.abort();controller=null;if(stream)stream.getTracks().forEach(t=>{t.onended=null;t.stop()});stream=null;video.pause();video.srcObject=null;if(imageURL)URL.revokeObjectURL(imageURL);imageURL=null;}
+ function close(){window.LocalPose?.close();window.latestFrameState=null;opening=false;activeSet=null;generation++;cancelAnimationFrame(raf);video.hidden=true;landmarks=[];draw.clearRect(0,0,drawing.width,drawing.height);clearTimeout(timer);if(controller)controller.abort();controller=null;if(stream)stream.getTracks().forEach(t=>{t.onended=null;t.stop()});stream=null;video.pause();video.srcObject=null;if(imageURL)URL.revokeObjectURL(imageURL);imageURL=null;}
  async function open(){
   clearTimeout(hiddenTimer);
   if(stream&&stream.getVideoTracks().some(t=>t.readyState==='live'))return false;
@@ -37,7 +37,7 @@ const BrowserCamera=(()=>{
    if(!stream.getVideoTracks().some(t=>t.readyState==='live'))throw Error('กล้องหยุดทำงานหลังเปิด กรุณาลองอีกครั้ง');
    video.style.transform=drawing.style.transform=camera===1?'none':'scaleX(-1)';video.hidden=false;document.getElementById('feed').hidden=true;document.getElementById('placeholder').hidden=true;document.getElementById('overlay').hidden=false;paint();
    for(const track of stream.getVideoTracks())track.onended=()=>{if(mine===generation){const stopping=stopCurrent();close();stopping.catch(()=>{});report('กล้องถูกอุปกรณ์ปิด กดรีเซ็ตกล้องแล้วเริ่มใหม่ / Camera ended; reset and start again')}};
-   openedAt=Date.now();failures=0;return true;
+   openedAt=Date.now();failures=0;window.LocalPose?.start();return true;
   }catch(error){if(mine===generation)close();const messages={NotAllowedError:'กรุณาอนุญาตกล้องใน Safari หรือ Chrome แล้วลองอีกครั้ง',NotFoundError:'ไม่พบกล้องในเครื่องนี้',NotReadableError:'กล้องถูกใช้อยู่ ลองปิดแอปอื่นที่ใช้กล้องก่อน'};throw Error(messages[error.name]||error.message)}
  }
  // Bound both the HTTP response and its body: a stalled status/body must not freeze the frame loop.
@@ -55,14 +55,23 @@ const BrowserCamera=(()=>{
   const start=performance.now();
   try{
    if(video.readyState<2||!video.videoWidth){timer=setTimeout(()=>frame(mine),200);return}
-   const scale=Math.min(640/video.videoWidth,640/video.videoHeight,1);
-   // Resizing clears canvas state and reallocates its backing store; resize only when dimensions change.
-   const width=Math.round(video.videoWidth*scale),height=Math.round(video.videoHeight*scale);
-   if(canvas.width!==width)canvas.width=width;if(canvas.height!==height)canvas.height=height;
-   context.drawImage(video,0,0,canvas.width,canvas.height);
-   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.75));
-   if(mine!==generation)return;if(!blob)throw Error('อ่านภาพกล้องไม่สำเร็จ');
-   const {response,data:result}=await cameraJSON('/frame',{method:'POST',headers:{'Content-Type':'image/jpeg','X-Set-ID':state.set_id,'X-Frame-Format':'landmarks'},body:blob});
+   let response,result,local=false;
+   if(window.LocalPose?.ready){
+    try{const payload=await window.LocalPose.detect(video,!!state.grip_enabled);if(mine!==generation)return;
+     const reply=await cameraJSON('/pose-frame',{method:'POST',headers:{'Content-Type':'application/json','X-Set-ID':state.set_id},body:JSON.stringify(payload)});
+     response=reply.response;result=reply.data;local=true;
+     if(!response.ok&&response.status!==409){window.LocalPose.disable();local=false}
+    }catch(error){if(mine!==generation)return;window.LocalPose.disable()}
+   }
+   if(!local){
+    const scale=Math.min(640/video.videoWidth,640/video.videoHeight,1);
+    const width=Math.round(video.videoWidth*scale),height=Math.round(video.videoHeight*scale);
+    if(canvas.width!==width)canvas.width=width;if(canvas.height!==height)canvas.height=height;
+    context.drawImage(video,0,0,canvas.width,canvas.height);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.75));
+    if(mine!==generation)return;if(!blob)throw Error('Cannot capture camera frame');
+    const reply=await cameraJSON('/frame',{method:'POST',headers:{'Content-Type':'image/jpeg','X-Set-ID':state.set_id,'X-Frame-Format':'landmarks'},body:blob});response=reply.response;result=reply.data;
+   }
    if(mine!==generation)return;
    if(response.status===409){
     if(activeSet!==state.set_id){timer=setTimeout(()=>frame(mine),100);return}

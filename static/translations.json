@@ -892,5 +892,7 @@
   "วันพฤหัสบดี": "Thursday",
   "วันศุกร์": "Friday",
   "วันเสาร์": "Saturday",
-  "วันอาทิตย์": "Sunday"
+  "วันอาทิตย์": "Sunday",
+  "หันข้างให้แขนที่เลือกอยู่ใกล้กล้อง และเห็นไหล่ ศอก ข้อมือ สะโพกครบ": "Show the selected arm nearest the camera, including shoulder, elbow, wrist and hip",
+  "เห็นแขนแล้ว แต่ทิศทางยังไม่ชัด: หันเฉียงให้เห็นไหล่ทั้งสอง": "Arm tracked; turn slightly to show both shoulders for direction checks"
 }

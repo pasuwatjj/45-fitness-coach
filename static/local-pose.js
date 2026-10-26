@@ -4,7 +4,7 @@ window.LocalPose=(()=>{
  let worker=null,ready=false,disabled=false,serial=0,pending=null,initTimer=null;
  const fail=()=>{ready=false;disabled=true;clearTimeout(initTimer);worker?.terminate();worker=null;if(pending){clearTimeout(pending.timer);pending.reject(Error('Local pose unavailable'));pending=null}};
  function start(){if(worker||disabled||!window.Worker||!window.createImageBitmap)return;
-  try{worker=new Worker('/static/pose-worker.js?v=35');worker.onerror=fail;
+  try{worker=new Worker('/static/pose-worker.js?v=36');worker.onerror=fail;
    worker.onmessage=({data})=>{if(data.type==='ready'){ready=true;clearTimeout(initTimer)}else if(data.type==='error')fail();else if(data.type==='result'&&pending&&data.id===pending.id){const p=pending;pending=null;clearTimeout(p.timer);p.resolve(data)}};
    initTimer=setTimeout(fail,45000);worker.postMessage({type:'init',model:new URL('/camera/pose-model',location.href).href});
   }catch(e){fail()}

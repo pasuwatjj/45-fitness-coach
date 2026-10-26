@@ -50,6 +50,8 @@ def register(app,get_store):
     bp=Blueprint('community',__name__)
     import administration
     administration.register(bp,get_store)
+    import tracking_evaluation
+    tracking_evaluation.register(bp,get_store)
     @bp.before_request
     def guard():
         if not getattr(g,'account',None):return jsonify(error='กรุณาเข้าสู่ระบบ / Please sign in'),401

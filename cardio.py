@@ -121,8 +121,7 @@ class JumpingJackRound:
         if pose!=self.candidate:self.candidate=pose;self.since=now
         if now-self.since<.055:return self.snapshot()
         if self.start_at is None:
-            if pose=='down':self.start_at=now+3;self.phase='down';self.armed=True;self.cue='prepare'
-            else:self.cue='ready'
+            self.start_at=now;self.phase='down' if pose=='down' else 'ready';self.armed=pose=='down';self.cue='raise' if self.armed else 'ready'
             return self.snapshot()
         if now<self.start_at:return self.snapshot()
         if not self.armed:
@@ -188,8 +187,7 @@ class PushUpRound(JumpingJackRound):
         if pose!=self.candidate:self.candidate=pose;self.since=now
         if now-self.since<.055:return self.snapshot()
         if self.start_at is None:
-            if pose=='up':self.start_at=now+3;self.phase='up';self.armed=True;self.cue='prepare'
-            else:self.cue='push_ready'
+            self.start_at=now;self.phase='up' if pose=='up' else 'ready';self.armed=pose=='up';self.cue='push_lower' if self.armed else 'push_ready'
             return self.snapshot()
         if now<self.start_at:return self.snapshot()
         if not self.armed:

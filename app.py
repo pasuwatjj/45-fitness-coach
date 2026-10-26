@@ -27,7 +27,7 @@ import cv2
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from flask import Flask, Response, jsonify, redirect, render_template, request
+from flask import Flask, Response, jsonify, redirect, render_template, request, send_file
 
 from curl_counter import elbow_angle
 from form_rules import FormCoach, measurements
@@ -398,9 +398,8 @@ class CameraCoach:
         if plan and not self.state['paused'] and self.state['reps']>=plan['target_reps']:
             self.pause(automatic=True)
             return
-        if (self.state['running'] and not self.state['paused'] and self.state['reps'] > 0
-            and self.last_activity is not None and now_ms-self.last_activity >= SETTINGS['rest_timeout_ms']):
-            self.pause(automatic=True)
+        # v35: ordinary sets pause only when the user requests it.
+        # Planned target/challenge completion above remain automatic.
 
     def recalibrate(self):
         with self.condition:
@@ -736,10 +735,15 @@ class BrowserCoach(CameraCoach):
                     except Exception:logging.exception('Camera detector cleanup: %s',name)
             self.timestamp = -1
 
-    def accept_frame(self, frame, set_id, landmarks_only=False):
+    def accept_frame(self, frame, set_id, landmarks_only=False, local_result=None, local_hands=None):
         with self.condition:
             if not self.state['running'] or self.detector is None or set_id != self.state['set_id']:
                 raise ValueError('เซตเปลี่ยนหรือปิดกล้องแล้ว')
+            engine="browser" if local_result is not None else "server"
+            if getattr(self,"last_engine",engine)!=engine:
+                for form in self.forms.values():form.reset_motion()
+                self.reset_tracking()
+            self.last_engine=engine
             now=time.monotonic()
             # A network pause cancels the incomplete repetition, not the neutral
             # calibration. Otherwise >2 s round trips restart preparation forever.
@@ -754,7 +758,7 @@ class BrowserCoach(CameraCoach):
             timestamp=max(self.timestamp+1,int(now*1000))
             self.timestamp=timestamp
             rgb=cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
-            result=self.detector.detect_for_video(mp.Image(image_format=mp.ImageFormat.SRGB,data=rgb),timestamp)
+            result=local_result if local_result is not None else self.detector.detect_for_video(mp.Image(image_format=mp.ImageFormat.SRGB,data=rgb),timestamp)
             poses=result.pose_landmarks[0] if result.pose_landmarks else None
             world=result.pose_world_landmarks[0] if result.pose_world_landmarks else None
             if self.cardio:
@@ -767,9 +771,9 @@ class BrowserCoach(CameraCoach):
             hand_points=[]
             if self.grip_enabled and CATALOG[self.exercise]['family']=='curl' and now>=getattr(self,'hand_disabled_until',0):
                 try:
-                    if self.hand_detector is None:
+                    if local_hands is None and self.hand_detector is None:
                         self.hand_detector=mp.solutions.hands.Hands(static_image_mode=False,max_num_hands=2,model_complexity=0,min_detection_confidence=.65,min_tracking_confidence=.65)
-                    hands=self.hand_detector.process(rgb)
+                    hands=local_hands if local_hands is not None else self.hand_detector.process(rgb)
                     hand_points=[[[round(p.x,4),round(p.y,4)] for p in hand.landmark]
                                  for hand in (hands.multi_hand_landmarks or [])]
                     for side in self.active_arms:
@@ -856,7 +860,7 @@ def banned_account_guard():
 
 @app.before_request
 def private_session():
-    protected = request.path in ('/start','/stop','/reset','/pause','/resume','/calibrate','/frame',
+    protected = request.path in ('/start','/stop','/reset','/pause','/resume','/calibrate','/frame','/pose-frame',
         '/camera/auto-arm','/profiles','/plans/today/start','/health/analyze','/camera/recover') or request.path.startswith(('/profiles/','/vip','/admin/','/social/','/cardio/'))
     token=request.headers.get('X-Coach-Session','')
     if request.path == '/status' and token:
@@ -1593,6 +1597,28 @@ def cardio_ranks():
     except ValueError:return jsonify(error='Invalid tolerance'),400
     if not 5<=tolerance<=50:return jsonify(error='Invalid tolerance'),400
     return jsonify(mode=mode,tolerance=tolerance,players=community.profile_roles(store,ranking(store,mode,tolerance)))
+
+@app.get('/camera/pose-model')
+def local_pose_model():
+    return send_file(str(MODEL),mimetype='application/octet-stream',conditional=True,max_age=86400)
+
+@app.post('/pose-frame')
+def browser_pose_frame():
+    if request.mimetype!='application/json':return jsonify(error='JSON required'),415
+    if request.content_length is None or request.content_length>60000:return jsonify(error='Pose payload too large'),413
+    from local_pose import parse
+    try:w,h,result,hands=parse(request.get_json(silent=True))
+    except (ValueError,TypeError):return jsonify(error='Invalid pose data'),400
+    try:
+        with coach.condition:
+            # Limit request work, use server time (never a client clock).
+            now=time.monotonic()
+            if now-getattr(coach,'last_local_request',0)<.025:return jsonify(error='Pose rate exceeded'),429
+            coach.last_local_request=now
+            frame=np.zeros((h,w,3),dtype=np.uint8)
+            response=coach.accept_frame(frame,request.headers.get('X-Set-ID',''),True,result,hands)
+        return jsonify(response)
+    except ValueError as error:return jsonify(error=str(error)),409
 
 @app.post('/frame')
 def browser_frame():

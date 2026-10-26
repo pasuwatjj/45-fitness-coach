@@ -132,31 +132,10 @@ class MotionCoach:
         increasing = self.limits['increasing']
         at_start = angle <= self.limits['start'] if increasing else angle >= self.limits['start']
         if self.baseline is None:
-            if self.family=='shoulder_press' and m['arm']<=30 and m['joint_elbow']>=140:at_start=True
-            if self.family=='raise':at_start=at_start and m['arm']<=30
-            if not at_start or not self.posture_ready(m):
-                self.samples = []
-                out['feedback'] = [dict(code='position',text=self.exercise['setup'])]
-                return out
-            self.samples.append((now,dict(m)))
-            if any(max(s[1][k] for s in self.samples)-min(s[1][k] for s in self.samples)>16
-                   for k in ('elbow','lean')):
-                self.samples = [(now,dict(m))]
-            elapsed = now-self.samples[0][0]
-            out['calibration'] = min(100,round(100*elapsed/self.settings['calibration_ms']))
-            if elapsed < self.settings['calibration_ms'] or len(self.samples)<3:
-                out['feedback'] = [dict(code='position',text=self.exercise['setup'])]
-                return out
-            self.baseline = {k:statistics.median(s[1][k] for s in self.samples) for k in m}
+            # No neutral-pose dwell: the counter still requires a full endpoint cycle.
+            self.baseline = dict(m)
             self.samples = []
-
-        if self.family=='shoulder_press' and self.baseline['arm']<=30 and self.counter.phase=='waiting':self.rack_pending=True
-        if self.rack_pending:
-            if m['arm']>=45 and angle<=min(115,self.limits['start']):
-                self.rack_pending=False;self.baseline=dict(m);self.reset_motion()
-            else:
-                out.update(calibrated=True,calibration=100,feedback=[dict(code='position',text='ยกดัมเบลจากข้างขามาระดับไหล่ก่อน แล้วค่อยดันขึ้นเพื่อเริ่มนับ')])
-                return out
+            self.rack_pending = False
 
         definitions = []
         if self.family not in ('squat','hinge'):

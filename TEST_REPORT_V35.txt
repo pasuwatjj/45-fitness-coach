@@ -1,0 +1,8 @@
+v35 local verification 2026-10-26
+PASS66 backend tests: new no-dwell/allcatalog firstvalidframe zero free rep, localpose bounds, manualidle rest, analytics v34, EXP/admin/economy, cardio and gentle coaching. Old calibration-wait test is obsolete for requested immediate start; not a claimed pass.
+PASS6 pose endpoint tests including /pose-frame auth/boundedpayload/cross-session rejection/blankresult/manualpause.
+PASS actual MediaPipe Pose+Hand worker: bundled WASM and models load, blackframe inference returns empty landmarks. This is a runtime smoke test, not human accuracy.
+PASS200 real Chromium fake-device getUserMedia open/close cycles. Separate worker abort caused JPEG fallback; blankframe no rep, manual pause/stop. Width1365/390/320 document overflow assertions pass after trainingcontrol CSS fix. Does not establish physical webcam reliability200cycles.
+PASS admin evaluator Chromium EN/TH at1365/390/320: manually entered synthetic20wronglabels18rejected/1accepted/1unknown produces90%wrongdetection and95%coverage; anglepairs90->94,100->97 yieldMAE3.5deg/RMSE3.536/bias0.5. Saved reload; removedfooter hidden; no page errors. These numbers are test fixtures, NOT measured real human tracking accuracy.
+Backend restricts evaluation endpoints to admins; invalid labels/nonfinite angles rejected; no actual user camera recordings supplied.
+No physical FPS/latency/angle-accuracy result or live deployment. Browser landmark data is untrusted: bounds/rate/session checked and scores computed server-side, but fabricated anatomically plausible points cannot be authenticated as a real person. Do not claim anti-cheat certification.

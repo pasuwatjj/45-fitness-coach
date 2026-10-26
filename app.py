@@ -42,6 +42,7 @@ import membership
 import shop
 from exercises import CATALOG, EXERCISES, GROUPS
 from motion_coach import MotionCoach, required_joints, pose_metrics
+from side_tracking import SideTracking
 from planner import today_thailand
 
 ROOT = Path(__file__).resolve().parent
@@ -145,6 +146,7 @@ class CameraCoach:
         self.selected_arm, self.focus = arm, focus
         self.active_arms = ['left', 'right'] if arm in ('both','auto') else [arm]
         self.arm_selector=training_modes.ArmSelector()
+        self.side_tracking=SideTracking()
         self.auto_side='right'
         self.forms = {a: FormCoach(cfg,effective) if CATALOG[exercise]['family']=='curl' else MotionCoach(exercise,cfg,effective) for a in self.active_arms}
         self.outputs = {a: self.forms[a].base() for a in self.active_arms}
@@ -200,6 +202,7 @@ class CameraCoach:
     def reset_tracking(self, arm=None):
         for a in ([arm] if arm else self.active_arms):
             self.smooth[a] = self.last_good[a] = None
+            if hasattr(self,'side_tracking'):self.side_tracking.clear(a)
             if hasattr(self,'angle_stats'):self.angle_stats.invalidate(a)
             if hasattr(self,'gates'):self.gates[a].lost()
 
@@ -469,7 +472,7 @@ class CameraCoach:
             self.maybe_rest(now_ms)
             return
         if self.selected_arm=='auto':
-            self.auto_side,switched=self.arm_selector.choose(landmarks,now_ms)
+            self.auto_side,switched=self.arm_selector.choose(landmarks,now_ms,include_hip=self.focus!='arms' or CATALOG[self.exercise]['family']!='curl')
             if switched:
                 # Keep per-side totals and calibration, cancel all unfinished cycles.
                 for side in self.active_arms:
@@ -483,9 +486,9 @@ class CameraCoach:
             generic = CATALOG[self.exercise]['family']!='curl'
             needed = required_joints(self.exercise,a) if generic else (*ids, hip) if self.focus == 'upper' else ids
             form = self.forms[a]
-            if not all(visible(landmarks[i]) for i in needed):
+            if not self.side_tracking.accepts(a,landmarks,needed,now_ms):
                 self.reset_tracking(a)
-                text = CATALOG[self.exercise]['camera'] if generic else 'ให้เห็นไหล่ ศอก ข้อมือ และสะโพก' if self.focus == 'upper' else 'ให้เห็นไหล่ ศอก ข้อมือครบ — ไม่จำเป็นต้องเห็นสะโพก'
+                text = CATALOG[self.exercise]['camera'] if generic else 'หันข้างให้แขนที่เลือกอยู่ใกล้กล้อง และเห็นไหล่ ศอก ข้อมือ สะโพกครบ' if self.focus == 'upper' else 'ให้เห็นไหล่ ศอก ข้อมือครบ — ไม่จำเป็นต้องเห็นสะโพก'
                 self.outputs[a] = form.unavailable(now_ms, text)
                 continue
             points = [(landmarks[i].x * width, landmarks[i].y * height) for i in needed]
@@ -539,7 +542,7 @@ class CameraCoach:
                 active=self.gates[a].observe(known,bad,now_ms,moving or form.counter.phase=='raised')
                 for code in active:
                     self.outputs[a]['feedback'].insert(0,dict(code='strict_'+code,text=FORM_MESSAGES[code][0]))
-                self.outputs[a]['checks'].append(dict(label='แนวท่าและทิศทางแขน',status='warn' if active else 'pending' if not known else 'ok',value=None,limit=None,display='ลองปรับแนวท่า' if active else 'ยังประเมินทิศทางไม่ได้' if not known else 'กำลังติดตามแนวท่า'))
+                self.outputs[a]['checks'].append(dict(label='แนวท่าและทิศทางแขน',status='warn' if active else 'pending' if not known else 'ok',value=None,limit=None,display='ลองปรับแนวท่า' if active else 'เห็นแขนแล้ว แต่ทิศทางยังไม่ชัด: หันเฉียงให้เห็นไหล่ทั้งสอง' if not known else 'กำลังติดตามแนวท่า'))
                 if active:self.outputs[a]['form_level']='warn'
                 if form.counter.reps>old_reps:
                     verdict,reasons=self.gates[a].finish()

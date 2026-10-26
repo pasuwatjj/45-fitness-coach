@@ -1,0 +1,9 @@
+45 Fitness Coach v34 — local tests 2026-10-26
+
+PASS 24 backend tests: v34 + v31 + v32, including analytics reset authorization, malformed confirmation, retained workout/EXP, late save from an active excluded set, new data after reset, legacy missing metrics, measured duration/range.
+PASS 57 existing forms/session/v20 tests before final interrupted-cycle exclusion refinement; final v34+v20 rerun:33 tests passed after the refinement.
+PASS Chromium EN/TH at1365,390,320:23-set fixture/pagination10, missing alignment gap, per-rep selector, daily charts, confirmed real reset route + profile refresh, no JavaScript page errors or document overflow.
+PASS syntax changedJS and camera network timeout/ownership tests; canvas resize200draw simulation remains unchanged.
+New torso/arm metrics are passive; thresholds and camera lifecycle unchanged. Missing/occluded partial cycles excluded from completed range/timing statistics. Counter tracks detected attempts before quality acceptance; reports describe measured attempts, not exclusively scored repetitions.
+Advice uses app coaching heuristics (curl alignment25deg, short-cycle1.5s, endpointspread12deg, first/latestspread2deg); these are not validated universal standards or accuracy percentages. Degrees/sec uses2*range/duration as an approximate round-trip pace. Health inputs, bodyweight graphs and lifetime muscle-group/EXP stats intentionally retained on analysis reset.
+Browser data synthetic; no physical webcam accuracy/FPS or physical200toggle certification. No live deployment. No personal production database included.

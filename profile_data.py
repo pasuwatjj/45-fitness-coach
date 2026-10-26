@@ -64,6 +64,9 @@ def overview(store, profile_id):
         row['accepted']=q['accepted'] if q else row['reps']
     for q in quality.values():
         if not q['reps']:rows.append(dict(q,flagged=0,observations='{}',strict=True))
+    from analytics_reset import hidden
+    excluded=hidden(store,profile_id)
+    rows=[r for r in rows if r['id'] not in excluded]
     rows.sort(key=lambda r:(r['created_at'],r['id']),reverse=True);rows=rows[:60]
     for row in rows:
         row['observations']=json.loads(row['observations'])

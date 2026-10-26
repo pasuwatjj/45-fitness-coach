@@ -47,7 +47,7 @@ from planner import today_thailand
 ROOT = Path(__file__).resolve().parent
 MODEL = ROOT / 'models' / 'pose_landmarker_lite.task'
 SETTINGS = json.loads((ROOT / 'settings.json').read_text(encoding='utf-8-sig'))
-GENTLE_COACH_VERSION = 32
+GENTLE_COACH_VERSION = 34
 store = LeaderboardStore(os.environ.get('FITNESS_DATA_PATH', str(ROOT / 'data' / 'fitness.db')))
 voice_cache = VoiceCache(store.path.parent / 'voice-v13')
 app = Flask(__name__)
@@ -200,6 +200,7 @@ class CameraCoach:
     def reset_tracking(self, arm=None):
         for a in ([arm] if arm else self.active_arms):
             self.smooth[a] = self.last_good[a] = None
+            if hasattr(self,'angle_stats'):self.angle_stats.invalidate(a)
             if hasattr(self,'gates'):self.gates[a].lost()
 
     def start(self, arm, camera_index, tolerance, focus='arms', profile=None, exercise='curl', plan=None):
@@ -287,6 +288,7 @@ class CameraCoach:
 
     def pause(self, automatic=False):
         with self.condition:
+            if hasattr(self,'angle_stats'):self.angle_stats.invalidate()
             self.state['paused'] = True
             observations = {}
             for arm, form in self.forms.items():
@@ -516,7 +518,12 @@ class CameraCoach:
             before_phase=form.counter.phase
             normalized=180-self.smooth[a]['elbow'] if generic and form.limits['increasing'] else self.smooth[a]['elbow']
             moving=before_phase=='raised' or before_phase=='ready' and normalized<form.counter.maximum-10
-            self.angle_stats.sample(a,self.smooth[a],source,now_ms)
+            analysis_metrics=dict(self.smooth[a])
+            if isinstance(analysis_metrics.get('lean'),(int,float)):analysis_metrics['body_tilt']=abs(analysis_metrics['lean'])
+            if CATALOG[self.exercise]['group']!='legs' and visible(landmarks[hip]):
+                relative,relative_source=pose_metrics(self.exercise,a,landmarks,width,height,world)
+                if relative and relative_source==source:analysis_metrics['torso_arm']=relative['arm']
+            self.angle_stats.sample(a,analysis_metrics,source,now_ms,moving=moving)
             self.outputs[a] = form.update(self.smooth[a], now_ms)
             if form.counter.reps>old_reps:self.angle_stats.completed(a,source)
             if getattr(self,'quality_enabled',False):
@@ -1634,6 +1641,27 @@ import community
 community.register(app,lambda:store)
 import collaboration_features
 collaboration_features.register(app,lambda:store,lambda:sessions,lambda:STABLE_PUBLIC_URL)
+
+
+@app.post('/profiles/<int:profile_id>/analytics/reset')
+def reset_analytics(profile_id):
+    from analytics_reset import reset
+    payload=request.get_json(silent=True)
+    if not isinstance(payload,dict) or payload.get('confirm') is not True:
+        return jsonify(error='Confirm reset / ยืนยันเริ่มข้อมูลใหม่'),400
+    from contextlib import ExitStack
+    with sessions.lock, ExitStack() as locks:
+        # Serialize reset against starts, saves and frame processing in all browsers.
+        for item in sessions.items.values():locks.enter_context(item['coach'].condition)
+        active=[]
+        for item in sessions.items.values():
+            c=item['coach']
+            if (c.state.get('profile') or {}).get('id')==profile_id:
+                if c.state.get('set_id'):active.append(('set',c.state['set_id']))
+            round_=getattr(c,'cardio',None)
+            if round_ and round_.profile_id==profile_id:active.append(('cardio',round_.id))
+        reset(store,profile_id,active)
+    return jsonify(ok=True)
 
 
 @app.get('/profiles/<int:profile_id>/progress')

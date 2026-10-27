@@ -3,17 +3,58 @@ const BrowserCamera=(()=>{
  let video=document.createElement('video');video.muted=true;video.autoplay=true;video.playsInline=true;
  video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
  video.id='liveVideo';video.className='live-video';video.hidden=true;document.querySelector('.screen').prepend(video);
- const drawing=document.createElement('canvas');drawing.id='poseDrawing';drawing.className='pose-drawing';document.querySelector('.screen').append(drawing);const draw=drawing.getContext('2d');let landmarks=[],handLandmarks=[],pointsAt=0,raf=0;
+ const drawing=document.createElement('canvas');drawing.id='poseDrawing';drawing.className='pose-drawing';document.querySelector('.screen').append(drawing);const draw=drawing.getContext('2d');let landmarks=[],handLandmarks=[],pointsAt=0,raf=0,visible=[];
  const pairs=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
  const fingers=[[0,1,2,3,4],[0,5,6,7,8],[5,9,10,11,12],[9,13,14,15,16],[13,17,18,19,20],[0,17]];
- function paint(){if(!stream)return;if(drawing.width!==(video.videoWidth||640))drawing.width=video.videoWidth||640;if(drawing.height!==(video.videoHeight||480))drawing.height=video.videoHeight||480;draw.clearRect(0,0,drawing.width,drawing.height);if(performance.now()-pointsAt<350&&landmarks.length){draw.strokeStyle='#7be9b2';draw.fillStyle='#fff';draw.lineWidth=3;for(const [a,b] of pairs){if((window.fitnessState?.focus!=='full')&&(a>24||b>24))continue;const p=landmarks[a],q=landmarks[b];if(p?.[2]>.5&&q?.[2]>.5){draw.beginPath();draw.moveTo(p[0]*drawing.width,p[1]*drawing.height);draw.lineTo(q[0]*drawing.width,q[1]*drawing.height);draw.stroke()}}}if(performance.now()-pointsAt<650){draw.strokeStyle='#ffd66b';draw.lineWidth=2;for(const hand of handLandmarks)for(const chain of fingers){draw.beginPath();chain.forEach((id,i)=>{const p=hand[id];if(p)(i?draw.lineTo(p[0]*drawing.width,p[1]*drawing.height):draw.moveTo(p[0]*drawing.width,p[1]*drawing.height))});draw.stroke()}}raf=requestAnimationFrame(paint)}
+ function paint(){if(!stream)return;if(performance.now()-lastMetrics>=500)metrics();if(drawing.width!==(video.videoWidth||640))drawing.width=video.videoWidth||640;if(drawing.height!==(video.videoHeight||480))drawing.height=video.videoHeight||480;draw.clearRect(0,0,drawing.width,drawing.height);const age=performance.now()-pointsAt;draw.globalAlpha=Math.max(0,Math.min(1,(650-age)/150));if(age<650&&landmarks.length){draw.strokeStyle='#7be9b2';draw.fillStyle='#fff';draw.lineWidth=3;for(const [a,b] of pairs){if((window.fitnessState?.focus!=='full')&&(a>24||b>24))continue;const p=landmarks[a],q=landmarks[b];if(visible[a]&&visible[b]){draw.beginPath();draw.moveTo(p[0]*drawing.width,p[1]*drawing.height);draw.lineTo(q[0]*drawing.width,q[1]*drawing.height);draw.stroke()}}}if(age<650){draw.strokeStyle='#ffd66b';draw.lineWidth=2;for(const hand of handLandmarks)for(const chain of fingers){draw.beginPath();chain.forEach((id,i)=>{const p=hand[id];if(p)(i?draw.lineTo(p[0]*drawing.width,p[1]*drawing.height):draw.moveTo(p[0]*drawing.width,p[1]*drawing.height))});draw.stroke()}}draw.globalAlpha=1;raf=requestAnimationFrame(paint)}
  const canvas=document.createElement('canvas'),context=canvas.getContext('2d');
  let stream=null,generation=0,timer=null,imageURL=null,controller=null,failures=0,openedAt=0,opening=false,activeSet=null;
+ let localTimer=null,localTask=null,localSample=null,lastSentSample=null,frameBusy=false,revision=0;
+ const fpsSelect=document.getElementById('detectionFps'),fpsInfo=document.getElementById('detectionFpsInfo');
+ let fpsChoice='auto',cost=80,detectionTimes=[],cameraTimes=[],cameraCallback=null,lastMetrics=0;
+ try{const saved=localStorage.getItem('45fitness.detectionFps');if(['auto','10','15','20','30'].includes(saved))fpsChoice=saved}catch(e){}
+ fpsSelect.value=fpsChoice;
+ fpsSelect.onchange=()=>{fpsChoice=['auto','10','15','20','30'].includes(fpsSelect.value)?fpsSelect.value:'auto';try{localStorage.setItem('45fitness.detectionFps',fpsChoice)}catch(e){};detectionTimes=[];metrics()};
+ function interval(){return fpsChoice==='auto'?Math.max(1000/30,cost*1.15):1000/Number(fpsChoice)}
+ function measured(times,now){while(times.length&&now-times[0]>2000)times.shift();return times.length>1?(times.length-1)*1000/(times[times.length-1]-times[0]):0}
+ function metrics(){const now=performance.now(),en=window.I18N?.lang==='en';fpsInfo.textContent=(en?'Detection actual: ':'ตรวจจับจริง: ')+measured(detectionTimes,now).toFixed(1)+' FPS · '+(en?'Camera actual: ':'กล้องจริง: ')+(video.requestVideoFrameCallback?measured(cameraTimes,now).toFixed(1):'—')+' FPS';document.getElementById('detectionFpsLabel').textContent=en?'Detection FPS limit':'จำกัด FPS ตรวจจับ';fpsSelect.options[0].textContent=en?'Auto (adaptive)':'อัตโนมัติ (ปรับตามเครื่อง)';document.getElementById('detectionFpsNote').textContent=en?'Maximum rate, not guaranteed. Actual detection depends on device / server speed.':'เป็นเพดาน ไม่รับประกัน FPS จริง ขึ้นกับความเร็วเครื่อง / เซิร์ฟเวอร์';lastMetrics=now}
+ function detected(){detectionTimes.push(performance.now());metrics()}
+ function trackCamera(mine){if(!video.requestVideoFrameCallback)return;cameraCallback=video.requestVideoFrameCallback(()=>{if(mine!==generation||!stream)return;cameraTimes.push(performance.now());measured(cameraTimes,performance.now());trackCamera(mine)})}
+ metrics();
+ if(window.I18N?.lang==='en'){document.getElementById('initialCameraHint').textContent='Open the camera with your selected shoulder, elbow and wrist visible.';document.getElementById('initialCountHint').textContent='Once your joints are visible, move from the starting position.'}
+ // Display owns no counters. Coordinates always come from the current observation;
+ // confidence hysteresis only keeps a currently observed joint visible near 0.5.
+ function showPoints(body,hands,at,wallAt){
+  const previous=at-pointsAt<650?visible:[];
+  landmarks=body;handLandmarks=hands;pointsAt=at;
+  visible=body.map((p,i)=>!!p&&Number.isFinite(p[0])&&Number.isFinite(p[1])&&p[2]>(previous[i] ? .45 : .5));
+  window.coachHands={count:hands.length,at:wallAt};
+  window.coachLandmarks={points:body,at:wallAt,mirrored:Number(document.getElementById('camera').value)!==1};
+ }
+ function resetPoints(){revision++;detectionTimes=[];localSample=null;lastSentSample=null;landmarks=[];handLandmarks=[];visible=[];pointsAt=0;window.coachHands=null;window.coachLandmarks=null;draw.clearRect(0,0,drawing.width,drawing.height)}
+ function localTick(mine){
+  if(mine!==generation||!stream||localTask)return;
+  clearTimeout(localTimer);
+  const state=window.fitnessState;
+  if(!window.LocalPose?.ready||!state?.running||video.readyState<2){localTimer=setTimeout(()=>localTick(mine),80);return}
+  const set=state.set_id,rev=revision,at=performance.now(),wallAt=Date.now();
+  const task=(async()=>{
+   try{
+    const payload=await window.LocalPose.detect(video,!!state.grip_enabled);
+    if(mine!==generation||!stream||revision!==rev||activeSet!==set||window.fitnessState?.set_id!==set)return;
+    cost=cost*.75+(performance.now()-at)*.25;detected();localSample={payload,set,at,wallAt,completedAt:performance.now()};
+    showPoints((payload.pose||[]).map(p=>[p.x,p.y,p.visibility??0]),(payload.hands||[]).map(hand=>hand.map(p=>[p.x,p.y])),performance.now(),Date.now());
+   }catch(error){if(mine===generation&&revision===rev){localSample=null;window.LocalPose?.disable()}}
+  })();
+  localTask=task;
+  task.finally(()=>{if(localTask===task)localTask=null;if(mine===generation&&stream)localTimer=setTimeout(()=>localTick(mine),Math.max(0,interval()-(performance.now()-at)))});
+ }
  function report(message){window.cameraFailure=message;document.getElementById('status').textContent=message;console.warn('[45 Fitness camera]',message)}
  function stopCurrent(){const id=activeSet||window.fitnessState?.set_id;return fetch('/stop',{method:'POST',headers:id?{'X-Set-ID':id}:{}})}
- function close(){window.LocalPose?.close();window.latestFrameState=null;opening=false;activeSet=null;generation++;cancelAnimationFrame(raf);video.hidden=true;landmarks=[];draw.clearRect(0,0,drawing.width,drawing.height);clearTimeout(timer);if(controller)controller.abort();controller=null;if(stream)stream.getTracks().forEach(t=>{t.onended=null;t.stop()});stream=null;video.pause();video.srcObject=null;if(imageURL)URL.revokeObjectURL(imageURL);imageURL=null;}
+ function close(){if(cameraCallback!==null)video.cancelVideoFrameCallback?.(cameraCallback);cameraCallback=null;cameraTimes=[];window.LocalPose?.close();window.latestFrameState=null;opening=false;activeSet=null;generation++;clearTimeout(localTimer);localTask=null;frameBusy=false;resetPoints();cancelAnimationFrame(raf);video.hidden=true;landmarks=[];draw.clearRect(0,0,drawing.width,drawing.height);clearTimeout(timer);if(controller)controller.abort();controller=null;if(stream)stream.getTracks().forEach(t=>{t.onended=null;t.stop()});stream=null;video.pause();video.srcObject=null;if(imageURL)URL.revokeObjectURL(imageURL);imageURL=null;}
  async function open(){
   clearTimeout(hiddenTimer);
+  if(opening)return false;
   if(stream&&stream.getVideoTracks().some(t=>t.readyState==='live'))return false;
   close();opening=true;const mine=generation;
   const oldVideo=video;video=oldVideo.cloneNode(false);video.muted=true;video.autoplay=true;video.playsInline=true;oldVideo.replaceWith(video);
@@ -37,7 +78,7 @@ const BrowserCamera=(()=>{
    if(!stream.getVideoTracks().some(t=>t.readyState==='live'))throw Error('กล้องหยุดทำงานหลังเปิด กรุณาลองอีกครั้ง');
    video.style.transform=drawing.style.transform=camera===1?'none':'scaleX(-1)';video.hidden=false;document.getElementById('feed').hidden=true;document.getElementById('placeholder').hidden=true;document.getElementById('overlay').hidden=false;paint();
    for(const track of stream.getVideoTracks())track.onended=()=>{if(mine===generation){const stopping=stopCurrent();close();stopping.catch(()=>{});report('กล้องถูกอุปกรณ์ปิด กดรีเซ็ตกล้องแล้วเริ่มใหม่ / Camera ended; reset and start again')}};
-   openedAt=Date.now();failures=0;window.LocalPose?.start();return true;
+   trackCamera(mine);openedAt=Date.now();failures=0;window.LocalPose?.start();return true;
   }catch(error){if(mine===generation)close();const messages={NotAllowedError:'กรุณาอนุญาตกล้องใน Safari หรือ Chrome แล้วลองอีกครั้ง',NotFoundError:'ไม่พบกล้องในเครื่องนี้',NotReadableError:'กล้องถูกใช้อยู่ ลองปิดแอปอื่นที่ใช้กล้องก่อน'};throw Error(messages[error.name]||error.message)}
  }
  // Bound both the HTTP response and its body: a stalled status/body must not freeze the frame loop.
@@ -48,60 +89,67 @@ const BrowserCamera=(()=>{
    new Promise((_,reject)=>{deadline=setTimeout(()=>{requestController.abort();reject(Error('Camera server timed out. Retrying / เซิร์ฟเวอร์ตอบช้า กำลังลองใหม่'))},timeoutMs)})
   ])}finally{clearTimeout(deadline);if(controller===requestController)controller=null}
  }
- async function frame(mine){
+ async function frameWork(mine){
   if(mine!==generation||!stream)return;
   const state=window.fitnessState;
   if(!state?.running){if(Date.now()-openedAt<10000){timer=setTimeout(()=>frame(mine),200);return}close();return}
-  const start=performance.now();
+  const start=performance.now(),rev=revision;
   try{
    if(video.readyState<2||!video.videoWidth){timer=setTimeout(()=>frame(mine),200);return}
-   let response,result,local=false;
+   let response,result,local=false,capturedAt=performance.now(),capturedWallAt=Date.now();
    if(window.LocalPose?.ready){
-    try{const payload=await window.LocalPose.detect(video,!!state.grip_enabled);if(mine!==generation)return;
-     const reply=await cameraJSON('/pose-frame',{method:'POST',headers:{'Content-Type':'application/json','X-Set-ID':state.set_id},body:JSON.stringify(payload)});
-     response=reply.response;result=reply.data;local=true;
-     if(!response.ok&&response.status!==409){window.LocalPose.disable();local=false}
-    }catch(error){if(mine!==generation)return;window.LocalPose.disable()}
+    const sample=localSample;
+    if(!sample||sample.set!==state.set_id||sample===lastSentSample||performance.now()-sample.completedAt>=650){timer=setTimeout(()=>frame(mine),50);return}
+    lastSentSample=sample;
+    const reply=await cameraJSON('/pose-frame',{method:'POST',headers:{'Content-Type':'application/json','X-Set-ID':state.set_id},body:JSON.stringify(sample.payload)});
+    if(mine!==generation||revision!==rev)return;response=reply.response;result=reply.data;local=true;
+    if(!response.ok&&response.status!==409){window.LocalPose.disable();localSample=null;local=false}
    }
    if(!local){
+    if(mine!==generation||revision!==rev)return;
+    capturedAt=performance.now();capturedWallAt=Date.now();
     const scale=Math.min(640/video.videoWidth,640/video.videoHeight,1);
     const width=Math.round(video.videoWidth*scale),height=Math.round(video.videoHeight*scale);
     if(canvas.width!==width)canvas.width=width;if(canvas.height!==height)canvas.height=height;
     context.drawImage(video,0,0,canvas.width,canvas.height);
     const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.75));
-    if(mine!==generation)return;if(!blob)throw Error('Cannot capture camera frame');
+    if(mine!==generation||revision!==rev)return;if(!blob)throw Error('Cannot capture camera frame');
     const reply=await cameraJSON('/frame',{method:'POST',headers:{'Content-Type':'image/jpeg','X-Set-ID':state.set_id,'X-Frame-Format':'landmarks'},body:blob});response=reply.response;result=reply.data;
    }
-   if(mine!==generation)return;
+   if(mine!==generation||revision!==rev)return;
    if(response.status===409){
     if(activeSet!==state.set_id){timer=setTimeout(()=>frame(mine),100);return}
     const {response:current,data:snapshot}=await cameraJSON('/status',{cache:'no-store'},5000);
-    if(mine!==generation)return;
+    if(mine!==generation||revision!==rev)return;
     if(current.ok&&snapshot.running){adopt(snapshot);timer=setTimeout(()=>frame(mine),100);return}
     close();report(accountText('เซตหยุดแล้ว กดรีเซ็ตกล้องเพื่อเริ่มใหม่','Workout stopped. Press Reset camera to start again.'));return;
    }
    if(!response.ok)throw Error(result?.error||'ส่งภาพไม่สำเร็จ');
-   if(mine!==generation)return;if(activeSet!==state.set_id){timer=setTimeout(()=>frame(mine),50);return;}
-   window.cameraFailure='';handLandmarks=result.hands||[];landmarks=result.landmarks||[];pointsAt=performance.now();failures=0;
-   window.coachHands={count:handLandmarks.length,at:Date.now()};window.coachLandmarks={points:landmarks,at:Date.now(),mirrored:Number(document.getElementById('camera').value)!==1};
+   if(mine!==generation||revision!==rev)return;if(activeSet!==state.set_id){timer=setTimeout(()=>frame(mine),50);return;}
+   window.cameraFailure='';failures=0;
+   if(!local&&!window.LocalPose?.ready){cost=cost*.75+(performance.now()-start)*.25;detected();showPoints(result.landmarks||[],result.hands||[],capturedAt,capturedWallAt);}
    window.latestFrameState={state:{...result.state,server_today:result.server_today},at:Date.now()};
    document.getElementById('captureInfo').textContent=(window.I18N?.lang==='en'?'Live camera · AI response ':'ภาพสด · ผลตรวจใช้เวลา ')+Math.round(performance.now()-start)+' ms';
 
   }catch(error){
-   if(mine!==generation)return;
+   if(mine!==generation||revision!==rev)return;
    failures++;report('กล้องของคุณ / Camera: '+error.message);
    if(failures>=8){const stopping=stopCurrent();close();stopping.catch(()=>{});return}
   }
-  if(mine===generation)timer=setTimeout(()=>frame(mine),failures?Math.min(2000,250*failures):Math.max(25,80-(performance.now()-start)));
+  if(mine===generation)timer=setTimeout(()=>frame(mine),failures?Math.min(2000,250*failures):Math.max(0,(window.LocalPose?.ready?80:interval())-(performance.now()-start)));
  }
- function start(){activeSet=window.fitnessState?.set_id;opening=false;clearTimeout(timer);openedAt=Date.now();frame(generation)}
+ async function frame(mine){
+  if(frameBusy||mine!==generation)return;
+  frameBusy=true;try{await frameWork(mine)}finally{if(mine===generation){frameBusy=false;if(stream){clearTimeout(timer);timer=setTimeout(()=>frame(mine),failures?Math.min(2000,250*failures):Math.max(0,(window.LocalPose?.ready?80:interval())));}}}
+ }
+ function start(){if(activeSet!==window.fitnessState?.set_id)resetPoints();activeSet=window.fitnessState?.set_id;opening=false;clearTimeout(timer);openedAt=Date.now();localTick(generation);frame(generation)}
  function observe(state){
   // Poll/cache data is not a camera shutdown command. Only explicit controls,
   // track end, or a current frame rejected by the server can end this stream.
   if(stream&&!opening&&activeSet&&(state.set_id!==activeSet||!state.running))return false;
   window.fitnessState=state;return true;
  }
- function adopt(state){window.latestFrameState=null;window.fitnessState=state;if(stream)activeSet=state.set_id;return true}
+ function adopt(state){if(activeSet!==state.set_id)resetPoints();window.latestFrameState=null;window.fitnessState=state;if(stream)activeSet=state.set_id;return true}
  return {open,close,start,observe,adopt,get opening(){return opening},get active(){return !!stream}};
 })();
 // Hidden/background tabs stop their own camera and voice, including on mobile lock.

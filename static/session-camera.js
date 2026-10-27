@@ -11,13 +11,18 @@ const BrowserCamera=(()=>{
  let stream=null,generation=0,timer=null,imageURL=null,controller=null,failures=0,openedAt=0,opening=false,activeSet=null;
  let localTimer=null,localTask=null,localSample=null,lastSentSample=null,frameBusy=false,revision=0;
  const fpsSelect=document.getElementById('detectionFps'),fpsInfo=document.getElementById('detectionFpsInfo');
+ const cameraFpsSelect=document.getElementById('cameraFps');
+ let cameraFpsChoice='auto';
+ try{const saved=localStorage.getItem('45fitness.cameraFps');if(['auto','30','60'].includes(saved))cameraFpsChoice=saved}catch(e){}
+ cameraFpsSelect.value=cameraFpsChoice;
+ cameraFpsSelect.onchange=()=>{cameraFpsChoice=['auto','30','60'].includes(cameraFpsSelect.value)?cameraFpsSelect.value:'auto';cameraFpsSelect.value=cameraFpsChoice;try{localStorage.setItem('45fitness.cameraFps',cameraFpsChoice)}catch(e){};metrics()};
  let fpsChoice='auto',cost=80,detectionTimes=[],cameraTimes=[],cameraCallback=null,lastMetrics=0;
  try{const saved=localStorage.getItem('45fitness.detectionFps');if(['auto','10','15','20','30'].includes(saved))fpsChoice=saved}catch(e){}
  fpsSelect.value=fpsChoice;
  fpsSelect.onchange=()=>{fpsChoice=['auto','10','15','20','30'].includes(fpsSelect.value)?fpsSelect.value:'auto';try{localStorage.setItem('45fitness.detectionFps',fpsChoice)}catch(e){};detectionTimes=[];metrics()};
  function interval(){return fpsChoice==='auto'?Math.max(1000/30,cost*1.15):1000/Number(fpsChoice)}
  function measured(times,now){while(times.length&&now-times[0]>2000)times.shift();return times.length>1?(times.length-1)*1000/(times[times.length-1]-times[0]):0}
- function metrics(){const now=performance.now(),en=window.I18N?.lang==='en';fpsInfo.textContent=(en?'Detection actual: ':'ตรวจจับจริง: ')+measured(detectionTimes,now).toFixed(1)+' FPS · '+(en?'Camera actual: ':'กล้องจริง: ')+(video.requestVideoFrameCallback?measured(cameraTimes,now).toFixed(1):'—')+' FPS';document.getElementById('detectionFpsLabel').textContent=en?'Detection FPS limit':'จำกัด FPS ตรวจจับ';fpsSelect.options[0].textContent=en?'Auto (adaptive)':'อัตโนมัติ (ปรับตามเครื่อง)';document.getElementById('detectionFpsNote').textContent=en?'Maximum rate, not guaranteed. Actual detection depends on device / server speed.':'เป็นเพดาน ไม่รับประกัน FPS จริง ขึ้นกับความเร็วเครื่อง / เซิร์ฟเวอร์';lastMetrics=now}
+ function metrics(){const now=performance.now(),en=window.I18N?.lang==='en';fpsInfo.textContent=(en?'Detection actual: ':'ตรวจจับจริง: ')+measured(detectionTimes,now).toFixed(1)+' FPS · '+(en?'Camera actual: ':'กล้องจริง: ')+(video.requestVideoFrameCallback?measured(cameraTimes,now).toFixed(1):'—')+' FPS';document.getElementById('detectionFpsLabel').textContent=en?'Detection FPS limit':'จำกัด FPS ตรวจจับ';fpsSelect.options[0].textContent=en?'Auto (adaptive)':'อัตโนมัติ (ปรับตามเครื่อง)';document.getElementById('detectionFpsNote').textContent=en?'Maximum rate, not guaranteed. Actual detection depends on device / server speed.':'เป็นเพดาน ไม่รับประกัน FPS จริง ขึ้นกับความเร็วเครื่อง / เซิร์ฟเวอร์';document.getElementById('cameraFpsLabel').textContent=en?'Camera FPS preference':'FPS กล้องที่ต้องการ';cameraFpsSelect.options[0].textContent=en?'Auto (prefer 60 FPS)':'อัตโนมัติ (60 FPS)';document.getElementById('cameraFpsNote').textContent=en?'Applies next time the camera opens. 60 FPS depends on camera / browser support; lower rates are allowed. Detection remains limited to 30 FPS.':'ใช้เมื่อเปิดกล้องครั้งถัดไป 60 FPS ขึ้นกับกล้อง / เบราว์เซอร์ หากไม่รองรับใช้ค่าที่ต่ำกว่าได้ การตรวจจับยังจำกัดสูงสุด 30 FPS';lastMetrics=now}
  function detected(){detectionTimes.push(performance.now());metrics()}
  function trackCamera(mine){if(!video.requestVideoFrameCallback)return;cameraCallback=video.requestVideoFrameCallback(()=>{if(mine!==generation||!stream)return;cameraTimes.push(performance.now());measured(cameraTimes,performance.now());trackCamera(mine)})}
  metrics();
@@ -61,15 +66,15 @@ const BrowserCamera=(()=>{
   if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){close();throw Error('มือถือให้เปิดลิงก์ HTTPS จาก Start-Share.ps1 ก่อน จึงใช้กล้องได้')}
   try{
    const camera=Number(document.getElementById('camera').value);
-   const constraints={audio:false,video:{facingMode:{ideal:camera===1?'environment':'user'},width:{ideal:640},height:{ideal:480},frameRate:{ideal:30,max:30}}};let granted;
+   const constraints={audio:false,video:{facingMode:{ideal:camera===1?'environment':'user'},width:{ideal:640},height:{ideal:480},frameRate:cameraFpsChoice==='30'?{ideal:30,max:30}:{ideal:60,max:60}}};let granted,relaxed=false;
    for(let attempt=0;attempt<4;attempt++){
     if(mine!==generation)throw Error('ยกเลิกเปิดกล้องแล้ว');
     try{
-     let expired=false,deadline;const pending=navigator.mediaDevices.getUserMedia(attempt===3?{audio:false,video:true}:constraints);
+     let expired=false,deadline;const pending=navigator.mediaDevices.getUserMedia(attempt===3?{audio:false,video:true}:relaxed?{audio:false,video:{facingMode:constraints.video.facingMode,width:constraints.video.width,height:constraints.video.height}}:constraints);
      pending.then(value=>{if(expired||mine!==generation)value.getTracks().forEach(t=>t.stop())},()=>{});
      try{granted=await Promise.race([pending,new Promise((_,reject)=>{deadline=setTimeout(()=>{expired=true;reject(Error(accountText('รออนุญาตกล้องนานเกินไป กดรีเซ็ตแล้วลองใหม่','Camera permission timed out. Reset and retry.')))},25000)})])}finally{clearTimeout(deadline)}break
     }
-    catch(error){if(!['NotReadableError','AbortError'].includes(error.name)||attempt===3)throw error;await new Promise(resolve=>setTimeout(resolve,[350,800,1500][attempt]));}
+    catch(error){if(error.name==='OverconstrainedError'&&!relaxed&&attempt<3){relaxed=true;continue}if(!['NotReadableError','AbortError'].includes(error.name)||attempt===3)throw error;await new Promise(resolve=>setTimeout(resolve,[350,800,1500][attempt]));}
    }
    if(mine!==generation){granted.getTracks().forEach(t=>t.stop());throw Error('ยกเลิกเปิดกล้องแล้ว')}
    stream=granted;video.srcObject=stream;video.hidden=false;

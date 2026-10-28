@@ -1,0 +1,5 @@
+Additional model: MediaPipe Pose Landmarker Full, float16 version1.
+Source: https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task
+Official documentation: https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker
+Bundled without modification. Existing MediaPipe licenses/attributions remain in the project.
+SHA256: 5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1

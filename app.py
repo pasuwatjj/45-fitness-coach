@@ -47,6 +47,7 @@ from planner import today_thailand
 
 ROOT = Path(__file__).resolve().parent
 MODEL = ROOT / 'models' / 'pose_landmarker_lite.task'
+POSE_MODELS = {'lite': MODEL, 'full': ROOT / 'models' / 'pose_landmarker_full.task'}
 SETTINGS = json.loads((ROOT / 'settings.json').read_text(encoding='utf-8-sig'))
 GENTLE_COACH_VERSION = 34
 store = LeaderboardStore(os.environ.get('FITNESS_DATA_PATH', str(ROOT / 'data' / 'fitness.db')))
@@ -282,7 +283,7 @@ class CameraCoach:
             self.state.update(paused=False, summary=None, set_id=str(uuid.uuid4()))
             if getattr(self,'quality_enabled',False):
                 from challenges import active_id,overview as challenge_overview
-                profile=self.state.get('profile')
+                profile=None if getattr(self,'persistence_disabled',False) else self.state.get('profile')
                 self.challenge_id=active_id(self.scoreboard,profile['id']) if profile and self.exercise=='curl' else None
                 run=challenge_overview(self.scoreboard,profile['id'])['run'] if self.challenge_id else None
                 self.challenge_remaining=20-run['progress'] if run else 0
@@ -322,7 +323,7 @@ class CameraCoach:
                 if not observations:
                     selected = ['นับการเคลื่อนไหวแล้ว ลองทบทวนจุดสำคัญของท่านี้ก่อนเซตถัดไป']
                 selected.append(CATALOG[self.exercise]['steps'][1])
-            profile = self.state['profile']
+            profile = None if getattr(self,'persistence_disabled',False) else self.state['profile']
             saved = False
             save_error = None
             credited = False
@@ -577,7 +578,7 @@ class CameraCoach:
             print(f'[START] Camera {camera_index}; arm={arm}; focus={self.focus}', flush=True)
             options = vision.PoseLandmarkerOptions(
                 base_options=python.BaseOptions(model_asset_path=str(MODEL)),
-                running_mode=vision.RunningMode.VIDEO, num_poses=1,
+                running_mode=vision.RunningMode.VIDEO, num_poses=3,
                 min_pose_detection_confidence=.6, min_pose_presence_confidence=.6,
                 min_tracking_confidence=.6)
             with vision.PoseLandmarker.create_from_options(options) as detector:
@@ -669,6 +670,10 @@ class BrowserCoach(CameraCoach):
         self.landmark_payload = []
         self.last_frame_at = time.monotonic()
         self.timestamp = -1
+        self.person_count=1
+        self.people=[]
+        from person_tracking import PersonLock
+        self.person_lock=PersonLock()
 
     def start(self, arm, camera_index, tolerance, focus='arms', profile=None, exercise='curl', plan=None):
         with self.condition:
@@ -677,13 +682,25 @@ class BrowserCoach(CameraCoach):
             if self.state.get('summary') and self.state['summary']['save_error']:
                 if self.pause()['save_error']:
                     return False
+            quality=getattr(self,'requested_pose_quality','lite')
+            model=POSE_MODELS[quality]
+            if not model.is_file():raise ValueError('Selected pose model is missing / ไม่พบไฟล์โมเดลที่เลือก')
+            if self.detector is not None and getattr(self,'detector_quality','lite')!=quality:self.release_detector()
             options = vision.PoseLandmarkerOptions(
-                base_options=python.BaseOptions(model_asset_path=str(MODEL)),
-                running_mode=vision.RunningMode.VIDEO, num_poses=1,
+                base_options=python.BaseOptions(model_asset_path=str(model)),
+                running_mode=vision.RunningMode.VIDEO, num_poses=3,
                 min_pose_detection_confidence=.6, min_pose_presence_confidence=.6,
                 min_tracking_confidence=.6)
             if self.detector is None:
                 self.detector = vision.PoseLandmarker.create_from_options(options)
+                self.detector_quality=quality
+            self.state['pose_quality']=quality
+            self.person_count=getattr(self,'requested_person_count',1)
+            self.persistence_disabled=self.person_count>1
+            if self.persistence_disabled:profile=None;plan=None
+            from person_tracking import PersonLock
+            self.person_lock=PersonLock(self.person_count)
+            self.people=[]
             self.cardio=None
             self.state.pop('cardio',None)
             self.grip_coach = GripCoach()
@@ -703,6 +720,16 @@ class BrowserCoach(CameraCoach):
             self.state.update(running=True, exercise=exercise, arm=arm, focus=focus, camera=camera_index,
                 message='กล้องของคุณพร้อมแล้ว จัดท่าเริ่มต้น', error=False, paused=False,
                 summary=None, profile=profile, plan=plan, plan_day=None, set_id=str(uuid.uuid4()))
+            self.state.update(person_count=self.person_count,ephemeral=self.persistence_disabled,grip_enabled=self.grip_enabled and not self.persistence_disabled)
+            if self.persistence_disabled:
+                for _ in range(self.person_count):
+                    child=CameraCoach(self.scoreboard)
+                    child.persistence_disabled=True;child.quality_enabled=True
+                    child.requested_difficulty=self.requested_difficulty if hasattr(self,'requested_difficulty') else 'beginner'
+                    child.requested_auto_arm=getattr(self,'requested_auto_arm',False);child.curl_target=self.curl_target
+                    child.configure(arm,tolerance,focus,exercise)
+                    child.state.update(running=True,exercise=exercise,arm=arm,focus=focus,profile=None,plan=None,set_id=str(uuid.uuid4()))
+                    child.aggregate();self.people.append(child)
             self.aggregate()
             return True
 
@@ -717,9 +744,34 @@ class BrowserCoach(CameraCoach):
     def snapshot(self):
         with self.condition:
             if self.cardio:self.state['cardio']=self.cardio.snapshot()
+            self.state['tracking']=self.person_lock.snapshot()
+            self.state['players']=[dict(child.snapshot(),player_id=i+1) for i,child in enumerate(self.people)]
             return super().snapshot()
 
+    def new_set(self):
+        super().new_set()
+        for child in self.people:child.new_set()
+
+    def recalibrate(self):
+        super().recalibrate()
+        for child in getattr(self,'people',[]):child.recalibrate()
+
+    def select_person(self,slot,x,y):
+        with self.condition:
+            if not self.state['running'] or self.state['paused'] or self.cardio:raise ValueError('Open an active workout first / เปิดกล้องเล่นก่อน')
+            self.person_lock.select(slot,x,y,time.monotonic())
+            target=self.people[slot] if self.people else self
+            # An explicit selection may be a different human. Never carry totals,
+            # calibration, completed measurements or partial repetitions across it.
+            target.configure(target.selected_arm,target.user_tolerance,target.focus,target.exercise)
+            target.last_activity=None;target.activity_angles={};target.aggregate()
+            if target is self:self.grip_coach=GripCoach();self.grip_results={}
+            self.landmark_payload=[]
+            self.state['set_id']=str(uuid.uuid4())
+
     def pause(self, automatic=False):
+        if self.person_count>1:
+            for child in self.people:child.pause(automatic)
         if self.cardio:
             with self.condition:
                 self.cardio.stop()
@@ -737,6 +789,11 @@ class BrowserCoach(CameraCoach):
                     try:detector.close()
                     except Exception:logging.exception('Camera detector cleanup: %s',name)
             self.timestamp = -1
+
+    def _encode_frame(self,frame):
+        ok,encoded=cv2.imencode('.jpg',frame,[cv2.IMWRITE_JPEG_QUALITY,75])
+        if not ok:raise ValueError('Cannot encode frame')
+        return encoded.tobytes()
 
     def accept_frame(self, frame, set_id, landmarks_only=False, local_result=None, local_hands=None):
         with self.condition:
@@ -762,6 +819,33 @@ class BrowserCoach(CameraCoach):
             self.timestamp=timestamp
             rgb=cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
             result=local_result if local_result is not None else self.detector.detect_for_video(mp.Image(image_format=mp.ImageFormat.SRGB,data=rgb),timestamp)
+            from types import SimpleNamespace
+            all_poses=result.pose_landmarks or []
+            all_world=result.pose_world_landmarks or []
+            if getattr(self,'last_identity_engine',engine)!=engine:self.person_lock.invalidate()
+            self.last_identity_engine=engine
+            chosen=self.person_lock.update(all_poses,now) if not self.cardio else [0 if all_poses else None]
+            def only(index):
+                return SimpleNamespace(pose_landmarks=[all_poses[index]] if index is not None else [],pose_world_landmarks=[all_world[index]] if index is not None and index<len(all_world) and all_world[index] else [])
+            if self.person_count>1 and not self.cardio:
+                drawings=[]
+                for i,child in enumerate(self.people):
+                    filtered=only(chosen[i])
+                    if chosen[i] is None:
+                        for form in child.forms.values():form.reset_motion()
+                        child.reset_tracking()
+                    if chosen[i] is None and child.state['paused']:child.unavailable(timestamp,'เลือกคนใหม่ / Select a person again')
+                    child.process(frame,filtered,timestamp)
+                    child.aggregate()
+                    drawings.append(dict(player_id=i+1,landmarks=[[round(p.x,4),round(p.y,4),round(p.visibility or 0,3)] for p in filtered.pose_landmarks[0]] if filtered.pose_landmarks else []))
+                self.state.update(reps=0,angle=None,feedback=[],checks=[],calibrated=False,calibration=0,message='โหมด 2 คน · ไม่บันทึกผล / 2 players · nothing is saved')
+                return dict(landmarks=[],hands=[],players=drawings,state=self.snapshot(),server_today=today_thailand().isoformat()) if landmarks_only else self._encode_frame(frame)
+            result=only(chosen[0])
+            if chosen[0] is None:
+                for form in self.forms.values():form.reset_motion()
+                self.reset_tracking()
+                self.grip_coach=GripCoach();self.grip_results={}
+                if self.state['paused']:self.unavailable(timestamp,'เลือกคนใหม่ / Select a person again')
             poses=result.pose_landmarks[0] if result.pose_landmarks else None
             world=result.pose_world_landmarks[0] if result.pose_world_landmarks else None
             if self.cardio:
@@ -772,7 +856,7 @@ class BrowserCoach(CameraCoach):
             previous_grip=self.grip_results
             self.grip_results={}
             hand_points=[]
-            if self.grip_enabled and CATALOG[self.exercise]['family']=='curl' and now>=getattr(self,'hand_disabled_until',0):
+            if poses and self.grip_enabled and len(all_poses)==1 and CATALOG[self.exercise]['family']=='curl' and now>=getattr(self,'hand_disabled_until',0):
                 try:
                     if local_hands is None and self.hand_detector is None:
                         self.hand_detector=mp.solutions.hands.Hands(static_image_mode=False,max_num_hands=2,model_complexity=0,min_detection_confidence=.65,min_tracking_confidence=.65)
@@ -864,7 +948,7 @@ def banned_account_guard():
 @app.before_request
 def private_session():
     protected = request.path in ('/start','/stop','/reset','/pause','/resume','/calibrate','/frame','/pose-frame',
-        '/camera/auto-arm','/profiles','/plans/today/start','/health/analyze','/camera/recover') or request.path.startswith(('/profiles/','/vip','/admin/','/social/','/cardio/'))
+        '/camera/auto-arm','/tracking/select','/profiles','/plans/today/start','/health/analyze','/camera/recover') or request.path.startswith(('/profiles/','/vip','/admin/','/social/','/cardio/'))
     token=request.headers.get('X-Coach-Session','')
     if request.path == '/status' and token:
         protected=True
@@ -1177,6 +1261,14 @@ def apply_coach_options(data):
     if request.path=='/plans/today/start' and auto:return jsonify(error='ตารางใช้ข้างตามแผน / Planned sets use their prescribed side'),400
     if request.path=='/start' and auto and not training_modes.supports_auto(data.get('exercise','curl')):return jsonify(error='Auto arms is for upper-body exercises / สลับแขนอัตโนมัติใช้กับท่าช่วงบน'),400
     if coach.state['running'] and not (request.path=='/plans/today/start' and coach.state['paused'] and coach.state.get('plan')):return jsonify(error='Stop the current set before changing training mode / ปิดเซตก่อนเปลี่ยนโหมด'),409
+    quality=data.get('pose_quality','lite')
+    if not isinstance(quality,str) or quality not in POSE_MODELS:return jsonify(error='Choose Lite or Full / เลือก Lite หรือ Full'),400
+    if not POSE_MODELS[quality].is_file():return jsonify(error='Selected pose model is missing. Install its model file / ไม่พบไฟล์โมเดลที่เลือก'),503
+    count=data.get('person_count',1)
+    if type(count) is not int or count not in (1,2):return jsonify(error='Choose 1 or 2 players / เลือก 1 หรือ 2 คน'),400
+    if request.path!='/start' and count!=1:return jsonify(error='Plans support one player / ตารางใช้ได้ทีละคน'),400
+    coach.requested_pose_quality=quality
+    coach.requested_person_count=count
     coach.requested_difficulty=level;coach.requested_auto_arm=auto
     target=data.get('curl_target',80)
     grip=data.get('grip_enabled',True)
@@ -1493,6 +1585,7 @@ def profile_character(profile_id):
 
 @app.post('/camera/auto-arm')
 def camera_auto_arm():
+    if coach.person_count>1:return jsonify(error='Choose arms before a 2-player set / เลือกแขนก่อนเริ่มโหมด 2 คน'),409
     data=request.get_json(silent=True)
     if not isinstance(data,dict) or type(data.get('enabled')) is not bool:return jsonify(error='Invalid toggle'),400
     with coach.condition:
@@ -1581,6 +1674,8 @@ def start_cardio():
     try: cardio_options=options(data)
     except ValueError as e:return jsonify(error=str(e)),400
     try:
+        coach.requested_person_count=1
+        coach.requested_pose_quality='lite'
         if not coach.start('both',0,10,'upper',profile):return jsonify(error='Stop the current session first'),409
         from cardio import JumpingJackRound, PushUpRound
         with coach.condition:
@@ -1603,14 +1698,32 @@ def cardio_ranks():
 
 @app.get('/camera/pose-model')
 def local_pose_model():
-    return send_file(str(MODEL),mimetype='application/octet-stream',conditional=True,max_age=86400)
+    quality=request.args.get('quality','lite')
+    if quality not in POSE_MODELS:return jsonify(error='Invalid pose model'),400
+    model=POSE_MODELS[quality]
+    if not model.is_file():return jsonify(error='Selected pose model is missing'),503
+    return send_file(str(model),mimetype='application/octet-stream',conditional=True,max_age=86400)
+
+@app.post('/tracking/select')
+def select_person():
+    data=request.get_json(silent=True) or {}
+    if not isinstance(data,dict):return jsonify(error='Invalid selection'),400
+    with coach.condition:
+        if request.headers.get('X-Set-ID')!=coach.state['set_id']:return jsonify(error='Set changed'),409
+        slot=data.get('slot');x=data.get('x');y=data.get('y')
+        if type(x) not in (int,float) or type(y) not in (int,float) or not math.isfinite(x+y):return jsonify(error='Invalid selection'),400
+        try:coach.select_person(slot,x,y)
+        except ValueError as error:return jsonify(error=str(error)),409
+        return jsonify(ok=True,state=coach.snapshot())
 
 @app.post('/pose-frame')
 def browser_pose_frame():
     if request.mimetype!='application/json':return jsonify(error='JSON required'),415
     if request.content_length is None or request.content_length>60000:return jsonify(error='Pose payload too large'),413
     from local_pose import parse
-    try:w,h,result,hands=parse(request.get_json(silent=True))
+    payload=request.get_json(silent=True)
+    if isinstance(payload,dict) and payload.get('pose') and 'poses' not in payload:return jsonify(error='Update local detector or use image fallback'),400
+    try:w,h,result,hands=parse(payload)
     except (ValueError,TypeError):return jsonify(error='Invalid pose data'),400
     try:
         with coach.condition:

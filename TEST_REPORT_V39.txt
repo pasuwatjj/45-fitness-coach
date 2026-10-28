@@ -1,0 +1,32 @@
+45 Fitness Coach V39 — verification report (2026-10-28)
+
+PASS 40 focused Python tests: test_v39, test_v35, test_v36, test_pose_endpoint, test_sessions.
+Synthetic association: candidate reorder, separate bystander, disappearance/replacement,
+crossing ambiguity, initial group selection, near-side measured anchor, confidence hysteresis.
+Counting: complete solo rep saves normally; incomplete lost/reselected cycle cannot count;
+independent two-player counts; relock rotates set ID and rejects old frames.
+Persistence: no DB calls on group lifecycle; endpoint SQL dump unchanged across group
+pause/resume/reset/stop; mode immutable during active set; no plan/challenge/economy credits.
+Models: allowlisted Lite/Full routes, missing model clear error, correct detector replacement.
+PASS Node association rendering tests and hand detector failure regression.
+PASS pure drawing tests: contain rectangle geometry; unchanged normalized joint centers;
+phone/fullscreen line and marker sizes; low confidence joints not invented.
+PASS actual Chromium layout geometry: front/back mirror, normal/fullscreen-style layout,
+desktop/portrait/landscape overlay matches video content area within 1.1 CSS pixels.
+PASS real MediaPipe Worker WASM initialization and blank-image inference with Lite and Full.
+PASS Chromium TH/EN UI: two independent cards, Full selected on server, controls locked
+while active, no profile/saving in group, voice suppression, 1365/390/320 no page overflow/errors.
+PASS 200 consecutive fake-camera open/close cycles on updated code, JPEG fallback,
+blank images produce zero reps, manual pause/stop, responsive layouts.
+Final rendering-size-only adjustment passed drawing tests after lifecycle run.
+
+Limits: camera devices and human poses in automated tests are synthetic, except models
+actually loaded/inferred a blank image. No physical phone/webcam comparison, real-person
+crossing video or anatomical ground-truth accuracy benchmark was available.
+No real-world tracking-accuracy percentage, degree error, or sustained60FPS is claimed.
+Geometric locking cannot prove human identity. A person silently replacing another at the
+same position may be indistinguishable. Lost/crossing states deliberately require reselection.
+Full is optional; speed and landmark improvement must be checked on the user's device.
+This is a targeted suite, not a claim that every historical repository test passes.
+One historical calibration test already contradicted v35 immediate-start behavior before
+v39 changes; it was not counted as a new pass.

@@ -25,4 +25,10 @@ def parse(data):
     hs=data.get('hands',[]);hw=data.get('handWorld',[])
     if not isinstance(hs,list) or not isinstance(hw,list) or len(hs)>2 or len(hs)!=len(hw):raise ValueError('Invalid hands')
     hands=NS(multi_hand_landmarks=[NS(landmark=points(x,21)) for x in hs],multi_hand_world_landmarks=[NS(landmark=points(x,21,True)) for x in hw])
-    return w,h,NS(pose_landmarks=[pose] if pose else [],pose_world_landmarks=[world] if world else []),hands
+    all_poses=[pose] if pose else [];all_world=[world] if world else []
+    if 'poses' in data:
+        rows=data['poses'];worlds=data.get('worlds',[])
+        if not isinstance(rows,list) or not isinstance(worlds,list) or len(rows)>3 or len(rows)!=len(worlds):raise ValueError('Invalid pose candidates')
+        all_poses=[points(row,33) for row in rows]
+        all_world=[points(row,33,True) if row else [] for row in worlds]
+    return w,h,NS(pose_landmarks=all_poses,pose_world_landmarks=all_world),hands

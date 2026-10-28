@@ -3,10 +3,37 @@ const BrowserCamera=(()=>{
  let video=document.createElement('video');video.muted=true;video.autoplay=true;video.playsInline=true;
  video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
  video.id='liveVideo';video.className='live-video';video.hidden=true;document.querySelector('.screen').prepend(video);
- const drawing=document.createElement('canvas');drawing.id='poseDrawing';drawing.className='pose-drawing';document.querySelector('.screen').append(drawing);const draw=drawing.getContext('2d');let landmarks=[],handLandmarks=[],pointsAt=0,raf=0,visible=[];
+ const drawing=document.createElement('canvas');drawing.id='poseDrawing';drawing.className='pose-drawing';document.querySelector('.screen').append(drawing);const draw=drawing.getContext('2d');let peoplePoints=[],landmarks=[],handLandmarks=[],pointsAt=0,raf=0,visible=[];
  const pairs=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
  const fingers=[[0,1,2,3,4],[0,5,6,7,8],[5,9,10,11,12],[9,13,14,15,16],[13,17,18,19,20],[0,17]];
- function paint(){if(!stream)return;if(performance.now()-lastMetrics>=500)metrics();if(drawing.width!==(video.videoWidth||640))drawing.width=video.videoWidth||640;if(drawing.height!==(video.videoHeight||480))drawing.height=video.videoHeight||480;draw.clearRect(0,0,drawing.width,drawing.height);const age=performance.now()-pointsAt;draw.globalAlpha=Math.max(0,Math.min(1,(650-age)/150));if(age<650&&landmarks.length){draw.strokeStyle='#7be9b2';draw.fillStyle='#fff';draw.lineWidth=3;for(const [a,b] of pairs){if((window.fitnessState?.focus!=='full')&&(a>24||b>24))continue;const p=landmarks[a],q=landmarks[b];if(visible[a]&&visible[b]){draw.beginPath();draw.moveTo(p[0]*drawing.width,p[1]*drawing.height);draw.lineTo(q[0]*drawing.width,q[1]*drawing.height);draw.stroke()}}}if(age<650){draw.strokeStyle='#ffd66b';draw.lineWidth=2;for(const hand of handLandmarks)for(const chain of fingers){draw.beginPath();chain.forEach((id,i)=>{const p=hand[id];if(p)(i?draw.lineTo(p[0]*drawing.width,p[1]*drawing.height):draw.moveTo(p[0]*drawing.width,p[1]*drawing.height))});draw.stroke()}}draw.globalAlpha=1;raf=requestAnimationFrame(paint)}
+ let drawingScale=1,lastLayout=-Infinity;
+ function layoutDrawing(){
+  const now=performance.now();if(now-lastLayout<200)return;lastLayout=now;
+  const w=video.videoWidth||640,h=video.videoHeight||480;
+  const rect=window.PoseDrawing.contentRect(video.clientWidth,video.clientHeight,w,h);
+  drawingScale=rect.scale;
+  drawing.style.inset='auto';drawing.style.left=(video.offsetLeft+rect.x)+'px';drawing.style.top=(video.offsetTop+rect.y)+'px';
+  drawing.style.width=rect.width+'px';drawing.style.height=rect.height+'px';
+ }
+ const resizeDrawing=()=>{lastLayout=-Infinity};
+ window.addEventListener('resize',resizeDrawing);document.addEventListener('fullscreenchange',resizeDrawing);
+ function paint(){
+  if(!stream)return;if(performance.now()-lastMetrics>=500)metrics();
+  if(drawing.width!==(video.videoWidth||640))drawing.width=video.videoWidth||640;
+  if(drawing.height!==(video.videoHeight||480))drawing.height=video.videoHeight||480;
+  layoutDrawing();draw.clearRect(0,0,drawing.width,drawing.height);
+  const age=performance.now()-pointsAt;draw.globalAlpha=Math.max(0,Math.min(1,(650-age)/150));
+  const options={width:drawing.width,height:drawing.height,scale:drawingScale,full:window.fitnessState?.focus==='full'};
+  if(age<650&&landmarks.length)window.PoseDrawing.paint(draw,landmarks,{...options,visible});
+  if(age<650)for(const person of peoplePoints){
+   const body=person.landmarks;if(!body.length)continue;
+   const color=(window.PersonTracking?.colors||['#7be9b2','#8bc8ff'])[person.player_id-1];
+   window.PoseDrawing.paint(draw,body,{...options,color});
+   const head=body[11];if(head&&head[2]>.5){draw.save();draw.translate(head[0]*drawing.width,head[1]*drawing.height-18/drawingScale);if(Number(document.getElementById('camera').value)!==1)draw.scale(-1,1);draw.font='bold '+(18/drawingScale)+'px sans-serif';draw.fillStyle=color;draw.fillText('P'+person.player_id,0,0);draw.restore()}
+  }
+  if(age<650){draw.strokeStyle='#ffd66b';draw.lineWidth=2/Math.max(.15,drawingScale);for(const hand of handLandmarks)for(const chain of fingers){draw.beginPath();chain.forEach((id,i)=>{const p=hand[id];if(p)(i?draw.lineTo(p[0]*drawing.width,p[1]*drawing.height):draw.moveTo(p[0]*drawing.width,p[1]*drawing.height))});draw.stroke()}}
+  draw.globalAlpha=1;raf=requestAnimationFrame(paint);
+ }
  const canvas=document.createElement('canvas'),context=canvas.getContext('2d');
  let stream=null,generation=0,timer=null,imageURL=null,controller=null,failures=0,openedAt=0,opening=false,activeSet=null;
  let localTimer=null,localTask=null,localSample=null,lastSentSample=null,frameBusy=false,revision=0;
@@ -36,7 +63,7 @@ const BrowserCamera=(()=>{
   window.coachHands={count:hands.length,at:wallAt};
   window.coachLandmarks={points:body,at:wallAt,mirrored:Number(document.getElementById('camera').value)!==1};
  }
- function resetPoints(){revision++;detectionTimes=[];localSample=null;lastSentSample=null;landmarks=[];handLandmarks=[];visible=[];pointsAt=0;window.coachHands=null;window.coachLandmarks=null;draw.clearRect(0,0,drawing.width,drawing.height)}
+ function resetPoints(){revision++;detectionTimes=[];localSample=null;lastSentSample=null;peoplePoints=[];landmarks=[];handLandmarks=[];visible=[];pointsAt=0;window.coachHands=null;window.coachLandmarks=null;draw.clearRect(0,0,drawing.width,drawing.height)}
  function localTick(mine){
   if(mine!==generation||!stream||localTask)return;
   clearTimeout(localTimer);
@@ -48,7 +75,10 @@ const BrowserCamera=(()=>{
     const payload=await window.LocalPose.detect(video,!!state.grip_enabled);
     if(mine!==generation||!stream||revision!==rev||activeSet!==set||window.fitnessState?.set_id!==set)return;
     cost=cost*.75+(performance.now()-at)*.25;detected();localSample={payload,set,at,wallAt,completedAt:performance.now()};
-    showPoints((payload.pose||[]).map(p=>[p.x,p.y,p.visibility??0]),(payload.hands||[]).map(hand=>hand.map(p=>[p.x,p.y])),performance.now(),Date.now());
+    const matched=window.PersonTracking?.match(payload,window.fitnessState)||[];
+    peoplePoints=state.person_count>1?matched:[];
+    const body=state.cardio?(payload.pose||[]).map(p=>[p.x,p.y,p.visibility??0]):state.person_count>1?[]:(matched[0]?.landmarks||[]);
+    showPoints(body,body.length&&(payload.poses||[]).length===1?(payload.hands||[]).map(hand=>hand.map(p=>[p.x,p.y])):[],performance.now(),Date.now());
    }catch(error){if(mine===generation&&revision===rev){localSample=null;window.LocalPose?.disable()}}
   })();
   localTask=task;
@@ -77,7 +107,7 @@ const BrowserCamera=(()=>{
     catch(error){if(error.name==='OverconstrainedError'&&!relaxed&&attempt<3){relaxed=true;continue}if(!['NotReadableError','AbortError'].includes(error.name)||attempt===3)throw error;await new Promise(resolve=>setTimeout(resolve,[350,800,1500][attempt]));}
    }
    if(mine!==generation){granted.getTracks().forEach(t=>t.stop());throw Error('ยกเลิกเปิดกล้องแล้ว')}
-   stream=granted;video.srcObject=stream;video.hidden=false;
+   stream=granted;video.srcObject=stream;video.hidden=false;lastLayout=-Infinity;
    for(let attempt=0;;attempt++){try{let timer;try{await Promise.race([video.play(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Camera playback timed out')),8000)})])}finally{clearTimeout(timer)}break}catch(error){if(error.name!=='AbortError'||attempt>=2||mine!==generation)throw error;await new Promise(r=>setTimeout(r,150))}}
    if(mine!==generation)throw Error('ยกเลิกเปิดกล้องแล้ว');
    if(!stream.getVideoTracks().some(t=>t.readyState==='live'))throw Error('กล้องหยุดทำงานหลังเปิด กรุณาลองอีกครั้ง');
@@ -132,7 +162,7 @@ const BrowserCamera=(()=>{
    if(!response.ok)throw Error(result?.error||'ส่งภาพไม่สำเร็จ');
    if(mine!==generation||revision!==rev)return;if(activeSet!==state.set_id){timer=setTimeout(()=>frame(mine),50);return;}
    window.cameraFailure='';failures=0;
-   if(!local&&!window.LocalPose?.ready){cost=cost*.75+(performance.now()-start)*.25;detected();showPoints(result.landmarks||[],result.hands||[],capturedAt,capturedWallAt);}
+   if(!local&&!window.LocalPose?.ready){peoplePoints=result.players||[];cost=cost*.75+(performance.now()-start)*.25;detected();showPoints(result.landmarks||[],result.hands||[],capturedAt,capturedWallAt);}
    window.latestFrameState={state:{...result.state,server_today:result.server_today},at:Date.now()};
    document.getElementById('captureInfo').textContent=(window.I18N?.lang==='en'?'Live camera · AI response ':'ภาพสด · ผลตรวจใช้เวลา ')+Math.round(performance.now()-start)+' ms';
 
@@ -155,7 +185,7 @@ const BrowserCamera=(()=>{
   window.fitnessState=state;return true;
  }
  function adopt(state){if(activeSet!==state.set_id)resetPoints();window.latestFrameState=null;window.fitnessState=state;if(stream)activeSet=state.set_id;return true}
- return {open,close,start,observe,adopt,get opening(){return opening},get active(){return !!stream}};
+ return {open,close,start,observe,adopt,clearPoints:resetPoints,get opening(){return opening},get active(){return !!stream}};
 })();
 // Hidden/background tabs stop their own camera and voice, including on mobile lock.
 function leaveWorkout(){window.coachRevision++;BrowserCamera.close();if(typeof cancelVoice==='function')cancelVoice();if(fitnessToken)originalFetch('/stop',{method:'POST',headers:{'X-Coach-Session':fitnessToken,...(window.fitnessState?.set_id?{'X-Set-ID':window.fitnessState.set_id}:{})},keepalive:true}).catch(()=>{});}

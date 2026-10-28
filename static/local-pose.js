@@ -4,9 +4,9 @@ window.LocalPose=(()=>{
  let worker=null,ready=false,disabled=false,serial=0,pending=null,initTimer=null;
  const fail=()=>{ready=false;disabled=true;clearTimeout(initTimer);worker?.terminate();worker=null;if(pending){clearTimeout(pending.timer);pending.reject(Error('Local pose unavailable'));pending=null}};
  function start(){if(worker||disabled||!window.Worker||!window.createImageBitmap)return;
-  try{worker=new Worker('/static/pose-worker.js?v=36');worker.onerror=fail;
+  try{worker=new Worker('/static/pose-worker.js?v=39');worker.onerror=fail;
    worker.onmessage=({data})=>{if(data.type==='ready'){ready=true;clearTimeout(initTimer)}else if(data.type==='error')fail();else if(data.type==='result'&&pending&&data.id===pending.id){const p=pending;pending=null;clearTimeout(p.timer);p.resolve(data)}};
-   initTimer=setTimeout(fail,45000);worker.postMessage({type:'init',model:new URL('/camera/pose-model',location.href).href});
+   initTimer=setTimeout(fail,45000);worker.postMessage({type:'init',model:new URL('/camera/pose-model?quality='+encodeURIComponent(window.fitnessState?.pose_quality||'lite'),location.href).href});
   }catch(e){fail()}
  }
  async function detect(video,grip){if(!ready||pending)throw Error('Local pose not ready');const current=worker;const scale=Math.min(640/video.videoWidth,640/video.videoHeight,1),image=await createImageBitmap(video,{resizeWidth:Math.round(video.videoWidth*scale),resizeHeight:Math.round(video.videoHeight*scale)});if(!ready||worker!==current||pending){image.close();throw Error('Local pose closed')}

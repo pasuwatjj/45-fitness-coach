@@ -8,6 +8,7 @@
  replay.onclick=()=>{soundUserMuted=false;enableSound();unlockCoachAudio();$('voiceEnabled').checked=true;const ex=currentExercise();speak(ex.teaching,'teach_'+ex.id,true)};
  const hint=document.createElement('p');hint.className='note';hint.textContent=en?'With tutorial or coin sound enabled, Start enables audio. Mute with the sound button.':'เมื่อเลือกเสียงสอนหรือเสียงเหรียญ ปุ่มเริ่มจะเปิดเสียงให้ ปิดเสียงได้ที่ปุ่มเสียง';replay.after(hint);
  setInterval(()=>{
+  const multi=window.fitnessState?.person_count>1;info.hidden=multi;replay.hidden=multi;hint.hidden=multi;if(multi)return;
   if(!BrowserCamera.active){info.textContent=en?'Before starting, show your hands and upper body to the camera.':'ก่อนเริ่ม จัดกล้องให้เห็นมือและครึ่งตัวชัด ๆ';return}
   if(currentExercise().family!=='curl'||!$('gripEnabled').checked){info.textContent=en?'Detailed hand scan is available for Curl/Hammer with hand checks enabled.':'สแกนมือและนิ้วสำหรับ Curl/Hammer เมื่อเปิดดูการจับมือ';return}
   const h=window.coachHands;
@@ -31,7 +32,7 @@
 })();
 
 window.glassBreakSound=()=>{if(!soundEnabled||!audioContext||!$('coinEnabled').checked)return;try{const seconds=.3,buffer=audioContext.createBuffer(1,Math.floor(audioContext.sampleRate*seconds),audioContext.sampleRate),samples=buffer.getChannelData(0);for(let i=0;i<samples.length;i++)samples[i]=((Math.random()*2-1)*.65+Math.sin(i/audioContext.sampleRate*2*Math.PI*1537)*.16+Math.sin(i/audioContext.sampleRate*2*Math.PI*3121)*.16)*Math.pow(1-i/samples.length,3);const noise=audioContext.createBufferSource(),filter=audioContext.createBiquadFilter(),gain=audioContext.createGain();noise.buffer=buffer;filter.type='highpass';filter.frequency.value=1800;gain.gain.value=.12;noise.connect(filter);filter.connect(gain);gain.connect(audioContext.destination);noise.start();noise.onended=()=>{noise.disconnect();filter.disconnect();gain.disconnect()}}catch(e){}};
-(()=>{const p=document.createElement('p');p.className='strict-counter-note';p.dataset.i18nIgnore='';document.querySelector('.screen').after(p);setInterval(()=>{const s=window.fitnessState;if(!s)return;p.textContent=window.I18N?.lang==='en'?`Not counted: ${s.rejected||0} form mismatches · ${s.unverified||0} unclear attempts. Speed alone is advice.`:`รอบที่ไม่นับเพราะต้องปรับฟอร์ม ${s.rejected||0} · ประเมินไม่ชัด ${s.unverified||0} · ความเร็วอย่างเดียวเป็นคำแนะนำ`},400)})();
+(()=>{const p=document.createElement('p');p.className='strict-counter-note';p.dataset.i18nIgnore='';document.querySelector('.screen').after(p);setInterval(()=>{const s=window.fitnessState;if(!s)return;p.hidden=s.person_count>1;if(p.hidden)return;p.textContent=window.I18N?.lang==='en'?`Not counted: ${s.rejected||0} form mismatches · ${s.unverified||0} unclear attempts. Speed alone is advice.`:`รอบที่ไม่นับเพราะต้องปรับฟอร์ม ${s.rejected||0} · ประเมินไม่ชัด ${s.unverified||0} · ความเร็วอย่างเดียวเป็นคำแนะนำ`},400)})();
 
 (()=>{const b=document.createElement('button');b.type='button';b.className='secondary';b.dataset.i18nIgnore='';b.textContent=window.I18N?.lang==='en'?'🔊 Test broken-coin sound':'🔊 ทดสอบเสียงเหรียญแตก';b.onclick=()=>{soundUserMuted=false;enableSound();$('coinEnabled').checked=true;window.glassBreakSound();if(BrowserCamera.active)window.spawnCoachCoins($('arm').value,'rejected')};$('coinEnabled').parentElement.append(b)})();
 

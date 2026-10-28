@@ -6,7 +6,7 @@
  const score=document.createElement('div');score.id='cameraScore';score.className='screen-score';score.dataset.i18nIgnore='';
  const label=document.createElement('span');label.textContent=en?'Accepted reps':'ครั้งที่นับได้';
  const count=document.createElement('strong'),detail=document.createElement('small');count.textContent='0';score.append(label,count,detail);screen.append(score);
- setInterval(()=>{const s=window.fitnessState;if(!s)return;count.textContent=s.reps||0;detail.textContent=(en?'Left ':'ซ้าย ')+(s.arms?.left?.reps??'—')+' · '+(en?'Right ':'ขวา ')+(s.arms?.right?.reps??'—')},150);
+ setInterval(()=>{const s=window.fitnessState;if(!s)return;if(s.person_count>1){label.textContent=en?'Temporary · no saving':'เล่นชั่วคราว · ไม่บันทึก';count.textContent=(s.players||[]).map(p=>'P'+p.player_id+': '+p.reps).join(' · ');count.style.fontSize='clamp(18px,4vw,32px)';detail.textContent=en?'Stand apart · select again if lost':'ยืนแยกกัน · เลือกใหม่เมื่อหลุด';return}label.textContent=en?'Accepted reps':'ครั้งที่นับได้';count.style.fontSize='';count.textContent=s.reps||0;detail.textContent=(en?'Left ':'ซ้าย ')+(s.arms?.left?.reps??'—')+' · '+(en?'Right ':'ขวา ')+(s.arms?.right?.reps??'—')},150);
  const focus=document.createElement('button');focus.type='button';focus.className='secondary';
  focus.id='fullscreenWorkout';focus.textContent=en?'⛶ Large camera view':'⛶ ขยายภาพกล้อง';
  screen.before(focus);

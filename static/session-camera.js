@@ -56,12 +56,12 @@ const BrowserCamera=(()=>{
  if(window.I18N?.lang==='en'){document.getElementById('initialCameraHint').textContent='Open the camera with your selected shoulder, elbow and wrist visible.';document.getElementById('initialCountHint').textContent='Once your joints are visible, move from the starting position.'}
  // Display owns no counters. Coordinates always come from the current observation;
  // confidence hysteresis only keeps a currently observed joint visible near 0.5.
- function showPoints(body,hands,at,wallAt){
+ function showPoints(body,hands,at,wallAt,world=[]){
   const previous=at-pointsAt<650?visible:[];
   landmarks=body;handLandmarks=hands;pointsAt=at;
   visible=body.map((p,i)=>!!p&&Number.isFinite(p[0])&&Number.isFinite(p[1])&&p[2]>(previous[i] ? .45 : .5));
   window.coachHands={count:hands.length,at:wallAt};
-  window.coachLandmarks={points:body,at:wallAt,mirrored:Number(document.getElementById('camera').value)!==1};
+  window.coachLandmarks={points:body,world,aspect:(video.videoWidth||640)/(video.videoHeight||480),at:wallAt,set_id:window.fitnessState?.set_id,mirrored:Number(document.getElementById('camera').value)!==1};
  }
  function resetPoints(){revision++;detectionTimes=[];localSample=null;lastSentSample=null;peoplePoints=[];landmarks=[];handLandmarks=[];visible=[];pointsAt=0;window.coachHands=null;window.coachLandmarks=null;draw.clearRect(0,0,drawing.width,drawing.height)}
  function localTick(mine){
@@ -78,7 +78,7 @@ const BrowserCamera=(()=>{
     const matched=window.PersonTracking?.match(payload,window.fitnessState)||[];
     peoplePoints=state.person_count>1?matched:[];
     const body=state.cardio?(payload.pose||[]).map(p=>[p.x,p.y,p.visibility??0]):state.person_count>1?[]:(matched[0]?.landmarks||[]);
-    showPoints(body,body.length&&(payload.poses||[]).length===1?(payload.hands||[]).map(hand=>hand.map(p=>[p.x,p.y])):[],performance.now(),Date.now());
+    showPoints(body,body.length&&(payload.poses||[]).length===1?(payload.hands||[]).map(hand=>hand.map(p=>[p.x,p.y])):[],performance.now(),Date.now(),state.cardio?(payload.world||[]).map(p=>[p.x,p.y,p.z]):matched[0]?.world||[]);
    }catch(error){if(mine===generation&&revision===rev){localSample=null;window.LocalPose?.disable()}}
   })();
   localTask=task;
@@ -86,7 +86,7 @@ const BrowserCamera=(()=>{
  }
  function report(message){window.cameraFailure=message;document.getElementById('status').textContent=message;console.warn('[45 Fitness camera]',message)}
  function stopCurrent(){const id=activeSet||window.fitnessState?.set_id;return fetch('/stop',{method:'POST',headers:id?{'X-Set-ID':id}:{}})}
- function close(){if(cameraCallback!==null)video.cancelVideoFrameCallback?.(cameraCallback);cameraCallback=null;cameraTimes=[];window.LocalPose?.close();window.latestFrameState=null;opening=false;activeSet=null;generation++;clearTimeout(localTimer);localTask=null;frameBusy=false;resetPoints();cancelAnimationFrame(raf);video.hidden=true;landmarks=[];draw.clearRect(0,0,drawing.width,drawing.height);clearTimeout(timer);if(controller)controller.abort();controller=null;if(stream)stream.getTracks().forEach(t=>{t.onended=null;t.stop()});stream=null;video.pause();video.srcObject=null;if(imageURL)URL.revokeObjectURL(imageURL);imageURL=null;}
+ function close(){if(cameraCallback!==null)video.cancelVideoFrameCallback?.(cameraCallback);cameraCallback=null;cameraTimes=[];window.LocalPose?.close();window.latestFrameState=null;opening=false;activeSet=null;generation++;clearTimeout(localTimer);localTask=null;frameBusy=false;resetPoints();cancelAnimationFrame(raf);video.hidden=true;landmarks=[];draw.clearRect(0,0,drawing.width,drawing.height);clearTimeout(timer);if(controller)controller.abort();controller=null;if(stream)stream.getTracks().forEach(t=>{t.onended=null;t.stop()});stream=null;video.pause();video.srcObject=null;if(imageURL)URL.revokeObjectURL(imageURL);imageURL=null;window.LiveAvatar?.sync();}
  async function open(){
   clearTimeout(hiddenTimer);
   if(opening)return false;
@@ -95,6 +95,7 @@ const BrowserCamera=(()=>{
   const oldVideo=video;video=oldVideo.cloneNode(false);video.muted=true;video.autoplay=true;video.playsInline=true;oldVideo.replaceWith(video);
   if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){close();throw Error('มือถือให้เปิดลิงก์ HTTPS จาก Start-Share.ps1 ก่อน จึงใช้กล้องได้')}
   try{
+   if(!window.PoseDrawing||!window.PersonTracking)throw Error(accountText('ไฟล์อัปเดตกล้องไม่ครบ กรุณาอัปโหลดไฟล์ static และ templates ให้ครบ แล้วรีโหลดหน้าเว็บ','Camera update files are missing. Upload all static and templates files, then reload.'));
    const camera=Number(document.getElementById('camera').value);
    const constraints={audio:false,video:{facingMode:{ideal:camera===1?'environment':'user'},width:{ideal:640},height:{ideal:480},frameRate:cameraFpsChoice==='30'?{ideal:30,max:30}:{ideal:60,max:60}}};let granted,relaxed=false;
    for(let attempt=0;attempt<4;attempt++){
@@ -162,7 +163,7 @@ const BrowserCamera=(()=>{
    if(!response.ok)throw Error(result?.error||'ส่งภาพไม่สำเร็จ');
    if(mine!==generation||revision!==rev)return;if(activeSet!==state.set_id){timer=setTimeout(()=>frame(mine),50);return;}
    window.cameraFailure='';failures=0;
-   if(!local&&!window.LocalPose?.ready){peoplePoints=result.players||[];cost=cost*.75+(performance.now()-start)*.25;detected();showPoints(result.landmarks||[],result.hands||[],capturedAt,capturedWallAt);}
+   if(!local&&!window.LocalPose?.ready){peoplePoints=result.players||[];cost=cost*.75+(performance.now()-start)*.25;detected();showPoints(result.landmarks||[],result.hands||[],capturedAt,capturedWallAt,result.world||[]);}
    window.latestFrameState={state:{...result.state,server_today:result.server_today},at:Date.now()};
    document.getElementById('captureInfo').textContent=(window.I18N?.lang==='en'?'Live camera · AI response ':'ภาพสด · ผลตรวจใช้เวลา ')+Math.round(performance.now()-start)+' ms';
 

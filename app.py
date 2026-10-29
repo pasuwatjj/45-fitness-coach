@@ -801,8 +801,9 @@ class BrowserCoach(CameraCoach):
                 raise ValueError('เซตเปลี่ยนหรือปิดกล้องแล้ว')
             engine="browser" if local_result is not None else "server"
             if getattr(self,"last_engine",engine)!=engine:
-                for form in self.forms.values():form.reset_motion()
-                self.reset_tracking()
+                for target in [self]+self.people:
+                    for form in target.forms.values():form.reset_motion()
+                    target.reset_tracking()
             self.last_engine=engine
             now=time.monotonic()
             # A network pause cancels the incomplete repetition, not the neutral
@@ -822,7 +823,8 @@ class BrowserCoach(CameraCoach):
             from types import SimpleNamespace
             all_poses=result.pose_landmarks or []
             all_world=result.pose_world_landmarks or []
-            if getattr(self,'last_identity_engine',engine)!=engine:self.person_lock.invalidate()
+            # Engine handover keeps geometric association; unfinished reps reset above.
+            # Loading the browser worker must not permanently disable a valid lock.
             self.last_identity_engine=engine
             chosen=self.person_lock.update(all_poses,now) if not self.cardio else [0 if all_poses else None]
             def only(index):
@@ -852,7 +854,7 @@ class BrowserCoach(CameraCoach):
                 self.state['cardio']=self.cardio.update(poses,frame.shape[1]/frame.shape[0],world=world)
                 self.state['focus']='upper' if self.cardio.mode=='upper' else 'full'
                 points=[[round(p.x,4),round(p.y,4),round(p.visibility or 0,3)] for p in poses] if poses else []
-                return dict(landmarks=points,hands=[],state=self.snapshot(),server_today=today_thailand().isoformat())
+                return dict(landmarks=points,world=[[p.x,p.y,p.z] for p in world] if world else [],hands=[],state=self.snapshot(),server_today=today_thailand().isoformat())
             previous_grip=self.grip_results
             self.grip_results={}
             hand_points=[]
@@ -897,7 +899,7 @@ class BrowserCoach(CameraCoach):
             self.state['grip_enabled']=self.grip_enabled
             self.landmark_payload=[[round(p.x,4),round(p.y,4),round(p.visibility or 0,3)] for p in poses] if poses else []
             if landmarks_only:
-                return dict(landmarks=self.landmark_payload,hands=hand_points,state=self.snapshot(),server_today=today_thailand().isoformat())
+                return dict(landmarks=self.landmark_payload,world=[[p.x,p.y,p.z] for p in world] if world else [],hands=hand_points,state=self.snapshot(),server_today=today_thailand().isoformat())
             ok,encoded=cv2.imencode('.jpg',frame,[cv2.IMWRITE_JPEG_QUALITY,75])
             if not ok:
                 raise ValueError('แปลงภาพไม่สำเร็จ')

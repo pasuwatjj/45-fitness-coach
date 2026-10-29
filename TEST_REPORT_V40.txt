@@ -1,0 +1,33 @@
+V40 TESTING REPORT — 2026-10-29
+
+PASS: 49 Python tests (test_v39, test_v40, test_v35, test_v36,
+  test_pose_endpoint, test_sessions, test_v29).
+PASS: pure avatar solver: independent arm movement, measured turn,
+  no invented lower-body motion in upper-only mode, neutral on stale/lost/
+  paused/multi-person/old-session data, horizontal push-up ready pose.
+PASS: Chromium browser with fake camera and synthetic pose landmarks:
+  saved owner character only, shoulders-only lock, pose changes renderer pixels,
+  synchronized toggles, 1365/390/320 px layouts without score overlap,
+  neutral on loss, push-up layout, stop cleanup, no-character account stays
+  without a character, delayed previous-account response discarded.
+PASS: existing camera lifecycle test: 200 fake-device open/close cycles,
+  JPEG fallback, zero blank-frame repetitions, manual pause/stop, responsive UI.
+PASS: profile/character regression browser test: own and other profile views,
+  LV/EXP, growth geometry, EN/TH switching, mobile widths, no page errors.
+PASS: syntax checks of all changed JavaScript files.
+
+Regression reproduced against V39: hips outside frame prevented initial lock.
+V40 test accepts the same synthetic upper-body input. Engine handover preserves
+association while discarding partial repetition state. Ambiguous crossings
+require reselection; disappearance does not award a rep.
+
+LIMITATIONS
+These are automated/synthetic tests, not 200 physical-camera cycles on every
+phone. No measured human tracking accuracy %, angle MAE, real-device FPS or
+latency claim is made. Single-camera depth and occluded joints remain estimates.
+The avatar is visual retargeting, not a measurement of muscle activation.
+Physical-device validation is still required in the user's lighting/network.
+
+MODEL SOURCE (included cumulative V39 dependency)
+MediaPipe Pose Landmarker Full, float16 v1:
+https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task

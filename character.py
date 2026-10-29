@@ -81,7 +81,7 @@ def overview(store,profile,private=False):
     height=dims.get('height_cm') or 170
     weight=dims.get('weight_kg') or 65
     visual=dict(height_scale=round(max(.92,min(1.08,height/170)),3),waist_scale=round(max(.94,min(1.10,1+(weight-65)*.002)),3))
-    result=dict(profile=store.profile(profile),appearance=appearance,growth=growth(store,profile),visual=visual)
+    result=dict(created=bool(saved),profile=store.profile(profile),appearance=appearance,growth=growth(store,profile),visual=visual)
     if private:result['dimensions']=dims
     return result
 

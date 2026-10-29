@@ -1,0 +1,107 @@
+[
+  {
+    "path": "app.py",
+    "bytes": 103432,
+    "sha256": "0f668cd18699ad3d4431960e8bd7f4ce90e79a104a1f6a5c9656eab5d23b1cd9"
+  },
+  {
+    "path": "character.py",
+    "bytes": 6540,
+    "sha256": "119ab045611b26c1956cabd04a3150d0a64ae2146afdfa38c13019514aacfce5"
+  },
+  {
+    "path": "local_pose.py",
+    "bytes": 2321,
+    "sha256": "63dc6b4d50f746ace93a395461025529d6a1ac3e89b56e227b1e666b2c3ba331"
+  },
+  {
+    "path": "models/pose_landmarker_full.task",
+    "bytes": 9398198,
+    "sha256": "5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1"
+  },
+  {
+    "path": "person_tracking.py",
+    "bytes": 6238,
+    "sha256": "d12fd64d3965a0762edd420bab7c3011543f04b3e2d5100570b39fb4dd666e57"
+  },
+  {
+    "path": "static/app.js",
+    "bytes": 49997,
+    "sha256": "9ddde2c5ea0777460344ed6dc3472fff26189c86267ba13c2a44ddc032f30831"
+  },
+  {
+    "path": "static/avatar-pose.js",
+    "bytes": 2999,
+    "sha256": "53fc0a37d9d62ed054cf9ab2f9550e5939c12f41121ab48a84d25adb3eb4789f"
+  },
+  {
+    "path": "static/character-renderer.js",
+    "bytes": 13252,
+    "sha256": "d86d2695bf8b89daae4678c2d093665b90f37528424f930832f73109aa9948b2"
+  },
+  {
+    "path": "static/live-avatar.css",
+    "bytes": 1056,
+    "sha256": "988f1685326b215847d1cce74bbf02a364c8fe85ce5c95e2ac1b7a36edfea04f"
+  },
+  {
+    "path": "static/live-avatar.js",
+    "bytes": 4612,
+    "sha256": "c31fe734426910beae4d8cfd7b79b0a1bb0aba0ee557bd5268bc221d95ee4920"
+  },
+  {
+    "path": "static/local-pose.js",
+    "bytes": 1956,
+    "sha256": "ed8bf68e04f8da70352d67a069bc52ef0603d49e94ce156a8e07ea00eae60700"
+  },
+  {
+    "path": "static/person-tracking.css",
+    "bytes": 670,
+    "sha256": "7c8c7a7b6b66c20927a802e134bfbb2056ae2c2c06432be63506fd01538b1533"
+  },
+  {
+    "path": "static/person-tracking.js",
+    "bytes": 8685,
+    "sha256": "af15b5a9249aea2e728a79cd3e0aa4f06103cc7e04201dd04a35a7e369b946be"
+  },
+  {
+    "path": "static/play-coach.js",
+    "bytes": 6709,
+    "sha256": "c64aa7e9bc467a121721d5264ec69ad482a59f5f68c6b6a79641338c81bd0b53"
+  },
+  {
+    "path": "static/pose-drawing.js",
+    "bytes": 1803,
+    "sha256": "2bc6543b594a40cff187ef1819063cc23ea3c390778191514cb214d5b515a12c"
+  },
+  {
+    "path": "static/pose-quality.js",
+    "bytes": 2460,
+    "sha256": "13c3d4be352045189518e1a24509766c024812911891c207314f97c54178075c"
+  },
+  {
+    "path": "static/pose-worker.js",
+    "bytes": 1631,
+    "sha256": "1d9647d49bef31841f92dde816af4fc42adc50d63c60fef33a4fc96b7b8709d9"
+  },
+  {
+    "path": "static/session-camera.js",
+    "bytes": 21807,
+    "sha256": "2f2f371af0c78c3e75c94d4a244294643f4d34da9e9d3dda277b9b7027b8ebca"
+  },
+  {
+    "path": "static/training-modes.js",
+    "bytes": 4548,
+    "sha256": "1f02afd9f6c841d75e1c5e8eab7f4e605202299818726d46d7025b44fc1ded24"
+  },
+  {
+    "path": "static/workout-extras.js",
+    "bytes": 3848,
+    "sha256": "b7cdaf29f362a79178d45560c6ea20cce5e8dc4cf65af06026e44e9a14a2bccd"
+  },
+  {
+    "path": "templates/index.html",
+    "bytes": 42670,
+    "sha256": "e50c4aa1e6c9d6ea6764cadcd258342149f6fb37e776db9a5d83a02ef0246827"
+  }
+]

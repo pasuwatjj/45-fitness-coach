@@ -57,6 +57,11 @@ const BrowserCamera=(()=>{
  // Display owns no counters. Coordinates always come from the current observation;
  // confidence hysteresis only keeps a currently observed joint visible near 0.5.
  function showPoints(body,hands,at,wallAt,world=[]){
+  const st=window.fitnessState,tracking=st?.tracking?.status?.[0];
+  const canHold=st?.running&&!st.paused&&st.person_count===1&&tracking!=='ambiguous'&&tracking!=='lost';
+  if(!body.length&&canHold&&landmarks.length&&at-pointsAt<250){
+   window.coachHands={count:0,at:wallAt};return;
+  }
   const previous=at-pointsAt<650?visible:[];
   landmarks=body;handLandmarks=hands;pointsAt=at;
   visible=body.map((p,i)=>!!p&&Number.isFinite(p[0])&&Number.isFinite(p[1])&&p[2]>(previous[i] ? .45 : .5));

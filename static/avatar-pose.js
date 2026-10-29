@@ -23,5 +23,31 @@ window.AvatarPose=(()=>{
   const legs={};for(const [side,a,b,c]of[['left',23,25,27],['right',24,26,28]])legs[side]=rest.full?{upper:vector(a,b,down),lower:vector(b,c,down)}:{upper:down,lower:down};
   return{...rest,valid:true,mirror:!!sample.mirrored,x,y,z,arms,legs,hasWorld};
  }
- return{solve,neutral,context,add,sub,mul,dot,cross,norm};
+ function createStabilizer(){
+  let previous=null,lastValid=0,lastAt=0,key=null;
+  const reset=()=>{previous=null;lastValid=0;lastAt=0;key=null};
+  const blend=(a,b,k)=>a.map((v,i)=>v+(b[i]-v)*k);
+  function update(target,state,now=Date.now()){
+   const id=state.set_id+':'+state.exercise+':'+state.cardio?.mode;
+   if(key!==id){reset();key=id}
+   const unsafe=!state.running||state.paused||state.person_count>1||['ambiguous','lost'].includes(state.tracking?.status?.[0]);
+   if(unsafe){previous=null;lastValid=0;lastAt=now;return target}
+   if(!target.valid){
+    if(previous&&now-lastValid<=350)return {...previous,valid:false,held:true};
+    previous=null;lastAt=now;return target;
+   }
+   const k=1-Math.exp(-Math.min(100,Math.max(1,now-lastAt))/45);
+   let out=target;
+   if(previous&&previous.floor===target.floor&&previous.mirror===target.mirror){
+    out={...target};
+    for(const a of ['x','y','z'])out[a]=norm(blend(previous[a],target[a],k),target[a]);
+    // Re-orthogonalize body orientation after smoothing.
+    out.z=norm(cross(out.x,out.y),target.z);out.y=norm(cross(out.z,out.x),target.y);
+    for(const group of ['arms','legs']){out[group]={};for(const side of ['left','right']){out[group][side]={};for(const bone of ['upper','lower'])out[group][side][bone]=norm(blend(previous[group][side][bone],target[group][side][bone],k),target[group][side][bone]);}}
+   }
+   previous=out;lastAt=now;lastValid=now;return out;
+  }
+  return{update,reset};
+ }
+ return{solve,neutral,context,createStabilizer,add,sub,mul,dot,cross,norm};
 })();

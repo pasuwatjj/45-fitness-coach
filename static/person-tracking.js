@@ -1,6 +1,9 @@
 'use strict';
 // Slot numbers are session labels, never recognized human identities.
 window.PersonTracking=(()=>{
+ const reset=document.createElement('button');reset.type='button';reset.className='secondary';reset.style.cssText='position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:22;max-width:40%;font-size:13px';
+ document.querySelector('.screen').append(reset);
+ reset.onclick=async()=>{const s=window.fitnessState;if(!s?.running)return;reset.disabled=true;try{const r=await controlFetch('/tracking/reacquire',{method:'POST',headers:{'X-Set-ID':s.set_id}}),d=await r.json();if(!r.ok)throw Error(d.error);window.coachRevision++;BrowserCamera.adopt(d.state);BrowserCamera.clearPoints();window.LocalPose?.restart?.()}catch(e){document.getElementById('status').textContent=e.message}finally{reset.disabled=false}};
  const colors=['#7be9b2','#8bc8ff'];
  const text=(th,en)=>window.I18N?.lang==='en'?en:th;
  const make=(tag,label,cls)=>{const n=document.createElement(tag);if(label)n.textContent=label;if(cls)n.className=cls;return n};
@@ -10,10 +13,11 @@ window.PersonTracking=(()=>{
  box.append(label,select,note,status,choices,cards);document.querySelector('.screen').before(box);
  let signature='',pending=false;
  function update(s){
+  reset.textContent=text('จับตำแหน่งใหม่','Find me again');reset.hidden=!s?.running||s.person_count>1||!!s.cardio;
   const multi=(s?.running?s.person_count:Number(select.value))>1;select.disabled=!!s?.running||!!(typeof BrowserCamera!=='undefined'&&BrowserCamera.opening)||pending;
   if(s?.running)select.value=String(s.person_count||1);
   label.textContent=text('จำนวนคน','Number of players');select.options[0].textContent=text('1 คน · บันทึกตามปกติ','1 player · normal saving');select.options[1].textContent=text('2 คน · เล่นชั่วคราว ไม่บันทึก','2 players · temporary, no saving');
-  note.textContent=multi?text('โหมด 2 คนแยกนับและแนะนำบนหน้าจอ ไม่บันทึกสถิติ มุม เหรียญ EXP ตาราง สตรีก หรือชาเลนจ์ ปิดเสียงโค้ชและการดูมือ ยืนแยกกันให้เห็นไหล่และสะโพกครบ','Two independent counters and on-screen coaching. No stats, angles, coins, EXP, plans, streaks or challenges are saved. Voice and hand checks are off. Stand apart with both shoulders and hips visible.'):text('ติดตามคนเดิมจากตำแหน่งลำตัว หลุดสั้น ๆ จะหยุดนับและจับตำแหน่งเดิมใหม่ เมื่อกลับมาใกล้ตำแหน่งเดิมจะจับใหม่อัตโนมัติ หากคนซ้อนกันให้แยกแล้วเลือกใหม่ด้านล่าง การเลือกจะล้างจำนวนและเริ่มวัดใหม่ ไม่ใช่การยืนยันตัวบุคคล','Follows torso position. Brief loss pauses counting and reacquires a nearby match. A stable nearby person is reacquired automatically after loss. After overlap, separate and select below. Selection clears that slot’s counts and measurements. This is not identity recognition.');
+  note.textContent=multi?text('โหมด 2 คนแยกนับและแนะนำบนหน้าจอ ไม่บันทึกสถิติ มุม เหรียญ EXP ตาราง สตรีก หรือชาเลนจ์ ปิดเสียงโค้ชและการดูมือ ยืนแยกกันให้เห็นไหล่และสะโพกครบ','Two independent counters and on-screen coaching. No stats, angles, coins, EXP, plans, streaks or challenges are saved. Voice and hand checks are off. Stand apart with both shoulders and hips visible.'):text('ติดตามคนเดิมจากตำแหน่งลำตัว หลุดสั้น ๆ จะหยุดนับและจับตำแหน่งเดิมใหม่ เมื่อกลับมาเห็นคนเดียวต่อเนื่องจะจับใหม่อัตโนมัติ หากมีหลายคนให้เลือกด้านล่าง การเลือกจะล้างจำนวนและเริ่มวัดใหม่ ไม่ใช่การยืนยันตัวบุคคล','Follows torso position. Brief loss pauses counting and reacquires a nearby match. A stable single person is reacquired automatically anywhere after loss. With multiple people, select below. Selection clears that slot’s counts and measurements. This is not identity recognition.');
   const track=s?.tracking;const active=s?.running&&!s?.cardio;
   status.textContent=active?(track?.status||[]).map((v,i)=>'P'+(i+1)+' · '+({locked:text('กำลังติดตาม','Tracking'),waiting:text('รอคนยืนแยกกัน / เลือกคน','Stand apart / select'),recovering:text('กำลังจับตำแหน่งใหม่ · หยุดนับชั่วคราว','Reacquiring · counting paused'),lost:text('หลุด · เลือกใหม่','Lost · select again'),ambiguous:text('คนซ้อนกัน · แยกแล้วเลือกใหม่','Overlap · separate and select again')}[v]||v)).join(' | '):'';
   const sig=JSON.stringify([active,s?.paused,track?.candidates,track?.status,select.value,window.I18N?.lang]);
@@ -32,7 +36,7 @@ window.PersonTracking=(()=>{
   if(!a||track.status[slot]!=='locked')return empty;
   const ids=a.points?.map(p=>p[0])||(a.mode==='shoulders'?[11,12]:a.mode==='left'?[11,23]:a.mode==='right'?[12,24]:[11,12,23,24]);
   const old=new Map(a.points?.map(p=>[p[0],[p[1],p[2]]])||[]);
-  const valid=rows.map((p,index)=>{const torso=[11,12,23,24].filter(i=>p[i]&&(p[i].visibility??0)>=.45&&p[i].y>=-.15&&p[i].y<=1.15);if(torso.length<2)return null;const common=ids.filter(i=>torso.includes(i));if(!common.length)return null;const x=torso.reduce((v,i)=>v+p[i].x,0)/torso.length,y=torso.reduce((v,i)=>v+p[i].y,0)/torso.length;const d=old.size?common.reduce((v,i)=>v+Math.hypot(p[i].x-old.get(i)[0],p[i].y-old.get(i)[1]),0)/common.length:Math.hypot(x-a.x,y-a.y);return{p,index,x,y,d}}).filter(Boolean).sort((x,y)=>x.d-y.d);
+  const valid=rows.map((p,index)=>{const torso=[...new Set([11,12,23,24,...ids])].filter(i=>p[i]&&(p[i].visibility??0)>=.45&&p[i].y>=-.15&&p[i].y<=1.15);if(torso.length<2)return null;const common=ids.filter(i=>torso.includes(i));if(!common.length)return null;const x=torso.reduce((v,i)=>v+p[i].x,0)/torso.length,y=torso.reduce((v,i)=>v+p[i].y,0)/torso.length;const d=old.size?common.reduce((v,i)=>v+Math.hypot(p[i].x-old.get(i)[0],p[i].y-old.get(i)[1]),0)/common.length:Math.hypot(x-a.x,y-a.y);return{p,index,x,y,d}}).filter(Boolean).sort((x,y)=>x.d-y.d);
   const v=valid[0];if(!v||v.d>.42*Math.max(.1,a.scale)||(valid[1]&&valid[1].d-v.d<.35*Math.max(.1,a.scale))||valid.some(q=>q!==v&&Math.hypot(q.x-v.x,q.y-v.y)<Math.max(.16,a.scale*.85)))return empty;
   return{player_id:slot+1,landmarks:v.p.map(p=>[p.x,p.y,p.visibility??0]),world:(payload.worlds?.[v.index]||[]).map(p=>[p.x,p.y,p.z])};
  })}

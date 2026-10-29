@@ -9,7 +9,7 @@ window.PoseDrawing=(()=>{
  }
  function paint(ctx,body,{width,height,scale=1,color='#7be9b2',visible=null,full=true}={}){
   if(!body?.length)return;
-  const good=i=>{const p=body[i];return !!p&&Number.isFinite(p[0])&&Number.isFinite(p[1])&&(visible?!!visible[i]:p[2]>.5)};
+  const good=i=>{const p=body[i];return !!p&&Number.isFinite(p[0])&&Number.isFinite(p[1])&&p[2]>=(i===23||i===24?.65:.45)&&(visible?!!visible[i]:p[2]>.5)};
   const edges=pairs.filter(([a,b])=>(full||(a<=24&&b<=24))&&good(a)&&good(b));
   // A readable minimum on phones; larger markers on expanded camera views.
   const unit=1/Math.max(.15,scale),line=Math.min(10,Math.max(4,4.5*scale))*unit,radius=Math.min(12,Math.max(6,7*scale))*unit;

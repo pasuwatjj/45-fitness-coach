@@ -56,7 +56,9 @@ const BrowserCamera=(()=>{
  if(window.I18N?.lang==='en'){document.getElementById('initialCameraHint').textContent='Open the camera with your selected shoulder, elbow and wrist visible.';document.getElementById('initialCountHint').textContent='Once your joints are visible, move from the starting position.'}
  // Display owns no counters. Coordinates always come from the current observation;
  // confidence hysteresis only keeps a currently observed joint visible near 0.5.
+ const poseStability=new PoseStability();
  function showPoints(body,hands,at,wallAt,world=[]){
+  body=poseStability.apply(body,at,(video.videoWidth||640)/(video.videoHeight||480));
   const st=window.fitnessState,tracking=st?.tracking?.status?.[0];
   const canHold=st?.running&&!st.paused&&st.person_count===1&&tracking!=='ambiguous'&&tracking!=='lost';
   if(!body.length&&canHold&&landmarks.length&&at-pointsAt<250){
@@ -68,7 +70,7 @@ const BrowserCamera=(()=>{
   window.coachHands={count:hands.length,at:wallAt};
   window.coachLandmarks={points:body,world,aspect:(video.videoWidth||640)/(video.videoHeight||480),at:wallAt,set_id:window.fitnessState?.set_id,mirrored:Number(document.getElementById('camera').value)!==1};
  }
- function resetPoints(){revision++;detectionTimes=[];localSample=null;lastSentSample=null;peoplePoints=[];landmarks=[];handLandmarks=[];visible=[];pointsAt=0;window.coachHands=null;window.coachLandmarks=null;draw.clearRect(0,0,drawing.width,drawing.height)}
+ function resetPoints(){poseStability.reset();revision++;detectionTimes=[];localSample=null;lastSentSample=null;peoplePoints=[];landmarks=[];handLandmarks=[];visible=[];pointsAt=0;window.coachHands=null;window.coachLandmarks=null;draw.clearRect(0,0,drawing.width,drawing.height)}
  function localTick(mine){
   if(mine!==generation||!stream||localTask)return;
   clearTimeout(localTimer);
@@ -102,7 +104,7 @@ const BrowserCamera=(()=>{
   try{
    if(!window.PoseDrawing||!window.PersonTracking)throw Error(accountText('ไฟล์อัปเดตกล้องไม่ครบ กรุณาอัปโหลดไฟล์ static และ templates ให้ครบ แล้วรีโหลดหน้าเว็บ','Camera update files are missing. Upload all static and templates files, then reload.'));
    const camera=Number(document.getElementById('camera').value);
-   const constraints={audio:false,video:{facingMode:{ideal:camera===1?'environment':'user'},width:{ideal:640},height:{ideal:480},frameRate:cameraFpsChoice==='30'?{ideal:30,max:30}:{ideal:60,max:60}}};let granted,relaxed=false;
+   const constraints={audio:false,video:{facingMode:{ideal:camera===1?'environment':'user'},width:{ideal:window.fitnessState?.pose_quality==='full'?1280:640},height:{ideal:window.fitnessState?.pose_quality==='full'?720:480},frameRate:cameraFpsChoice==='30'?{ideal:30,max:30}:{ideal:60,max:60}}};let granted,relaxed=false;
    for(let attempt=0;attempt<4;attempt++){
     if(mine!==generation)throw Error('ยกเลิกเปิดกล้องแล้ว');
     try{
@@ -149,7 +151,7 @@ const BrowserCamera=(()=>{
    if(!local){
     if(mine!==generation||revision!==rev)return;
     capturedAt=performance.now();capturedWallAt=Date.now();
-    const scale=Math.min(640/video.videoWidth,640/video.videoHeight,1);
+    const cap=state.pose_quality==='full'?960:640;const scale=Math.min(cap/video.videoWidth,cap/video.videoHeight,1);
     const width=Math.round(video.videoWidth*scale),height=Math.round(video.videoHeight*scale);
     if(canvas.width!==width)canvas.width=width;if(canvas.height!==height)canvas.height=height;
     context.drawImage(video,0,0,canvas.width,canvas.height);

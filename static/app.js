@@ -34,7 +34,7 @@ async function cameraServerReset(rebuild=false){
 async function post(path,data={}){
  const epoch=controlEpoch;const check=()=>{if(epoch!==controlEpoch)throw Error('Camera operation cancelled')};
  const opening=path==='/start'||path==='/plans/today/start'||path==='/cardio/start';let serverStarted=false;
- if(opening)data={...data,pose_quality:path==='/cardio/start'?'lite':($('poseQuality')?.value||'lite'),person_count:path==='/start'?Number($('personCount')?.value||1):1,curl_target:Number($('curlTarget').value),grip_enabled:$('gripEnabled').checked,...(path!=='/cardio/start'?{difficulty:$('trainingDifficulty')?.value||'beginner',auto_arm:path==='/start'&&!!$('autoArm')?.checked}:{})};
+ if(opening)data={...data,pose_quality:path==='/cardio/start'?'lite':($('poseQuality')?.value||'full'),person_count:path==='/start'?Number($('personCount')?.value||1):1,curl_target:Number($('curlTarget').value),grip_enabled:$('gripEnabled').checked,...(path!=='/cardio/start'?{difficulty:$('trainingDifficulty')?.value||'beginner',auto_arm:path==='/start'&&!!$('autoArm')?.checked}:{})};
  if(['/pause','/resume','/reset','/calibrate','/stop'].includes(path)){window.coachRevision++;window.latestFrameState=null;}
  if(path==='/stop'){BrowserCamera.close();cancelVoice()}
  try{

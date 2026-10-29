@@ -1,0 +1,30 @@
+V41 — 29 October 2026
+
+Confirmed code regression: V40 enters a permanently latched lost state after
+more than 600 ms without a valid association. Synthetic replay reproduces it;
+V41 reacquires a stable nearby solo target without resetting the set.
+This explains a matching failure mode, but does not prove the exact runtime
+state of the user's deployed server from a screenshot alone.
+
+PASS 33 Python tests: test_v41, test_v35, test_v36, test_pose_endpoint, test_sessions.
+New tests cover repeated long loss, upper-body crop, confidence hysteresis,
+network gap, far target rejection, overlap latch, and preserved totals with no
+partial repetition completed across a detection gap.
+PASS integrated Chromium browser: 3 repeated 1.4-second synthetic detection
+dropouts recover, saved avatar resumes, same set ID, zero phantom reps,
+show/hide toggles, clean stop, no JavaScript page errors.
+PASS 200 fake-camera open/close cycles, server JPEG fallback, blank frames
+produce no repetitions, manual pause/stop, responsive 1365/390/320px layouts.
+PASS avatar display stabilizer: bounded hold, smooth transition, clears on
+ambiguity/session change, raw input vectors are not modified.
+PASS JavaScript syntax checks for cumulative update files.
+
+These tests use synthetic poses and Chromium fake media devices. They do not
+measure physical joint-angle accuracy, real-user FPS, or guarantee 200 cycles
+on every device. Real phone/webcam validation remains necessary.
+Display smoothing adds a small visual response delay; it does not alter raw
+pose input to the server or calculate rewards from held data.
+
+Package is cumulative from V38 and includes the V39/V40 dependencies.
+MediaPipe Full model source:
+https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task

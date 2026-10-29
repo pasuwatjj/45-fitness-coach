@@ -1,7 +1,7 @@
 """Conservative short-term geometric association, NOT biometric identification.
 
-Short missing observations pause counting; unambiguous matches within 600 ms
-may resume. Long loss or crossing requires explicit reselection. Never infer identity from
+Missing observations pause counting. Solo tracking can reacquire a stable
+nearby target; overlapping people still require explicit reselection. Never infer identity from
 candidate order. Three detections allow a bystander alongside two players.
 """
 import math
@@ -15,11 +15,12 @@ class PersonLock:
         self.last_at=None
         self.serial=0
         self.missing_since=[None]*count
+        self.pending=[None]*count
 
     @staticmethod
     def feature(pose,mode=None):
         if len(pose)!=33:return None
-        threshold=.5 if mode is not None else .6
+        threshold=.45 if mode is not None else .6
         def visible(i):
             p=pose[i]
             return (p.visibility or 0)>=threshold and math.isfinite(p.x+p.y) and -.15<=p.x<=1.15 and -.15<=p.y<=1.15
@@ -69,23 +70,38 @@ class PersonLock:
             return selected
         proposals=[]
         for slot,old in enumerate(self.slots):
-            if self.status[slot] not in ('locked','recovering'):continue
+            if self.status[slot] not in (('locked','recovering','lost') if self.count==1 else ('locked','recovering')):continue
+            if old is None:continue
+            recovering=self.status[slot]!='locked'
             if any(self.close(a[1],b[1]) and min(self.distance(old,a[1]),self.distance(old,b[1]))<1.5 for j,a in enumerate(association_candidates) for b in association_candidates[j+1:]):
                 self.status[slot]='ambiguous';continue
             ranked=sorted((self.distance(old,f),idx,f) for idx,_ in association_candidates if (f:=self.feature(poses[idx],old[4])) is not None and (f[4]!=old[4] or .5<f[2]/old[2]<1.8))
-            if not ranked or ranked[0][0]>.42:
+            if not ranked or ranked[0][0]>(1.2 if self.count==1 else .42):
+                self.pending[slot]=None
                 self.missing_since[slot]=now if self.missing_since[slot] is None else self.missing_since[slot]
-                self.status[slot]='recovering' if now-self.missing_since[slot]<.6 else 'lost';continue
+                self.status[slot]='recovering' if self.count==1 or now-self.missing_since[slot]<.6 else 'lost';continue
             _,idx,f=ranked[0]
             if (len(ranked)>1 and ranked[1][0]-ranked[0][0]<.35) or any(self.close(f,g) for j,g in association_candidates if j!=idx):
                 self.status[slot]='ambiguous';continue
+            if self.count==1 and (recovering or ranked[0][0]>.42):
+                # Small dropouts can continue, but long gaps/large steps must
+                # show a spatially stable target over multiple observations.
+                short=self.missing_since[slot] is not None and now-self.missing_since[slot]<.6 and ranked[0][0]<=.42
+                if not short:
+                    pending=self.pending[slot]
+                    if pending is None or self.distance(pending[0],f)>.3:
+                        self.pending[slot]=(f,now,1)
+                    else:self.pending[slot]=(f,pending[1],pending[2]+1)
+                    pending=self.pending[slot]
+                    if pending[2]<3 or now-pending[1]<.2:
+                        self.status[slot]='recovering';continue
             proposals.append((slot,idx,f))
         for slot,idx,f in proposals:
             if sum(other==idx for _,other,_ in proposals)>1:self.status[slot]='ambiguous'
             else:
-                if self.missing_since[slot] is not None and now-self.missing_since[slot]>=.6:
+                if self.count>1 and self.missing_since[slot] is not None and now-self.missing_since[slot]>=.6:
                     self.status[slot]='lost';continue
-                self.slots[slot]=f;self.status[slot]='locked';self.missing_since[slot]=None;selected[slot]=idx
+                self.pending[slot]=None;self.slots[slot]=f;self.status[slot]='locked';self.missing_since[slot]=None;selected[slot]=idx
         return selected
 
     def select(self,slot,x,y,now):
@@ -95,7 +111,7 @@ class PersonLock:
         _,idx,f=ranked[0]
         if any(self.close(f,g) for j,g in self.candidates if j!=idx):raise ValueError('Separate people before selecting / ยืนแยกกันก่อนเลือก')
         if any(i!=slot and self.status[i]=='locked' and self.distance(old,f)<.42 for i,old in enumerate(self.slots) if old):raise ValueError('Already assigned to another player / คนนี้อยู่ช่องผู้เล่นอื่นแล้ว')
-        self.slots[slot]=f;self.status[slot]='locked';self.missing_since[slot]=None
+        self.pending[slot]=None;self.slots[slot]=f;self.status[slot]='locked';self.missing_since[slot]=None
         return idx
 
     def snapshot(self):

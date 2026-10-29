@@ -674,6 +674,9 @@ class BrowserCoach(CameraCoach):
         self.people=[]
         from person_tracking import PersonLock
         self.person_lock=PersonLock()
+        from pose_sanity import PoseSanity
+        self.pose_sanity=PoseSanity()
+        self.sanity_set=None
 
     def start(self, arm, camera_index, tolerance, focus='arms', profile=None, exercise='curl', plan=None):
         with self.condition:
@@ -843,6 +846,11 @@ class BrowserCoach(CameraCoach):
                 self.state.update(reps=0,angle=None,feedback=[],checks=[],calibrated=False,calibration=0,message='โหมด 2 คน · ไม่บันทึกผล / 2 players · nothing is saved')
                 return dict(landmarks=[],hands=[],players=drawings,state=self.snapshot(),server_today=today_thailand().isoformat()) if landmarks_only else self._encode_frame(frame)
             result=only(chosen[0])
+            if self.sanity_set!=self.state['set_id']:
+                self.pose_sanity.reset();self.sanity_set=self.state['set_id']
+            if result.pose_landmarks:
+                result.pose_landmarks[0]=self.pose_sanity.apply(result.pose_landmarks[0],now,frame.shape[1]/frame.shape[0])
+            else:self.pose_sanity.reset()
             if chosen[0] is None:
                 for form in self.forms.values():form.reset_motion()
                 self.reset_tracking()
@@ -950,7 +958,7 @@ def banned_account_guard():
 @app.before_request
 def private_session():
     protected = request.path in ('/start','/stop','/reset','/pause','/resume','/calibrate','/frame','/pose-frame',
-        '/camera/auto-arm','/tracking/select','/profiles','/plans/today/start','/health/analyze','/camera/recover') or request.path.startswith(('/profiles/','/vip','/admin/','/social/','/cardio/'))
+        '/camera/auto-arm','/tracking/select','/tracking/reacquire','/profiles','/plans/today/start','/health/analyze','/camera/recover') or request.path.startswith(('/profiles/','/vip','/admin/','/social/','/cardio/'))
     token=request.headers.get('X-Coach-Session','')
     if request.path == '/status' and token:
         protected=True
@@ -1716,6 +1724,17 @@ def select_person():
         if type(x) not in (int,float) or type(y) not in (int,float) or not math.isfinite(x+y):return jsonify(error='Invalid selection'),400
         try:coach.select_person(slot,x,y)
         except ValueError as error:return jsonify(error=str(error)),409
+        return jsonify(ok=True,state=coach.snapshot())
+
+@app.post('/tracking/reacquire')
+def reacquire_person():
+    with coach.condition:
+        if request.headers.get('X-Set-ID')!=coach.state['set_id'] or not coach.state['running']:return jsonify(error='Set changed'),409
+        if coach.person_count!=1:return jsonify(error='Use player selection for multiplayer'),409
+        from person_tracking import PersonLock
+        coach.person_lock=PersonLock(1);coach.pose_sanity.reset()
+        for form in coach.forms.values():form.reset_motion()
+        coach.reset_tracking()
         return jsonify(ok=True,state=coach.snapshot())
 
 @app.post('/pose-frame')

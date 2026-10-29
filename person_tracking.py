@@ -16,6 +16,8 @@ class PersonLock:
         self.serial=0
         self.missing_since=[None]*count
         self.pending=[None]*count
+        self.solo_search=None
+        self.empty_since=None
 
     @staticmethod
     def feature(pose,mode=None):
@@ -30,6 +32,8 @@ class PersonLock:
         elif all(visible(i) for i in (11,12)):ids=(11,12);mode='shoulders'
         elif all(visible(i) for i in (11,23)):ids=(11,23);mode='left'
         elif all(visible(i) for i in (12,24)):ids=(12,24);mode='right'
+        elif visible(12) and visible(8):ids=(12,8);mode='head_right'
+        elif visible(11) and visible(7):ids=(11,7);mode='head_left'
         else:return None
         ps=[pose[i] for i in ids]
         cx=sum(p.x for p in ps)/len(ps);cy=sum(p.y for p in ps)/len(ps)
@@ -63,6 +67,30 @@ class PersonLock:
         if self.last_at is not None and now-self.last_at>3.5:self.invalidate()
         self.last_at=now
         selected=[None]*self.count
+        if self.count==1:
+            if not association_candidates:
+                if self.empty_since is None:self.empty_since=now
+            elif len(association_candidates)==1:
+                idx,f=association_candidates[0]
+                old=self.slots[0]
+                separated_return=self.empty_since is not None and now-self.empty_since>=.8
+                searching=self.status[0] in ('lost','ambiguous','recovering') or separated_return
+                if searching:
+                    candidate=self.solo_search
+                    if candidate is None or self.distance(candidate[0],f)>.4:
+                        self.solo_search=(f,now,1)
+                    else:self.solo_search=(f,candidate[1],candidate[2]+1)
+                    candidate=self.solo_search
+                    # A stable single target anywhere can restart association.
+                    # Partial motion was discarded on the intervening empty frames.
+                    if candidate[2]>=4 and now-candidate[1]>=.65:
+                        self.slots[0]=f;self.status[0]='locked'
+                        self.pending[0]=None;self.missing_since[0]=None
+                        self.empty_since=None;self.solo_search=None
+                        return [idx]
+            else:self.solo_search=None
+            if not association_candidates:self.solo_search=None
+
         # Only an unambiguous, exact-size initial group may auto-lock.
         if all(s=='waiting' for s in self.status) and len(self.candidates)==self.count and not any(self.close(a[1],b[1]) for j,a in enumerate(self.candidates) for b in self.candidates[j+1:]):
             for slot,(idx,f) in enumerate(sorted(self.candidates,key=lambda row:row[1][0])):
@@ -102,6 +130,7 @@ class PersonLock:
                 if self.count>1 and self.missing_since[slot] is not None and now-self.missing_since[slot]>=.6:
                     self.status[slot]='lost';continue
                 self.pending[slot]=None;self.slots[slot]=f;self.status[slot]='locked';self.missing_since[slot]=None;selected[slot]=idx
+                if self.count==1:self.solo_search=None;self.empty_since=None
         return selected
 
     def select(self,slot,x,y,now):

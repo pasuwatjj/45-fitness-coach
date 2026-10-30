@@ -1,0 +1,36 @@
+V42 TEST REPORT — 29 October 2026
+
+37 backend tests passed in the main run: test_v42 (10), test_v35,
+test_v36, test_pose_endpoint, test_sessions. An additional route/authorization
+test was then added; all 11 test_v42 tests passed on the final focused run.
+Total distinct backend tests passed: 38.
+
+Regression reproduced against V41: far reentry can remain rejected because
+it is compared only to the stale old anchor. V42's stable single-person search
+reacquires after loss. Solo ambiguity no longer latches forever once a single
+stable candidate remains. Multiplayer ambiguity still requires selection.
+
+PASS Chromium integrated synthetic test: first 3.2 s blank; far reentry;
+3 repeated 1.4 s dropouts; overlapping candidates then one; manual reacquire;
+same set preserved; no phantom reps; character resumes; toggle/stop; no JS errors.
+PASS 200 Chromium fake-camera open/close cycles; JPEG fallback; blank frames
+produce no reps; manual pause/stop; responsive 1365/390/320 px layouts.
+PASS real MediaPipe Full Worker: WASM/model loading and blank-image inference.
+PASS simulated Worker: prolonged zero detections triggers bounded model rebuild
+and fresh inference; hand detector failures do not discard body results.
+PASS quality tests: isolated elbow spike suppressed without modifying raw input,
+coherent body translation accepted, sustained movement not permanently frozen,
+missing observations reset quality history; matching JavaScript visual tests.
+PASS private manual reacquisition: unauthenticated/stale/multiplayer calls rejected;
+current solo call preserves set and completed-rep total.
+PASS all top-level static JavaScript syntax checks.
+
+Not measured: real-device anatomical angle error, human form classification
+accuracy, real phone FPS/latency, or 200 physical-device cycles for every user.
+Screenshots are not ground-truth joint annotations. Persistent model bias or
+occluded anatomy cannot be corrected reliably by a temporal jump filter.
+Full increases inference cost; visual smoothing adds a short visual delay.
+The tracker does not identify people biometrically.
+
+Included model source (unchanged):
+https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task

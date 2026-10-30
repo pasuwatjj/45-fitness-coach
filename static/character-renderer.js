@@ -6,7 +6,7 @@ window.FitnessCharacterRenderer=class {
   this.canvas=canvas;this.yaw=-.28;this.phase=0;this.running=false;this.events=new AbortController();this.resources=[];this.bones={};this.frame=null;this.inView=true;
   const T=window.THREE;
   try{if(!T)throw Error('3D engine unavailable');this.gpu=new T.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'low-power'});}catch(e){this.fallback=new FitnessBlockFallback(canvas);canvas.dataset.renderer='fallback';canvas.setAttribute('aria-label','โหมดภาพสำรอง — อุปกรณ์นี้เปิด WebGL ไม่ได้');return;}
-  canvas.dataset.renderer='webgl';this.gpu.setPixelRatio(1);this.gpu.outputColorSpace=T.SRGBColorSpace;this.gpu.toneMapping=T.ACESFilmicToneMapping;this.gpu.toneMappingExposure=1.15;
+  canvas.dataset.renderer='webgl';this.gpu.setPixelRatio(Math.min(window.devicePixelRatio||1,2));this.gpu.outputColorSpace=T.SRGBColorSpace;this.gpu.toneMapping=T.ACESFilmicToneMapping;this.gpu.toneMappingExposure=1.15;
   this.scene=new T.Scene();this.camera=new T.PerspectiveCamera(31,1,.05,50);this.scene.add(new T.HemisphereLight(0xe7efff,0x67566b,2.2));
   for(const [color,intensity,x,y,z]of [[0xffdfc0,3.8,-3,6,5],[0xb4c8ff,2.2,3,3,-3],[0xffffff,.7,2,2,5]]){const l=new T.DirectionalLight(color,intensity);l.position.set(x,y,z);this.scene.add(l)}
   this.root=new T.Group();this.scene.add(this.root);this.lastTime=0;
@@ -50,6 +50,14 @@ window.FitnessCharacterRenderer=class {
   // Pectoral and clavicle surfaces; restrained with fuller body types.
   if(full<.75)for(const sign of [-1,1]){const p=this.ell(sign*chest*.46,2.55,.16,.20+muscle*.035,.125,.045*(1-full*.5),skin,body);p.rotation.z=sign*.06;}
   if(muscle>.55&&full<.36)for(let i=0;i<3;i++)for(const sign of [-1,1])this.ell(sign*.095,2.30-i*.15,.19,.085,.075,.04*(1-full),skin,body);
+  // Tailored sportswear, with a covered sports top for female characters.
+  const top=this.material(a.top_color||'#284b73',.9);
+  if(a.clothing==='tank'||a.clothing==='tee'){
+   this.surface([[1.88,waist+.025,belly+.03],[2.13,waist+.03,belly*1.04+.03],[2.55,chest+.025,.29+full*.05],[2.73,shoulder+.02,.23],[2.84,.18,.15]],top,body);
+  }else if(female){
+   this.surface([[2.36,chest+.02,.25+full*.09],[2.57,chest+.025,.29+full*.05],[2.68,chest*.94,.25]],top,body);
+   for(const sign of [-1,1])this.tube([[sign*.24,2.57,.25],[sign*.25,2.81,.12],[sign*.25,2.65,-.21]],.035,top,body);
+  }
   // Fitted shorts and waistband.
   this.surface([[1.47,.39+full*.09,.265],[1.60,.41+full*.09,.28],[1.74,.39+full*.10,.27],[1.86,waist+.018,belly+.015]],cloth,body);
   this.surface([[1.82,waist+.021,belly+.018],[1.88,waist+.021,belly+.018]],trim,body);
@@ -58,6 +66,7 @@ window.FitnessCharacterRenderer=class {
   for(const [side,sign]of [['right',-1],['left',1]]){
    const upper=new T.Group(),lower=new T.Group();upper.position.set(sign*(shoulder+.035),2.76,0);body.add(upper);upper.add(lower);lower.position.y=-.53;
    this.bones[side+'Arm']={upper,lower,length:.53};
+   if(a.clothing==='tee')this.surface([[.02,.19,.20],[-.25,.19,.19]],top,upper);
    const ar=.135+muscle*.045+full*.035+growth('arms')*.30;
    this.ell(0,-.055,0,ar*1.15,.20,ar*1.12,skin,upper);
    this.surface([[0,ar*.75,ar*.82],[-.16,ar,ar*1.07],[-.32,ar*.88,ar*.94],[-.49,.09+full*.02,.10]],skin,upper);
@@ -104,6 +113,7 @@ window.FitnessCharacterRenderer=class {
    if(style==='swept'||style==='short'){
     const quiff=this.ell(-.055,style==='swept'?.735:.69,.055,hw*.98,style==='swept'?.13:.085,.225,hair,head);quiff.rotation.z=-.14;
    }
+   if(style==='swept')for(let i=0;i<9;i++)this.tube([[-.25+i*.045,.69,.20],[-.19+i*.045,.80,.06],[-.10+i*.035,.73,-.15]],.012,hair,head);
    if(style==='curly')for(let i=0;i<22;i++){const angle=i*2.4,rad=.23*Math.sqrt(i/22);this.ell(Math.cos(angle)*rad,.70+(.23-rad)*.45,Math.sin(angle)*rad,.075,.070,.077,hair,head)}
    if(style==='bob')for(const sign of [-1,1])this.ell(sign*.28,.35,-.06,.09,.26,.235,hair,head);
    if(style==='ponytail'){this.ell(0,.53,-.29,.13,.14,.14,hair,head);this.ell(0,.25,-.33,.105,.30,.13,hair,head)}

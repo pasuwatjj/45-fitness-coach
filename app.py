@@ -34,6 +34,7 @@ from form_rules import FormCoach, measurements
 import training_modes
 import training_economy
 import character
+import activity_energy
 from grip import GripCoach, assess_grip
 from leaderboard import LeaderboardStore
 from voice import VoiceCache, PHRASES
@@ -291,6 +292,10 @@ class CameraCoach:
             self.state['message'] = 'เริ่มเซตใหม่แล้ว ค่อย ๆ ยกตามจังหวะที่สบาย'
 
     def pause(self, automatic=False):
+        with self.condition:
+            if getattr(self,'energy_meter',None):
+                try:self.energy_meter.pause()
+                except Exception:logging.exception('Exercise energy save failed on pause')
         with self.condition:
             if hasattr(self,'angle_stats'):self.angle_stats.invalidate()
             self.state['paused'] = True
@@ -773,6 +778,10 @@ class BrowserCoach(CameraCoach):
             self.state['set_id']=str(uuid.uuid4())
 
     def pause(self, automatic=False):
+        with self.condition:
+            if getattr(self,'energy_meter',None):
+                try:self.energy_meter.pause()
+                except Exception:logging.exception('Exercise energy save failed on pause')
         if self.person_count>1:
             for child in self.people:child.pause(automatic)
         if self.cardio:
@@ -858,6 +867,19 @@ class BrowserCoach(CameraCoach):
                 if self.state['paused']:self.unavailable(timestamp,'เลือกคนใหม่ / Select a person again')
             poses=result.pose_landmarks[0] if result.pose_landmarks else None
             world=result.pose_world_landmarks[0] if result.pose_world_landmarks else None
+            try:
+                if not getattr(self,'energy_meter',None):self.energy_meter=activity_energy.ActivityMeter(self.scoreboard)
+                energy_profile=(self.state.get('profile') or {}).get('id')
+                energy_cardio=self.cardio
+                self.energy_meter.tick(energy_profile,self.state['set_id'],
+                    'cardio' if energy_cardio else 'resistance',
+                    energy_cardio.mode if energy_cardio else self.exercise,poses,
+                    enabled=bool(not self.state['paused'] and not getattr(self,'persistence_disabled',False)
+                        and not (energy_cardio and energy_cardio.saved)))
+                self.state['energy_status']='tracking'
+            except Exception:
+                self.state['energy_status']='unavailable'
+                logging.exception('Exercise energy could not be saved; repetition tracking continues')
             if self.cardio:
                 self.state['cardio']=self.cardio.update(poses,frame.shape[1]/frame.shape[0],world=world)
                 self.state['focus']='upper' if self.cardio.mode=='upper' else 'full'
@@ -1584,6 +1606,18 @@ def profile_avatar(profile_id):
     return Response(raw,mimetype='image/jpeg',headers={'Cache-Control':'private, no-store'})
 
 
+@app.get('/profiles/<int:profile_id>/energy')
+def profile_energy(profile_id):
+    try:
+        with coach.condition:
+            meter=getattr(coach,'energy_meter',None)
+            if meter and meter.key and meter.key[0]==profile_id:meter.flush()
+        result=activity_energy.summary(store,profile_id,request.args.get('day'))
+        response=jsonify(result);response.headers['Cache-Control']='private, no-store'
+        return response
+    except (ValueError,TypeError):return jsonify(error='วันที่ไม่ถูกต้อง / Invalid date'),400
+
+
 @app.route('/profiles/<int:profile_id>/character',methods=['GET','POST'])
 def profile_character(profile_id):
     try:
@@ -1824,6 +1858,12 @@ def reset_analytics(profile_id):
             round_=getattr(c,'cardio',None)
             if round_ and round_.profile_id==profile_id:active.append(('cardio',round_.id))
         reset(store,profile_id,active)
+        with store.lock,store.connect() as db:
+            activity_energy.schema(db)
+            db.execute('DELETE FROM activity_energy_v44 WHERE profile_id=?',(profile_id,))
+        for item in sessions.items.values():
+            c=item['coach'];meter=getattr(c,'energy_meter',None)
+            if meter and meter.key and meter.key[0]==profile_id:c.energy_meter=None
     return jsonify(ok=True)
 
 

@@ -1,0 +1,220 @@
+{
+  "version": "44",
+  "base": "Existing complete V42 or V43 project required",
+  "created": "2026-10-30",
+  "required_base_files": [
+    "app.py",
+    "leaderboard.py",
+    "sessions.py",
+    "accounts.py",
+    "exercises.py",
+    "health.py",
+    "training_economy.py",
+    "cardio.py",
+    "static/profile.js",
+    "static/character.js",
+    "static/account-ui.js",
+    "models/pose_landmarker_lite.task"
+  ],
+  "application_files": {
+    "activity_energy.py": {
+      "sha256": "8a83a8cef0e0dfb8f15d9fdec290f388bdf331f9107885d6fa2e7c7864786d31",
+      "bytes": 6012,
+      "accepted_previous_sha256": []
+    },
+    "app.py": {
+      "sha256": "ac3dc7f6ae642d118a1279ebb76498e847fa80a48fd4ba2ca9653cb35f900b1f",
+      "bytes": 106780,
+      "accepted_previous_sha256": [
+        "713fe94545ec8e1318e9cf713829facee21d5d92e84c79637d635be30a606810"
+      ]
+    },
+    "character.py": {
+      "sha256": "c91ce9114e0827562594b8abb4c97784831f6f2f91841d908df134d4234e024a",
+      "bytes": 7299,
+      "accepted_previous_sha256": [
+        "119ab045611b26c1956cabd04a3150d0a64ae2146afdfa38c13019514aacfce5"
+      ]
+    },
+    "local_pose.py": {
+      "sha256": "63dc6b4d50f746ace93a395461025529d6a1ac3e89b56e227b1e666b2c3ba331",
+      "bytes": 2321,
+      "accepted_previous_sha256": [
+        "63dc6b4d50f746ace93a395461025529d6a1ac3e89b56e227b1e666b2c3ba331"
+      ]
+    },
+    "models/pose_landmarker_full.task": {
+      "sha256": "5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1",
+      "bytes": 9398198,
+      "accepted_previous_sha256": [
+        "5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1"
+      ]
+    },
+    "person_tracking.py": {
+      "sha256": "2b547d9b3cc6f7b8b8656ddb7db3574db2aaf213ec8d997d54fb97900252066a",
+      "bytes": 8980,
+      "accepted_previous_sha256": [
+        "2b547d9b3cc6f7b8b8656ddb7db3574db2aaf213ec8d997d54fb97900252066a"
+      ]
+    },
+    "pose_sanity.py": {
+      "sha256": "d7eed089c0ef276b4c3fef636e1e7d3891b1787699e0cc40caec0bede5ecf746",
+      "bytes": 1902,
+      "accepted_previous_sha256": [
+        "d7eed089c0ef276b4c3fef636e1e7d3891b1787699e0cc40caec0bede5ecf746"
+      ]
+    },
+    "static/app.js": {
+      "sha256": "a142b8410841dbff828635079ef0cb595d031d2249b87a79a4a0c93b643fbf1f",
+      "bytes": 49997,
+      "accepted_previous_sha256": [
+        "a142b8410841dbff828635079ef0cb595d031d2249b87a79a4a0c93b643fbf1f"
+      ]
+    },
+    "static/avatar-pose.js": {
+      "sha256": "7f643df8d92a7fbf098bd9bc1a3b07f6431e0ac4cf34319aecb60f0cd4175cc7",
+      "bytes": 4479,
+      "accepted_previous_sha256": [
+        "7f643df8d92a7fbf098bd9bc1a3b07f6431e0ac4cf34319aecb60f0cd4175cc7"
+      ]
+    },
+    "static/avatar-studio.css": {
+      "sha256": "e2a8d74d5334fd68c351e98de1722951522a5ad2554447d08393d6584246510e",
+      "bytes": 3917,
+      "accepted_previous_sha256": []
+    },
+    "static/avatar-studio.js": {
+      "sha256": "da41002964bebf87b86dda5274f258e5c46a7263782ba15e84a3b6684750b50f",
+      "bytes": 8556,
+      "accepted_previous_sha256": []
+    },
+    "static/character-fallback.js": {
+      "sha256": "ad3d1173d9ee1f4a4d7bd40d0c95eb021e36f20200b340af8e2e19369c7a98b6",
+      "bytes": 13248,
+      "accepted_previous_sha256": []
+    },
+    "static/character-renderer.js": {
+      "sha256": "24326373919ae71e0babd5d75d4d0969caaa79d91c224d2c2be1367497f251b2",
+      "bytes": 14564,
+      "accepted_previous_sha256": [
+        "d86d2695bf8b89daae4678c2d093665b90f37528424f930832f73109aa9948b2"
+      ]
+    },
+    "static/live-avatar.css": {
+      "sha256": "47ad12014ba30f755ecf45840061a4392c7ac45b43b1d1a68d359df1a684bd7d",
+      "bytes": 1539,
+      "accepted_previous_sha256": [
+        "47ad12014ba30f755ecf45840061a4392c7ac45b43b1d1a68d359df1a684bd7d",
+        "988f1685326b215847d1cce74bbf02a364c8fe85ce5c95e2ac1b7a36edfea04f"
+      ]
+    },
+    "static/live-avatar.js": {
+      "sha256": "b85d0e9e7e8f2c88afd9a7cb0cd0110e21fa5dd21c9a7a52c6f2dfafcf3081a7",
+      "bytes": 6790,
+      "accepted_previous_sha256": [
+        "00b67d15eb477d518d7dc9743e3691410a08b52bf4f26f605cc71a1bf602ab7b",
+        "b85d0e9e7e8f2c88afd9a7cb0cd0110e21fa5dd21c9a7a52c6f2dfafcf3081a7"
+      ]
+    },
+    "static/local-pose.js": {
+      "sha256": "08647bbee062554f9b131cc57429fb5ef8715689d68cc5cbda772e682ae75673",
+      "bytes": 2367,
+      "accepted_previous_sha256": [
+        "08647bbee062554f9b131cc57429fb5ef8715689d68cc5cbda772e682ae75673"
+      ]
+    },
+    "static/person-tracking.css": {
+      "sha256": "7c8c7a7b6b66c20927a802e134bfbb2056ae2c2c06432be63506fd01538b1533",
+      "bytes": 670,
+      "accepted_previous_sha256": [
+        "7c8c7a7b6b66c20927a802e134bfbb2056ae2c2c06432be63506fd01538b1533"
+      ]
+    },
+    "static/person-tracking.js": {
+      "sha256": "3d2a4286526f799db1c967b3cf4cda691d35ed12fad123dc3a89abe5ba3597c0",
+      "bytes": 9715,
+      "accepted_previous_sha256": [
+        "3d2a4286526f799db1c967b3cf4cda691d35ed12fad123dc3a89abe5ba3597c0"
+      ]
+    },
+    "static/play-coach.js": {
+      "sha256": "c64aa7e9bc467a121721d5264ec69ad482a59f5f68c6b6a79641338c81bd0b53",
+      "bytes": 6709,
+      "accepted_previous_sha256": [
+        "c64aa7e9bc467a121721d5264ec69ad482a59f5f68c6b6a79641338c81bd0b53"
+      ]
+    },
+    "static/pose-drawing.js": {
+      "sha256": "b4caf50558a152f7693441e2795c5a5c8c76df0cfb3d48552cf2cf2455a27e98",
+      "bytes": 1835,
+      "accepted_previous_sha256": [
+        "b4caf50558a152f7693441e2795c5a5c8c76df0cfb3d48552cf2cf2455a27e98"
+      ]
+    },
+    "static/pose-quality.js": {
+      "sha256": "248c3018e77f8cdb4dbc9948ebc3b8f2233231cbc4f7901d3f43013a0a7d4152",
+      "bytes": 2468,
+      "accepted_previous_sha256": [
+        "248c3018e77f8cdb4dbc9948ebc3b8f2233231cbc4f7901d3f43013a0a7d4152"
+      ]
+    },
+    "static/pose-stability.js": {
+      "sha256": "7c5a68d9b9770c7be723bd1e753d5d2c8a6785f8fb7b8eb80aa1a07dfee74b27",
+      "bytes": 1984,
+      "accepted_previous_sha256": [
+        "7c5a68d9b9770c7be723bd1e753d5d2c8a6785f8fb7b8eb80aa1a07dfee74b27"
+      ]
+    },
+    "static/pose-worker.js": {
+      "sha256": "0388939c314366f000b80ce9477f9298123b9417de583e186eabdc5906ccaafd",
+      "bytes": 2007,
+      "accepted_previous_sha256": [
+        "0388939c314366f000b80ce9477f9298123b9417de583e186eabdc5906ccaafd"
+      ]
+    },
+    "static/profile-energy.js": {
+      "sha256": "bdff81f82f0533888b51eecb06a19c4429248047c86a0cf226d799278db2fa0a",
+      "bytes": 5878,
+      "accepted_previous_sha256": []
+    },
+    "static/session-camera.js": {
+      "sha256": "05cf7a039152ed658d56162a8a27d249907d6592f15172b8fb3e4e908beded24",
+      "bytes": 22387,
+      "accepted_previous_sha256": [
+        "05cf7a039152ed658d56162a8a27d249907d6592f15172b8fb3e4e908beded24"
+      ]
+    },
+    "static/training-modes.js": {
+      "sha256": "1f02afd9f6c841d75e1c5e8eab7f4e605202299818726d46d7025b44fc1ded24",
+      "bytes": 4548,
+      "accepted_previous_sha256": [
+        "1f02afd9f6c841d75e1c5e8eab7f4e605202299818726d46d7025b44fc1ded24"
+      ]
+    },
+    "static/vendor/THREE-LICENSE.txt": {
+      "sha256": "852e0e8699169bf9f6fdc6bda3e682d078dcbc738b5d33e74df594721bff271d",
+      "bytes": 1081,
+      "accepted_previous_sha256": []
+    },
+    "static/vendor/three-r160.min.js": {
+      "sha256": "170c6789f43217c96b3170f4b42fafe135de7f7cd48497a4218f9757ee1d49fa",
+      "bytes": 669884,
+      "accepted_previous_sha256": []
+    },
+    "static/workout-extras.js": {
+      "sha256": "b7cdaf29f362a79178d45560c6ea20cce5e8dc4cf65af06026e44e9a14a2bccd",
+      "bytes": 3848,
+      "accepted_previous_sha256": [
+        "b7cdaf29f362a79178d45560c6ea20cce5e8dc4cf65af06026e44e9a14a2bccd"
+      ]
+    },
+    "templates/index.html": {
+      "sha256": "911557a001bf0ad585c5c790c015c944c1b3492278378abf9d9a35b793c8d7ed",
+      "bytes": 43012,
+      "accepted_previous_sha256": [
+        "9b7cf7d4198fb203d3da37dcf5b6c7950d83f0f5f4f7b5a366e8af5025df2460",
+        "e130cbad8629911513b5cf66cce6cc5ff279acfcaa9b4d1d8e743cfaee6a6fcb"
+      ]
+    }
+  }
+}

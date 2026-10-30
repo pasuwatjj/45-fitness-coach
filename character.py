@@ -1,7 +1,7 @@
 """Saved adult game characters and capped workout-based growth, not body measurements."""
-import json,re
+import json,re,math
 from exercises import CATALOG
-DEFAULT={'gender':'male','hair':'short','hair_color':'#292536','skin_color':'#c78f68','shorts_color':'#252d40'}
+DEFAULT={'gender':'male','hair':'short','hair_color':'#292536','skin_color':'#c78f68','shorts_color':'#252d40','eyes':'almond','nose':'straight','eye_color':'#553521','face':'soft','build':0.45}
 HAIRS=('short','swept','curly','bob','ponytail','bald')
 
 def schema(db):
@@ -76,11 +76,16 @@ def overview(store,profile,private=False):
         row=db.execute('SELECT owner FROM profile_owners WHERE profile_id=?',(profile,)).fetchone()
         if not row:raise ValueError('Character not found / ไม่พบตัวละคร')
         saved=db.execute('SELECT appearance FROM game_characters WHERE owner=?',(row['owner'],)).fetchone()
-        appearance=json.loads(saved['appearance']) if saved else dict(DEFAULT)
+        appearance={**DEFAULT, **json.loads(saved['appearance'])} if saved else dict(DEFAULT)
     dims=dimensions(store,profile)
     height=dims.get('height_cm') or 170
     weight=dims.get('weight_kg') or 65
-    visual=dict(height_scale=round(max(.92,min(1.08,height/170)),3),waist_scale=round(max(.94,min(1.10,1+(weight-65)*.002)),3))
+    # Weight/height guide silhouette only; muscle preference is independent of BMI.
+    bmi=weight/(height/100)**2
+    fullness=max(0,min(1,(bmi-18.5)/18))
+    visual=dict(height_scale=round(max(.88,min(1.12,height/170)),3),
+        fullness=round(fullness,4),waist_scale=round(.88+fullness*.60,3),
+        has_dimensions=bool(dims.get('height_cm') and dims.get('weight_kg')))
     result=dict(created=bool(saved),profile=store.profile(profile),appearance=appearance,growth=growth(store,profile),visual=visual)
     if private:result['dimensions']=dims
     return result
@@ -88,9 +93,12 @@ def overview(store,profile,private=False):
 def save(store,owner,profile,data):
     if not isinstance(data,dict):raise ValueError('Invalid character')
     appearance=data.get('appearance')
-    if not isinstance(appearance,dict) or set(appearance)!=set(DEFAULT):raise ValueError('Complete character options / เลือกตัวละครให้ครบ')
+    if not isinstance(appearance,dict) or set(appearance)-set(DEFAULT):raise ValueError('Invalid character options')
+    appearance={**DEFAULT,**appearance}
+    if appearance['eyes'] not in ('almond','round','narrow') or appearance['nose'] not in ('straight','rounded','broad') or appearance['face'] not in ('soft','angular'):raise ValueError('Invalid face options')
+    if isinstance(appearance['build'],bool) or not isinstance(appearance['build'],(int,float)) or not math.isfinite(appearance['build']) or not 0<=appearance['build']<=1:raise ValueError('Invalid build')
     if appearance['gender'] not in ('male','female') or appearance['hair'] not in HAIRS:raise ValueError('Invalid character style')
-    for key in ('hair_color','skin_color','shorts_color'):
+    for key in ('hair_color','skin_color','shorts_color','eye_color'):
         if not isinstance(appearance[key],str) or not re.fullmatch(r'#[0-9a-fA-F]{6}',appearance[key]):raise ValueError('Invalid color')
     dims=validate_dimensions(data['dimensions']) if data.get('dimensions') is not None else None
     with store.lock,store.connect() as db:

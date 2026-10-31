@@ -224,7 +224,7 @@
       ]
     },
     "templates/index.html": {
-      "sha256": "6477bac53f42e08969199ee3aabfb39f0d58b94c7561dc8fd6151202fdbab559",
+      "sha256": "1cb7b6235ea4f487c4dd087e928ece3bb1e34a23c7d0a70b6facfbfb6905e02f",
       "bytes": 43469,
       "accepted_previous_sha256": [
         "9b7cf7d4198fb203d3da37dcf5b6c7950d83f0f5f4f7b5a366e8af5025df2460",
@@ -238,7 +238,8 @@
         "6207fcfda2732f5693741a299a1be356a69cf7a7f86bd780849e743b9788b027",
         "3d5b2579ccb9fa61279530c8134479671d7b868bee70c4aa0ce2727b762a6cf5",
         "9f60e7f47bf1194c02d0c06b8da4ec9686735e837051ad744a2564c8130155cd",
-        "97611465154a96780e89f1ae2ad70f34d2456dab3e5c861623cd37b33e50aeac"
+        "97611465154a96780e89f1ae2ad70f34d2456dab3e5c861623cd37b33e50aeac",
+        "6477bac53f42e08969199ee3aabfb39f0d58b94c7561dc8fd6151202fdbab559"
       ]
     },
     "static/character.js": {
@@ -411,10 +412,11 @@
     },
     "static/cozy-ui.css": {
       "accepted_previous_sha256": [
-        "9db631f1ea7a6e626197a03f1d38042f5a7a5b3161fc6b43368ae16ef5691ca8"
+        "9db631f1ea7a6e626197a03f1d38042f5a7a5b3161fc6b43368ae16ef5691ca8",
+        "d00fdf083f7789436e0bcd82e9bf152dc150d7c590e82a51d0ca5b3e3e4e6ba2"
       ],
-      "sha256": "d00fdf083f7789436e0bcd82e9bf152dc150d7c590e82a51d0ca5b3e3e4e6ba2",
-      "bytes": 8146
+      "sha256": "72018346fedea8d7650a61b2b892c3ddce737f1ed94192b3347cc266a23437b9",
+      "bytes": 8278
     },
     "static/images/ui/category-icons.png": {
       "accepted_previous_sha256": [],

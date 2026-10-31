@@ -8,3 +8,5 @@
 .live-avatar-size input[type=range]{width:120px;max-width:35vw;min-height:28px;padding:0;accent-color:#7be9b2;cursor:pointer}
 .live-avatar-size output{min-width:38px;font-variant-numeric:tabular-nums}
 .live-avatar small{overflow:hidden;text-overflow:ellipsis}
+
+.avatar-load-status{display:block;text-align:center;font-size:12px;padding:6px}.live-avatar .avatar-load-status{position:absolute;inset:0 0 19px;display:flex;align-items:center;justify-content:center;color:#fff;white-space:normal;pointer-events:auto}.avatar-load-status button{font:inherit}

@@ -112,20 +112,21 @@
       ]
     },
     "static/live-avatar.css": {
-      "sha256": "47ad12014ba30f755ecf45840061a4392c7ac45b43b1d1a68d359df1a684bd7d",
-      "bytes": 1539,
+      "sha256": "724a9b57375311541629ea355fe32186ed33aa36fda9c2920f2061d507db98a7",
+      "bytes": 1831,
       "accepted_previous_sha256": [
         "47ad12014ba30f755ecf45840061a4392c7ac45b43b1d1a68d359df1a684bd7d",
         "988f1685326b215847d1cce74bbf02a364c8fe85ce5c95e2ac1b7a36edfea04f"
       ]
     },
     "static/live-avatar.js": {
-      "sha256": "11d272b1bdbd1f8808278c192fa11a886c59d0da2e4e0d7957b9d6413f43321a",
-      "bytes": 6548,
+      "sha256": "82284edf4de9fe89f15a0519af5a581a750cf8d2c502c0fc3bf7c94ca61b573d",
+      "bytes": 6955,
       "accepted_previous_sha256": [
         "00b67d15eb477d518d7dc9743e3691410a08b52bf4f26f605cc71a1bf602ab7b",
         "b85d0e9e7e8f2c88afd9a7cb0cd0110e21fa5dd21c9a7a52c6f2dfafcf3081a7",
-        "72850172ddb8fe2edb2479f8c1d7ee358bb123cd6ecf2dbef6f32eec19d2521c"
+        "72850172ddb8fe2edb2479f8c1d7ee358bb123cd6ecf2dbef6f32eec19d2521c",
+        "11d272b1bdbd1f8808278c192fa11a886c59d0da2e4e0d7957b9d6413f43321a"
       ]
     },
     "static/local-pose.js": {
@@ -221,7 +222,7 @@
       ]
     },
     "templates/index.html": {
-      "sha256": "6207fcfda2732f5693741a299a1be356a69cf7a7f86bd780849e743b9788b027",
+      "sha256": "3d5b2579ccb9fa61279530c8134479671d7b868bee70c4aa0ce2727b762a6cf5",
       "bytes": 42949,
       "accepted_previous_sha256": [
         "9b7cf7d4198fb203d3da37dcf5b6c7950d83f0f5f4f7b5a366e8af5025df2460",
@@ -231,7 +232,8 @@
         "09a442a2f2b86e7af6505c756fcabe941d98ddb83c86cd195e2d0a660ee8ec41",
         "f04d4d075b4a6c0579e893a43bf5f9af19f856a5d85a355f12178ca28c323d04",
         "517ad2c11380c81c59c2fec9513a5ba68ff7e69525208ba3d33afa87946780c0",
-        "dfb6577762f6588e5c35bf4f16c871b71fb034bbb3fc42533d61078ab34393d7"
+        "dfb6577762f6588e5c35bf4f16c871b71fb034bbb3fc42533d61078ab34393d7",
+        "6207fcfda2732f5693741a299a1be356a69cf7a7f86bd780849e743b9788b027"
       ]
     },
     "static/character.js": {
@@ -245,10 +247,11 @@
     "static/imported-avatar.js": {
       "accepted_previous_sha256": [
         "e00fd25becefc4381c6138f0517d9a85701ac47778a6b709ed4d790f3c975ccc",
-        "9928208934264af1b521c62106fa3d5a421b4f0746d9e53e560bad519bc470ed"
+        "9928208934264af1b521c62106fa3d5a421b4f0746d9e53e560bad519bc470ed",
+        "2b9d5cee7cc794f525d0615c539c216dbc22bba0c4f1ac6ce90b68e5b14df638"
       ],
-      "sha256": "2b9d5cee7cc794f525d0615c539c216dbc22bba0c4f1ac6ce90b68e5b14df638",
-      "bytes": 12953
+      "sha256": "8c6424e6dd9504500669d2d9acdc2d54f49c1f0fa56ecf2aeba13e222596f6b2",
+      "bytes": 15469
     },
     "static/models/quaternius/LICENSE.txt": {
       "accepted_previous_sha256": [],

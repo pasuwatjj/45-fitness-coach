@@ -19,11 +19,13 @@ with sync_playwright() as p:
    page.evaluate('r.phase=-Math.PI/3.4;r.draw()');a=cv.screenshot(path=str(out/f'{width}-{gender}-lowered.png'))
    page.evaluate('r.phase=Math.PI/3.4;r.draw()');up=cv.screenshot(path=str(out/f'{width}-{gender}-curl.png'));assert difference(a,up)>500,'Curl not visible'
    assert page.evaluate("r.bones.leftArm.lower.children.some(x=>x.name==='preview-dumbbell')")
+   assert page.evaluate('''()=>{r.root.updateMatrixWorld(true);return r.fingers.filter(f=>f.name.includes('leaf')&&!f.name.startsWith('thumb')).every(f=>{const hand=r.bones[(f.name.endsWith('_l')?'left':'right')+'Arm'].lower.children.find(m=>m.name==='preview-dumbbell');return f.bone.getWorldPosition(new THREE.Vector3()).distanceTo(hand.getWorldPosition(new THREE.Vector3()))<.16})}'''),'Fingertips do not wrap the handle'
+
    # Actual scheduler advances; stop freezes it. Reduced motion keeps a steady curl.
    page.evaluate('r.start()');before=page.evaluate('r.phase');page.wait_for_timeout(250);assert page.evaluate('r.phase')!=before
    page.evaluate('r.stop()');before=page.evaluate('r.phase');page.wait_for_timeout(100);assert page.evaluate('r.phase')==before
    page.emulate_media(reduced_motion='reduce');page.evaluate('r.start()');before=cv.screenshot();page.wait_for_timeout(150);assert cv.screenshot()==before;page.evaluate('r.stop()');page.emulate_media(reduced_motion='no-preference')
-   page.evaluate('r.setWorkoutPreview(false);r.setLivePose(AvatarPose.neutral({exercise:"curl"}))');neutral=cv.screenshot()
+   page.evaluate('r.setWorkoutPreview(false);r.setDumbbells(true);r.setLivePose(AvatarPose.neutral({exercise:"curl"}))');neutral=cv.screenshot()
    for label,expr in [('curl',"p.arms.left.lower=[0,1,.2];p.arms.right.lower=[0,1,.2]"),('raise',"p.arms.left.upper=[1,0,0];p.arms.left.lower=[1,0,0];p.arms.right.upper=[-1,0,0];p.arms.right.lower=[-1,0,0]"),('squat',"p.legs.left.upper=[.2,-.5,.8];p.legs.right.upper=[-.2,-.5,.8]"),('floor',"p=AvatarPose.neutral({exercise:'pushup'})")]:
     page.evaluate("()=>{let p=AvatarPose.neutral({exercise:'curl',focus:'full'});"+expr+";r.setLivePose(p)}")
     shot=cv.screenshot(path=str(out/f'{width}-{gender}-live-{label}.png'));assert difference(neutral,shot)>300,label

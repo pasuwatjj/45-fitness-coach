@@ -9,8 +9,8 @@ assert get('/status?release='+revision).json()['revision']==revision
 for name in ['character.js','character-renderer.js','cozy-ui.css','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
  assert get('/static/'+name+'?release='+revision).content==Path('static',name).read_bytes(),name
 assert s.get(origin+'/social/boxing',timeout=40).status_code==401
-html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=3' in html
-for asset in ['character.js?v=46','character-renderer.js?v=5','cozy-ui.css?v=4','boxing.css?v=3']:
+html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=4' in html
+for asset in ['boxing-pose.js?v=3','character.js?v=46','character-renderer.js?v=5','cozy-ui.css?v=4','boxing.css?v=4']:
  assert '/static/'+asset in html,asset
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page();page.set_content('<main></main>');page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)

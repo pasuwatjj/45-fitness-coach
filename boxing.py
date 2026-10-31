@@ -72,10 +72,11 @@ def action(m,uid,data,now):
     if kind not in ['left','right']:return
     if now-p['last_punch']<.4:return
     p['last_punch']=now;p['last_hand']=kind;q=next(v for v in m['players'] if v['uid']!=uid);hit='hit'
-    if abs(q.get('position',.65)-p.get('position',.35))>.39:hit='miss'
+    if abs(q.get('position',.65)-p.get('position',.35))>.44:hit='miss'
     elif q['guard_until']>now and q['armor']>0:q['armor']-=1;hit='block'
     else:q['hp']=max(0,q['hp']-p['damage'][kind])
-    m['event']=dict(id=uuid.uuid4().hex,attacker=uid,hand=kind,result=hit,time=now,damage=p['damage'][kind])
+    m['event']=dict(id=uuid.uuid4().hex,attacker=uid,target=q['uid'],hand=kind,result=hit,time=now,damage=p['damage'][kind])
+    m['events']=(m.get('events',[])+[m['event']])[-12:]
     if q['hp']==0:m.update(status='finished',winner=uid,result='knockout')
 
 def register(app,get_store):

@@ -2,9 +2,10 @@
    Smooth anatomical silhouettes, custom face, articulated live pose. No remote assets. */
 'use strict';
 window.FitnessCharacterRenderer=class {
- constructor(canvas){
+ constructor(canvas,world=null){
   this.logicalWidth=canvas.width||640;this.logicalHeight=canvas.height||690;canvas.style.aspectRatio=`${this.logicalWidth} / ${this.logicalHeight}`;this.canvas=canvas;this.yaw=-.28;this.phase=0;this.running=false;this.events=new AbortController();this.resources=[];this.bones={};this.frame=null;this.inView=true;
   const T=window.THREE;
+  if(world){this.sharedWorld=true;this.gpu=world.renderer;this.scene=world.scene;this.camera=world.camera;this.root=new T.Group();this.scene.add(this.root);this.motion=matchMedia('(prefers-reduced-motion: reduce)');this.lastTime=0;return}
   try{if(!T)throw Error('3D engine unavailable');this.gpu=new T.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'low-power'});}catch(e){this.fallback=new FitnessBlockFallback(canvas);canvas.dataset.renderer='fallback';canvas.setAttribute('aria-label','โหมดภาพสำรอง — อุปกรณ์นี้เปิด WebGL ไม่ได้');return;}
   canvas.dataset.renderer='webgl';this.gpu.outputColorSpace=T.SRGBColorSpace;this.gpu.toneMapping=T.ACESFilmicToneMapping;this.gpu.toneMappingExposure=1.15;
   this.scene=new T.Scene();this.camera=new T.PerspectiveCamera(31,1,.05,50);this.scene.add(new T.HemisphereLight(0xe7efff,0x67566b,2.2));
@@ -170,5 +171,5 @@ window.FitnessCharacterRenderer=class {
  schedule(){if(this.fallback)return this.fallback.schedule();if(this.frame!==null||!this.running||this.destroyed||this.contextLost||document.hidden||!this.inView)return;if(this.motion.matches){this.draw();return}this.frame=requestAnimationFrame(t=>{this.frame=null;if(t-this.lastTime>50){this.phase=t/1000;this.lastTime=t;this.draw()}this.schedule()})}
  start(){this.running=true;if(this.fallback)return this.fallback.start();this.schedule()}
  stop(){this.running=false;if(this.fallback)return this.fallback.stop();this.cancel()}
- destroy(){this.stop();this.destroyed=true;if(this.fallback)return this.fallback.destroy();this.events.abort();this.observer?.disconnect();this.resize?.disconnect();this.clear();this.gpu.dispose();this.gpu.forceContextLoss()}
+ destroy(){this.stop();this.destroyed=true;if(this.fallback)return this.fallback.destroy();this.events.abort();this.observer?.disconnect();this.resize?.disconnect();this.clear();this.root.removeFromParent();if(!this.sharedWorld){this.gpu.dispose();this.gpu.forceContextLoss()}}
 };

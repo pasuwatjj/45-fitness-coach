@@ -222,8 +222,8 @@
       ]
     },
     "templates/index.html": {
-      "sha256": "9c665602522d1490f218692db6f180186fe99dc20de7a5c777ee917279dfbcf4",
-      "bytes": 43051,
+      "sha256": "9f60e7f47bf1194c02d0c06b8da4ec9686735e837051ad744a2564c8130155cd",
+      "bytes": 43132,
       "accepted_previous_sha256": [
         "9b7cf7d4198fb203d3da37dcf5b6c7950d83f0f5f4f7b5a366e8af5025df2460",
         "e130cbad8629911513b5cf66cce6cc5ff279acfcaa9b4d1d8e743cfaee6a6fcb",
@@ -335,11 +335,12 @@
       "accepted_previous_sha256": []
     },
     "static/profile.js": {
-      "sha256": "422f362ffed7609eb4a9cce6105f0a7ad13c183d704dd029abfaa6a77018feaa",
-      "bytes": 29010,
+      "sha256": "d8204d60eee86550e6a8809839a9c8d3118ca0064eb447adf80a144f469e819b",
+      "bytes": 29091,
       "accepted_previous_sha256": [
         "b03131b35f47b896fbb8d41502be819e66a1a963725c1738007e47c95fddb1d9",
-        "dc4601b0bff98e06c90e9ca4bc2af598eb42fbdd1615d0ce3a15b73f6ef97cdf"
+        "dc4601b0bff98e06c90e9ca4bc2af598eb42fbdd1615d0ce3a15b73f6ef97cdf",
+        "422f362ffed7609eb4a9cce6105f0a7ad13c183d704dd029abfaa6a77018feaa"
       ]
     },
     "static/models/quaternius/male-rig.json": {
@@ -354,13 +355,13 @@
     },
     "static/coin-art.js": {
       "accepted_previous_sha256": [],
-      "sha256": "8b173ec834367d38b049c84e1dde35fbc5f3fd0ca039409d9e0ad4b7de2adaca",
-      "bytes": 1614
+      "sha256": "fcaa7beb7f22094c19cc54314a8f3bb369877cec3d0b75ca05bb1d3bea461ea0",
+      "bytes": 1801
     },
     "static/coin-art.css": {
       "accepted_previous_sha256": [],
-      "sha256": "7a4ba24a557b72eb4c0b04ddb2c496cf7e8cfcd70b33285c91ca8918dab06c96",
-      "bytes": 848
+      "sha256": "be273464df0471f9e4e57d81ed36b5bb27f901c2240ac843b3d656e58f177044",
+      "bytes": 1133
     },
     "static/rewards.js": {
       "accepted_previous_sha256": [],
@@ -369,8 +370,23 @@
     },
     "static/cardio.js": {
       "accepted_previous_sha256": [],
-      "sha256": "33b757d5c4c5521d44872c66acbcaaeed4072ebf69a9eff017d2466777d8cf93",
-      "bytes": 19846
+      "sha256": "ad0a741ea55fff4894a8a0ce241026d0f10d0fa407d4504f1a04b97ebff8d749",
+      "bytes": 19813
+    },
+    "static/images/coins/fitness-coins.png": {
+      "accepted_previous_sha256": [],
+      "sha256": "3c9abdb9d97a349d2227e99515e8c666bcbd7a2d538ac514ffe6cd5ec0507011",
+      "bytes": 2032104
+    },
+    "static/community.js": {
+      "accepted_previous_sha256": [],
+      "sha256": "e02becd245477b95d595f140ec3b1717492c479500fc5866fd04602a0c937aa3",
+      "bytes": 14123
+    },
+    "static/challenges.js": {
+      "accepted_previous_sha256": [],
+      "sha256": "35d5ac2d4ff5929368b4d9c429ec430d4305dc2e99b74c9b4fd331cbd6bfc3c6",
+      "bytes": 4679
     }
   }
 }

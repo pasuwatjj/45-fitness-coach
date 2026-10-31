@@ -1,6 +1,6 @@
 'use strict';
 window.Community=(()=>{
- const en=window.I18N?.lang==='en',t=(th,eng)=>en?eng:th,el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n};
+ const en=window.I18N?.lang==='en',t=(th,eng)=>en?eng:th,el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;if(tag==='p'&&String(text).includes('🟣')&&window.CoinArt)CoinArt.text(n,text);if(cls)n.className=cls;return n};
  let me=null,serial=0,urls=[];
  const note=()=>el('p','','community-status');
  async function api(url,data){const r=await fetch(url,data===undefined?{cache:'no-store'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const d=await r.json();if(!r.ok)throw Error(window.I18N.t(d.error)||'Request failed');return d}

@@ -1,7 +1,7 @@
 'use strict';
 window.ChallengesPage=(()=>{
  const en=window.I18N?.lang==='en',t=(th,eng)=>en?eng:th,page=$('challengesPage');page.dataset.i18nIgnore='';
- const el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n};
+ const el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;if(tag==='p'&&String(text).includes('🟣')&&window.CoinArt)CoinArt.text(n,text);if(cls)n.className=cls;return n};
  const select=el('select'),status=el('p'),body=el('div');let serial=0,working=false;select.setAttribute('aria-label',t('ชื่อสำหรับชาเลนจ์','Challenge profile'));status.role='status';
  page.append(el('h2',t('🎯 ชาเลนจ์','🎯 Challenges')),select,status,body);
  async function open(){const mine=++serial;body.replaceChildren();try{const r=await fetch('/profiles');const d=await r.json();if(!r.ok)throw Error(window.I18N.t(d.error));if(mine!==serial)return;select.replaceChildren(...d.profiles.map(p=>{const o=el('option',p.name);o.value=p.id;return o}));if(!d.profiles.length){status.textContent=t('สร้างโปรไฟล์ก่อนเริ่มชาเลนจ์','Create a profile before starting a challenge.');return}if(d.profiles.some(p=>String(p.id)===$('profile').value))select.value=$('profile').value;await load()}catch(e){status.textContent=e.message}}

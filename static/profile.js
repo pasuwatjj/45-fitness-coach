@@ -3,7 +3,7 @@ window.ProfileDashboard=(()=>{
  const en=window.I18N?.lang==='en';
  const t=(th,eng)=>en?eng:th;
  const page=$('profilePage');page.setAttribute('data-i18n-ignore','');
- const el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n};
+ const el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;if(tag==='p'&&String(text).includes('🟣')&&window.CoinArt)CoinArt.text(n,text);if(cls)n.className=cls;return n};
  const button=(text,fn)=>{const b=el('button',text,'secondary');b.type='button';b.onclick=fn;return b};
  let serial=0,avatarURL=null,data=null,characterPreview=null,primaryId=null;
  function clearPreview(){characterPreview?.destroy();characterPreview=null}

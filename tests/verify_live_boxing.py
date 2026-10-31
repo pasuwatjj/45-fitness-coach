@@ -35,5 +35,17 @@ with sync_playwright() as p:
  assert page.evaluate("!sceneSmoke.bag.visible&&document.querySelectorAll('#arena canvas').length===1")
  page.evaluate('sceneSmoke.destroy()');assert page.locator('#arena canvas').count()==0
  assert not errors,errors
+ # Render the deployed menu without accessing private APIs or requesting a camera.
+ page.set_content('<select id="profile"><option value="1">Preview</option></select><section id="boxingPage"></section>')
+ page.evaluate("window.I18N={lang:'th'};window.FitnessAccount={guest:true}")
+ page.add_style_tag(content=get('/static/boxing.css?release='+revision).text)
+ page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
+ page.add_script_tag(content=get('/static/boxing.js?release='+revision).text)
+ page.evaluate('Boxing.open()')
+ assert page.locator('.boxing-menu').is_visible()
+ assert page.locator('.boxing-mode-card').count()==2
+ assert page.locator('.boxing-arena').is_hidden()
+ assert page.evaluate('Boxing.world===null&&document.querySelector(".boxing-preview video").srcObject===null')
+ assert not errors,errors
  b.close()
 print('VERIFIED exact deployed Boxing assets, template, private API, pose confidence guard and shared 3D male/female scene with bend/slip, bag removal and cleanup',revision)

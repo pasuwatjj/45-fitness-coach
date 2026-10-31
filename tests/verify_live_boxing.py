@@ -10,8 +10,8 @@ assert 'boxing-mode-cards' in get('/static/boxing.js?release='+revision).text
 for name in ['boxing-world.js','images/boxing/mode-menu.png','images/boxing/arena-championship.png','inbox.js','character.js','character-renderer.js','cozy-ui.css','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
  assert get('/static/'+name+'?release='+revision).content==Path('static',name).read_bytes(),name
 assert s.get(origin+'/social/boxing',timeout=40).status_code==401
-html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=8' in html
-for asset in ['boxing-world.js?v=2','boxing-pose.js?v=6','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=8']:
+html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=9' in html
+for asset in ['boxing-world.js?v=3','boxing-pose.js?v=7','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=8']:
  assert '/static/'+asset in html,asset
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']);page=b.new_page();page.set_content('<main></main>');page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
@@ -29,7 +29,7 @@ with sync_playwright() as p:
  page.wait_for_function('sceneSmoke.renderer.info.render.calls>0')
  assert page.evaluate('sceneSmoke.bag.visible&&sceneSmoke.actors[0].spine.isBone')
  page.evaluate('sceneSmoke.set([{x:-1,z:0,bend:.9,slip:-.8,crouch:.7}],true)')
- page.wait_for_function('sceneSmoke.actors[0].spine.rotation.x>.6&&sceneSmoke.actors[0].spine.rotation.z>.2')
+ page.wait_for_function('sceneSmoke.actors[0].spine.rotation.x+sceneSmoke.actors[0].chest.rotation.x>.7&&sceneSmoke.actors[0].spine.rotation.z+sceneSmoke.actors[0].chest.rotation.z>.2')
  page.evaluate("sceneSmoke.add({appearance:{gender:'female'},growth:{},visual:{}},1);sceneSmoke.set([{x:-.7,z:0},{x:.7,z:0}],false);sceneSmoke.view('top')")
  page.wait_for_function("sceneSmoke.actors[1].canvas.dataset.avatarState==='ready'")
  assert page.evaluate("!sceneSmoke.bag.visible&&document.querySelectorAll('#arena canvas').length===1")

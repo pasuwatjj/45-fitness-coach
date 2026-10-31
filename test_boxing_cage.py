@@ -31,14 +31,22 @@ class CageRoutes(unittest.TestCase):
             for kind in ['straight','hook','uppercut']:
                 self.now+=.5;self.control(self.b,**posture);self.strike(kind=kind)
                 self.assertEqual(self.impact()['event']['result'],'hit' if kind=='uppercut' else 'dodge')
+    def test_gentle_evasion_without_moving_and_stale_reset(self):
+        for posture in [{'slip':-.40},{'bend':.28},{'bend':-.16},{'crouch':.55}]:
+            self.now+=1
+            before=self.snapshot()['players'][1]
+            self.control(self.b,**posture);self.strike();m=self.impact()
+            self.assertEqual(m['event']['result'],'dodge')
+            self.assertEqual((m['players'][1]['x'],m['players'][1]['z']),(before['x'],before['z']))
+            self.now+=.8;self.strike();self.assertEqual(self.impact()['event']['result'],'hit')
     def test_strike_identity_is_exactly_once_and_payload_validated(self):
         self.control(self.a,'left',strike_id='same');m=self.impact();self.assertEqual(len(m['events']),1)
         self.now+=1;self.control(self.a,'left',strike_id='same');m=self.impact();self.assertEqual(len(m['events']),1);self.assertEqual(m['players'][1]['hp'],8)
         for kwargs in [{'slip':float('nan')},{'bend':2},{'slip':True},{'bend':'1'}]:self.assertEqual(self.control(self.a,**kwargs).status_code,400)
         for token in [None,{},'','a'*101]:self.assertEqual(self.control(self.a,'right',strike_id=token).status_code,400)
-    def test_server_five_second_hold_reversal_release_and_stale_stop(self):
+    def test_server_two_second_hold_reversal_release_and_stale_stop(self):
         start=self.snapshot()['players'][0]
-        for i in range(50):self.control(self.a,slip=.8);self.now+=.1
+        for i in range(20):self.control(self.a,slip=.8);self.now+=.1
         p=self.snapshot()['players'][0];self.assertAlmostEqual(p['z'],start['z'],places=5)
         for i in range(6):self.control(self.a,slip=.8);self.now+=.1
         p=self.snapshot()['players'][0];self.assertLess(p['z'],-.4);z=p['z']

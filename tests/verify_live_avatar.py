@@ -14,7 +14,7 @@ def read(path):
 status=read('/status').json();assert status['ok'] and status['avatar_progression']=='verified-muscle-v1';assert status['revision']==revision,status
 html=read('/45-fitness-coach').text
 for name in ['muscle-progression.js','imported-avatar.js','character.js']:assert name in html
-for name in ['static/muscle-progression.js','static/imported-avatar.js','static/character.js','static/app.js','static/models/quaternius/male.json','static/models/quaternius/female.json']:
+for name in ['static/muscle-progression.js','static/imported-avatar.js','static/character.js','static/profile.js','static/app.js','static/models/quaternius/male.json','static/models/quaternius/female.json']:
  assert hashlib.sha256(read('/'+name+'?release='+revision).content).hexdigest()==hashlib.sha256(Path(name).read_bytes()).hexdigest(),name
 out=Path('work/live-review');out.mkdir(parents=True,exist_ok=True)
 with sync_playwright() as p:

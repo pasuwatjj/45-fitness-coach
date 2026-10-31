@@ -20,7 +20,10 @@ with sync_playwright() as p:
  ca=b.new_context(viewport={'width':1280,'height':1000});cb=b.new_context(viewport={'width':390,'height':950});uid,pid,h=account(ca,'Blue');other,opid,oh=account(cb,'Red');ca.request.post(root+'/social/friends',headers=h,data={'action':'request','account_id':other});cb.request.post(root+'/social/friends',headers=oh,data={'action':'accept','account_id':uid});a=ca.new_page();c=cb.new_page();errors=[]
  for page,lang in [(a,'en'),(c,'th')]:
   page.on('pageerror',lambda e:errors.append(str(e)));page.goto(root+'/45-fitness-coach?lang='+lang);page.wait_for_timeout(1000);page.locator('#homeBoxingTile').click();page.wait_for_function("Boxing.world?.actors[0]?.canvas.dataset.avatarState==='ready'");page.evaluate(pose);page.get_by_role('button',name='Enable character control camera' if lang=='en' else 'เปิดกล้องสำหรับควบคุมตัวละคร',exact=True).click();page.wait_for_function("/Ready|พร้อม/.test(document.querySelector('.boxing-status').textContent)",timeout=15000)
-  page.evaluate('testPose[0].z=.055');page.wait_for_function("Boxing.world.states[0].x < -1.35");reset(page)
+  assert page.locator('.boxing-clock').is_hidden()
+  start_x=page.evaluate('Boxing.world.states[0].x')
+  page.evaluate('testPose[0].z=.055');page.wait_for_timeout(3500);assert abs(page.evaluate('Boxing.world.states[0].x')-start_x)<.03
+  page.wait_for_function("Boxing.world.states[0].x < -1.35");reset(page)
   page.evaluate('testPose[0].z=-.1');page.wait_for_function("Boxing.world.states[0].x > -1.05");reset(page)
   page.evaluate('for(const i of [0,11,12,13,14,15,16,23,24])testPose[i].y+=.17');page.wait_for_function("Boxing.world.actors[0].body.position.y<-.54");assert page.evaluate('Boxing.world.actors[0].bones.leftLeg.lower.rotation.x')>1
   reset(page);page.wait_for_function("Math.abs(Boxing.world.actors[0].body.position.y+.06)<.04")
@@ -40,7 +43,7 @@ with sync_playwright() as p:
   page.evaluate('testPose[23].visibility=testPose[24].visibility=0;testPose[0].z=-.4');page.wait_for_function('Boxing.world.actors[0].spine.rotation.x>.55');reset(page)
   page.evaluate('testPose[23].visibility=testPose[24].visibility=0;for(const i of [0,11,12,13,14,15,16])testPose[i].x-=.10')
   page.wait_for_function('Boxing.world.actors[0].spine.rotation.z<-.20');page.wait_for_timeout(3500);assert abs(page.evaluate('Boxing.world.states[0].z'))<.05
-  page.wait_for_function('Math.abs(Boxing.world.states[0].z)>.25',timeout=6000);reset(page)
+  page.wait_for_function('Math.abs(Boxing.world.states[0].z)>.25',timeout=6000);page.wait_for_function('Boxing.world.actors[0].gait>.3');page.wait_for_function('Math.abs(Boxing.world.actors[0].bones.leftLeg.upper.rotation.z-.1)>.04');reset(page)
   # Return to the practice starting point via a normal profile selection refresh.
   page.get_by_role('button',name='Disable character control camera' if lang=='en' else 'ปิดกล้องสำหรับควบคุมตัวละคร',exact=True).click()
   page.locator('.boxing-controls select').first.dispatch_event('change');page.wait_for_function("Boxing.world.actors[0]?.canvas.dataset.avatarState==='ready'&&Math.abs(Boxing.world.states[0]?.x+1.05)<.01")
@@ -55,7 +58,7 @@ with sync_playwright() as p:
   print(lang,'PASS gentle backward/forward, crouch/stand rig, assisted types, bag damage, native/fallback fullscreen, transparent HUD and moving/reduced-motion arena',flush=True)
  a.get_by_role('button',name='Invite friend',exact=True).click();a.wait_for_function('Boxing.state?.id');c.wait_for_selector('.boxing-rooms button');c.get_by_role('button',name='รับคำชวน',exact=True).click()
  for page,button in [(a,'Ready'),(c,'พร้อม')]:page.wait_for_function('Boxing.state?.players.length===2');page.get_by_role('button',name=button,exact=True).click()
- a.wait_for_function("Boxing.state.status==='active'",timeout=12000);assert a.evaluate('!Boxing.world.bag.visible&&Boxing.world.actors.length===2');initial=a.locator('.boxing-clock strong').inner_text();a.wait_for_timeout(1100);assert a.locator('.boxing-clock strong').inner_text()!=initial
+ a.wait_for_function("Boxing.state.status==='active'",timeout=12000);assert a.locator('.boxing-clock').is_visible();assert a.evaluate('!Boxing.world.bag.visible&&Boxing.world.actors.length===2');initial=a.locator('.boxing-clock strong').inner_text();a.wait_for_function("old=>document.querySelector('.boxing-clock strong').textContent!==old",arg=initial,timeout=5000)
  c.evaluate('for(const i of [0,11,12,13,14,15,16,23,24])testPose[i].y+=.17');a.wait_for_function('Boxing.state.players[1].crouch>.9');a.wait_for_function("Boxing.world.actors[1].body.position.y<-.51");reset(c);a.wait_for_function('Boxing.state.players[1].crouch<.05')
  # Correct-side slip avoids a real timed punch; recovery does not add a second strike.
  c.evaluate('testPose[0].x+=.12');c.wait_for_function('Boxing.world.states[1].slip<-.6');punch(a,'left');a.wait_for_function("Boxing.state.event?.result==='dodge'",timeout=7000);assert a.evaluate('Boxing.state.players[1].hp')==10

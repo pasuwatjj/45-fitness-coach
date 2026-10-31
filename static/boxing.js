@@ -19,7 +19,7 @@ window.Boxing=(()=>{
  const help=el('ul');for(const [th,en]of [
  ['เปิดกล้องให้เห็นหัว ไหล่ ศอก และมือ ยืนตรงจนขึ้นพร้อม ไม่ต้องให้เห็นขา หากเปลี่ยนตำแหน่งกล้องให้กดปรับท่ายืนตรงใหม่','Show your head, shoulders, elbows and hands. Stand upright until Ready. Legs are not tracked. Recalibrate after moving the camera.'],
  ['โยกซ้าย–ขวาเพื่อหลบทันที คู่ต่อสู้ต่อยซ้ายให้โยกขวา และกลับกัน เอนด้านเดิมค้าง 5 วินาทีเพื่อเดินวนรอบคู่ต่อสู้ คืนตัวตรงเพื่อหยุด','Lean left/right to slip immediately. Slip right against their left punch, and left against their right. Hold that lean for 5 seconds to circle; return upright to stop.'],
- ['เอนหน้าเล็กน้อยเพื่อเดินเข้า เอนหลังเพื่อถอย ก้มลึกเพื่อหลบหมัดตรงหรือฮุก แต่ยังโดนอัปเปอร์คัตได้ ย่อตัวและยืนขึ้นแล้วตัวละครทำตาม','Lean slightly forward to approach or backward to retreat. Bend deeply to duck straights and hooks; uppercuts can still hit. Lower and raise your upper body to crouch and stand.'],
+ ['เอนหน้าเล็กน้อยค้าง 5 วินาทีเพื่อเดินเข้า เอนหลังค้าง 5 วินาทีเพื่อถอย คืนตัวตรงหรือเปลี่ยนทิศเพื่อเริ่มนับใหม่ ก้มลึกเพื่อหลบหมัดตรงหรือฮุก แต่ยังโดนอัปเปอร์คัตได้ ย่อตัวและยืนขึ้นแล้วตัวละครทำตาม','Hold a slight forward or backward lean for 5 seconds to approach or retreat. Return upright or change direction to reset the hold. Bend deeply to duck straights and hooks; uppercuts can still hit. Lower and raise your upper body to crouch and stand.'],
  ['ต่อยตรง ฮุก หรืออัปเปอร์คัตด้วยมือข้างที่ต้องการ ระบบช่วยเลือกท่าใกล้เคียง ดึงมือกลับท่าพร้อมและพักประมาณ 0.2 วินาทีก่อนหมัดถัดไป','Throw a straight, hook or uppercut with either hand; similar angles are assisted. Retract to a ready position and settle for about 0.2 seconds before another punch.'],
  ['ยกศอกใกล้ไหล่ทั้งสองข้างค้าง 3 วินาทีเพื่อการ์ด เกราะสีฟ้าลดเมื่อรับหมัดเท่านั้น เดินหรือหลบไม่เสียเกราะ','Hold both elbows near shoulder height for 3 seconds to guard. Blue armor is consumed only when blocking a hit; movement and dodging cost no armor.'],
  ['เดินได้รอบสนาม ตัวละครหันหาคู่ต่อสู้อัตโนมัติ ต้องอยู่ในระยะหมัด กระสอบอยู่กลางสนามเมื่อซ้อมคนเดียว และหายไปเมื่อเพื่อนเข้าร่วม','Move around the cage and automatically face your opponent. Punches must be in range. Train on the center bag alone; it disappears when your friend joins.'],
@@ -36,12 +36,12 @@ window.Boxing=(()=>{
   if(event.result==='hit'){arena.classList.remove('boxing-impact');void arena.offsetWidth;arena.classList.add('boxing-impact')}
  }
  function practiceView(){return !match||match.players.length===1&&match.status==='invited'}
- function setupPractice(model){practice={x:-1.05,z:0,damage:{left:model.growth.arm_parts.left.level,right:model.growth.arm_parts.right.level},hits:0,total:0,started:Date.now(),lastDamage:0};practiceAt=0;bagDamage.textContent='';bagDamage.hidden=false;ensureWorld().set([{x:practice.x,z:practice.z,...inputState}],true);arena.classList.add('boxing-practice');banner.textContent=t('ซ้อมกับกระสอบ · เปิดกล้องแล้วเริ่มได้เลย','Bag practice · Enable the camera to start')}
+ function setupPractice(model){practice={x:-1.05,z:0,damage:{left:model.growth.arm_parts.left.level,right:model.growth.arm_parts.right.level},hits:0,total:0,started:Date.now(),lastDamage:0};practiceAt=0;bagDamage.textContent='';bagDamage.hidden=false;ensureWorld().set([{x:practice.x,z:practice.z,...inputState}],true);arena.classList.add('boxing-practice');clock.hidden=true;banner.textContent=t('ซ้อมกับกระสอบ · เปิดกล้องแล้วเริ่มได้เลย','Bag practice · Enable the camera to start')}
  function practiceStep(result,now){
   if(!practice||!renderers[0])return;const dt=practiceAt?Math.min(.2,(now-practiceAt)/1000):0;practiceAt=now;
   const dx=-practice.x,dz=-practice.z,length=Math.hypot(dx,dz)||1,fx=dx/length,fz=dz/length,move=result.valid?result.move||0:0,side=result.valid?result.strafe||0:0,scale=Math.max(1,Math.hypot(move,side));
   let x=practice.x+(fx*move+fz*side)*1.05*dt/scale,z=practice.z+(fz*move-fx*side)*1.05*dt/scale;
-  for(let pass=0;pass<2;pass++)for(let i=0;i<8;i++){const nx=Math.cos(i*Math.PI/4),nz=Math.sin(i*Math.PI/4),over=x*nx+z*nz-4.3;if(over>0){x-=nx*over;z-=nz*over}}
+  for(let pass=0;pass<2;pass++)for(let i=0;i<8;i++){const nx=Math.cos(i*Math.PI/4),nz=Math.sin(i*Math.PI/4),over=x*nx+z*nz-5.0;if(over>0){x-=nx*over;z-=nz*over}}
   const radius=Math.hypot(x,z);if(radius<.72){x=radius?x/radius*.72:-.72;z=radius?z/radius*.72:0}practice.x=x;practice.z=z;
   world.set([{x,z,...inputState}],true);
   if(result.valid&&['left','right'].includes(result.action)){
@@ -51,7 +51,7 @@ window.Boxing=(()=>{
  }
  function stateName(value){return {invited:t('รอตอบรับ','Invited'),lobby:t('เตรียมพร้อม','Lobby'),countdown:t('นับถอยหลัง','Countdown'),active:t('กำลังต่อสู้','Fighting'),round_break:t('พักยก','Round break'),finished:t('จบแมตช์','Finished'),expired:t('หมดอายุ','Expired'),declined:t('ปฏิเสธ','Declined')}[value]||value}
  function updateClock(){
-  if(!active)return;const now=Date.now()/1000+offset/1000;
+  if(!active)return;clock.hidden=practiceView()||!match||match.players.length<2;if(clock.hidden){clockTime.textContent="00:00";return}const now=Date.now()/1000+offset/1000;
   let elapsed=match?(match.elapsed||0)+(match.status==='active'?Math.max(0,now-(match.round_start||match.start)):0):practice?Math.max(0,(Date.now()-practice.started)/1000):0;
   roundLabel.textContent=match?`${t('ยก','ROUND')} ${match.round||1} / ${match.rules>=3?3:1}`:t('ซ้อมกระสอบ','PRACTICE');
   clockTime.textContent=String(Math.floor(elapsed/60)).padStart(2,'0')+':'+String(Math.floor(elapsed%60)).padStart(2,'0');
@@ -74,7 +74,7 @@ window.Boxing=(()=>{
   hud.replaceChildren();const states=match.players.map((p,i)=>{
    hud.append(vitals(p,p.uid===me));const fresh=Date.now()+offset-p.control_at*1000<650,own=p.uid===me,pose=own?inputState:fresh?p:{};
    if(!own&&p.last_hand&&Date.now()+offset-p.last_punch*1000<450)renderers[i]?.punch(p.last_hand,'server:'+p.last_punch,p.punch_type);
-   return{...pose,x:solo&&practice?practice.x:p.x??(i===0?-.7:.7),z:solo&&practice?practice.z:p.z||0,move:match.status==='active'||solo?pose.move||0:0,strafe:match.status==='active'?(own?inputState.strafe:fresh&&p.side_since!=null&&Date.now()/1000+offset/1000-p.side_since>=5?p.side:0):0};
+   return{...pose,x:solo&&practice?practice.x:p.x??(i===0?-.7:.7),z:solo&&practice?practice.z:p.z||0,move:match.status==='active'||solo?pose.move||0:0,strafe:solo?pose.strafe||0:match.status==='active'?(own?inputState.strafe:fresh&&p.side_since!=null&&Date.now()/1000+offset/1000-p.side_since>=5?p.side:0):0};
   });ensureWorld().selfIndex=Math.max(0,match.players.findIndex(p=>p.uid===me));world.set(states,solo);
   if(match.players.length===1)hud.append(waitingVitals());
   const terminal=['finished','expired','declined'].includes(match.status);ready.disabled=match.status!=='lobby'||!tracked||match.players.find(p=>p.uid===me)?.ready;profiles.disabled=!terminal;invite.disabled=!terminal;leave.disabled=false;

@@ -1,7 +1,7 @@
 'use strict';
 window.BoxingPose=class {
  constructor(){this.reset()}
- reset(){this.base=null;this.samples=[];this.arms={left:{armed:true,last:-1000,history:[]},right:{armed:true,last:-1000,history:[]}};this.smooth={};this.walk=0;this.guardAt=null;this.lastTime=null;this.lean=0;this.crouch=0;this.space=null;this.sideAt=null;this.side=0;this.slip=0;this.bend=0;this.gesture=0}
+ reset(){this.base=null;this.samples=[];this.arms={left:{armed:true,last:-1000,history:[]},right:{armed:true,last:-1000,history:[]}};this.smooth={};this.walk=0;this.walkAt=null;this.walkDirection=0;this.guardAt=null;this.lastTime=null;this.lean=0;this.crouch=0;this.space=null;this.sideAt=null;this.side=0;this.slip=0;this.bend=0;this.gesture=0}
  read(p=[],w,now){
   if(this.lastTime!==null&&now-this.lastTime>700)this.reset();
   const good=i=>p[i]&&p[i].visibility>.5&&['x','y','z'].every(k=>Number.isFinite(p[i][k]));
@@ -74,10 +74,14 @@ window.BoxingPose=class {
   if(!side){this.side=0;this.sideAt=null}else if(side!==this.side){this.side=side;this.sideAt=now}
   const sideSeconds=this.sideAt===null?0:Math.min(5,(now-this.sideAt)/1000),strafe=sideSeconds>=5?this.side:0;
   // Deep waist bends are ducks, not a request to charge forward into the opponent.
-  if(this.bend>.6)this.walk=0;
+  if(this.bend>.6||this.crouch>.65)this.walk=0;
+  // A continuous deliberate lean is required in every direction, not just laterally.
+  if(!this.walk){this.walkAt=null;this.walkDirection=0}
+  else if(this.walkDirection!==this.walk){this.walkDirection=this.walk;this.walkAt=now}
+  const walkSeconds=this.walkAt===null?0:Math.min(5,(now-this.walkAt)/1000),move=walkSeconds>=5?this.walk:0;
   const raised=[['left',11,13,15],['right',12,14,16]].every(([side,s,e,h])=>good(e)&&good(h)&&finite(q,e)&&Math.abs(q[e].y-q[s].y)/span<.32);
   if(raised&&!punch)this.guardAt??=now;else this.guardAt=null;
   const held=this.guardAt===null?0:Math.min(3,(now-this.guardAt)/1000),names={straight:t('หมัดตรง','Straight'),hook:t('ฮุก','Hook'),uppercut:t('อัปเปอร์คัต','Uppercut')};
-  return{valid:true,arms,move:this.walk,crouch:this.crouch,slip:this.slip,bend:this.bend,strafe,sideSeconds,gesture:this.gesture,guard:raised&&!punch,guardSeconds:held,angle:this.lean,action:punch||'control',punchType,label:punch?`${punch==='left'?t('ซ้าย','Left'):t('ขวา','Right')} · ${names[punchType]}`:side?`${side>0?t('โยกซ้าย','Lean left'):t('โยกขวา','Lean right')} · ${sideSeconds.toFixed(1)}/5 ${t('วิ','s')}${strafe?t(' · เดินวน',' · circling'):''}`:raised?`${t('ยกศอกการ์ด','Guard hold')} ${held.toFixed(1)}/3 ${t('วิ','s')}`:this.crouch>.3?t('ย่อตัว','Crouching'):this.walk>0?t('เดินหน้า','Forward'):this.walk<0?t('ถอยหลัง','Backward'):t('พร้อม · แขนตามท่าจริง','Ready · arms follow your movement')};
+  return{valid:true,arms,move,walkSeconds,crouch:this.crouch,slip:this.slip,bend:this.bend,strafe,sideSeconds,gesture:this.gesture,guard:raised&&!punch,guardSeconds:held,angle:this.lean,action:punch||'control',punchType,label:punch?`${punch==='left'?t('ซ้าย','Left'):t('ขวา','Right')} · ${names[punchType]}`:side?`${side>0?t('โยกซ้าย','Lean left'):t('โยกขวา','Lean right')} · ${sideSeconds.toFixed(1)}/5 ${t('วิ','s')}${strafe?t(' · เดินวน',' · circling'):''}`:this.walk?`${this.walk>0?t('เอนหน้า','Lean forward'):t('เอนหลัง','Lean backward')} · ${walkSeconds.toFixed(1)}/5 ${t('วิ','s')}${move?t(' · กำลังเดิน',' · walking'):''}`:raised?`${t('ยกศอกการ์ด','Guard hold')} ${held.toFixed(1)}/3 ${t('วิ','s')}`:this.crouch>.3?t('ย่อตัว','Crouching'):this.walk>0?t('เดินหน้า','Forward'):this.walk<0?t('ถอยหลัง','Backward'):t('พร้อม · แขนตามท่าจริง','Ready · arms follow your movement')};
  }
 };

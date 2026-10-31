@@ -4,11 +4,11 @@ function fixture(){
  const d=new D();let now=0;const read=()=>d.read(p,p,now+=70),settle=(n=8)=>{let r;for(let i=0;i<n;i++)r=read();return r};settle(24);return{p,d,read,settle};
 }
 // Front remains responsive, while small backward depth must not be masked by mild forward torso noise.
-{const {p,settle}=fixture();p[11].z=p[12].z=-.14;assert.equal(settle().move,1);p[11].z=p[12].z=0;p[0].z=.05;assert.equal(settle().move,-1);p[0].z=0;assert.equal(settle().move,0);p[11].z=p[12].z=-.04;p[0].z=.03;assert.equal(settle().move,-1)}
+{const {p,settle}=fixture();p[11].z=p[12].z=-.14;assert.equal(settle(82).move,1);p[11].z=p[12].z=0;p[0].z=.05;assert.equal(settle(82).move,-1);p[0].z=0;assert.equal(settle().move,0);p[11].z=p[12].z=-.04;p[0].z=.03;assert.equal(settle(82).move,-1)}
 // Smaller image-space shoulder width provides a fallback when model depth barely changes.
-{const {p,settle}=fixture();p[11].x=.365;p[12].x=.635;assert.equal(settle().move,-1);p[11].x=.35;p[12].x=.65;assert.equal(settle().move,0)}
+{const {p,settle}=fixture();p[11].x=.365;p[12].x=.635;assert.equal(settle(82).move,-1);p[11].x=.35;p[12].x=.65;assert.equal(settle().move,0)}
 // Partial frame, crouch/stand, loss of head tracking, and English-only feedback.
-{const {p,d,settle}=fixture();p[15].visibility=p[16].visibility=.1;p[23].visibility=p[24].visibility=.1;p[0].z=.06;assert.equal(settle().move,-1);p[0].z=0;for(const i of [0,11,12])p[i].y+=.17;let r=settle();assert(r.crouch>.9);assert(!r.guard);assert(!/[ก-๙]/.test(r.label));for(const i of [0,11,12])p[i].y-=.17;assert(settle().crouch<.05);p[0].visibility=.1;assert.equal(settle().valid,false);assert.equal(d.walk,0)}
+{const {p,d,settle}=fixture();p[15].visibility=p[16].visibility=.1;p[23].visibility=p[24].visibility=.1;p[0].z=.06;assert.equal(settle(82).move,-1);p[0].z=0;for(const i of [0,11,12])p[i].y+=.17;let r=settle();assert(r.crouch>.9);assert(!r.guard);assert(!/[ก-๙]/.test(r.label));for(const i of [0,11,12])p[i].y-=.17;assert(settle().crouch<.05);p[0].visibility=.1;assert.equal(settle().valid,false);assert.equal(d.walk,0)}
 for(const side of ['left','right'])for(const type of ['straight','hook','uppercut']){
  const {p,read,settle}=fixture(),s=side==='left'?11:12,e=s+2,h=s+4,sign=side==='left'?1:-1;
  if(type==='straight'){Object.assign(p[e],{x:p[s].x+sign*.035,y:.43,z:-.15});Object.assign(p[h],{x:p[s].x+sign*.08,y:.36,z:-.3})}
@@ -35,3 +35,26 @@ for(const side of ['left','right']){
 console.log('PASS no recoil/hold/jitter bonus punches, deliberate rearm, upper-body 5-second circling, reversal/neutral reset, deep bend and occlusion recovery');
 {const {p,d}=fixture();assert.equal(d.read(p,p,10000).valid,false);assert.equal(d.sideAt,null);assert.equal(d.walk,0)}
 console.log('PASS stalled tracking recalibrates rather than completing a stale side hold');
+
+// Both depth directions wait five seconds; reversal, neutral and tracking loss cancel progress.
+for(const depth of [-.10,.06]){
+ const {p,read,settle}=fixture();p[0].z=depth;
+ let r=settle(12);assert.equal(r.move,0);assert(r.walkSeconds>0);
+ r=settle(45);assert.equal(r.move,0);r=settle(30);assert.equal(r.move,depth<0?1:-1);
+ p[0].z=-depth;r=settle(10);assert.equal(r.move,0);assert(r.walkSeconds<1);
+ p[0].z=0;r=settle(12);assert.equal(r.move,0);assert.equal(r.walkSeconds,0);
+ p[0].z=depth;settle(40);p[0].visibility=0;assert.equal(read().valid,false);
+ p[0].visibility=1;p[0].z=0;settle(24);p[0].z=depth;assert.equal(settle(45).move,0);
+}
+console.log('PASS five-second forward/backward holds; reversal, neutral and tracking-loss reset');
+// Lateral holds work in both directions, without a leg landmark requirement.
+for(const sign of [-1,1]){
+ const {p,settle}=fixture();p[23].visibility=p[24].visibility=0;
+ for(const i of [0,11,12,13,14,15,16])p[i].x-=sign*.10;
+ assert.equal(settle(50).strafe,0);assert.equal(settle(35).strafe,sign);
+ for(const i of [0,11,12,13,14,15,16])p[i].x+=sign*.10;
+ assert.equal(settle(15).strafe,0);
+}
+// Recalibration must clear even a completed hold in the SAME direction.
+{const {p,settle}=fixture();p[0].z=.06;assert.equal(settle(90).move,-1);p[0].visibility=0;settle(2);p[0].visibility=1;p[0].z=0;settle(24);p[0].z=.06;assert.equal(settle(50).move,0);assert.equal(settle(35).move,-1)}
+console.log('PASS left/right holds and same-direction recalibration reset');

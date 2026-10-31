@@ -42,7 +42,7 @@ window.FitnessCharacterRenderer=class {
  clear(){for(const r of this.resources)r.dispose();this.resources=[];this.root.clear();this.bones={}}
  build(){
   this.clear();const T=THREE,a=this.model.appearance||{},v=this.model.visual||{},g=this.model.growth?.levels||{};
-  const full=Math.max(0,Math.min(1,v.fullness??.25)),muscle=Math.max(0,Math.min(1,a.build??.45));
+  const full=Math.max(0,Math.min(1,v.fullness??.25)),muscle=Math.max(0,Math.min(1,v.muscle_definition??.45));
   const growth=k=>Math.min(.12,(g[k]||0)*.12),female=a.gender==='female';
   this.height=v.height_scale||1;
   const skin=this.material(a.skin_color||'#d79f7a'),lip=this.material('#a45b50'),hair=this.material(a.hair_color||'#302333',.85),cloth=this.material(a.shorts_color||'#172d4c',.9),trim=this.material('#839bb6'),white=this.material('#fff5e5',.3),iris=this.material(a.eye_color||'#553521',.35),black=this.material('#15101c',.25),glint=this.material('#ffffff',.15);

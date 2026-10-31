@@ -87,10 +87,12 @@ def overview(store,profile,private=False):
     dims=dimensions(store,profile)
     height=dims.get('height_cm') or 170
     weight=dims.get('weight_kg') or 65
-    # Weight/height guide silhouette only; muscle preference is independent of BMI.
+    # Height and weight guide approximate silhouette, never muscle mass.
+    # Missing either measurement uses the complete neutral default.
+    if not (dims.get('height_cm') and dims.get('weight_kg')):height,weight=170,65
     bmi=weight/(height/100)**2
     fullness=max(0,min(1,(bmi-18.5)/18))
-    visual=dict(height_scale=round(max(.88,min(1.12,height/170)),3),
+    visual=dict(muscle_definition=.45,height_scale=round(max(.88,min(1.12,height/170)),3),
         fullness=round(fullness,4),waist_scale=round(.88+fullness*.60,3),
         has_dimensions=bool(dims.get('height_cm') and dims.get('weight_kg')))
     result=dict(version=AVATAR_VERSION,needs_recreation=not bool(saved),created=bool(saved),profile=store.profile(profile),appearance=appearance,growth=growth(store,profile),visual=visual)

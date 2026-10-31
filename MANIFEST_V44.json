@@ -30,8 +30,8 @@
       ]
     },
     "character.py": {
-      "sha256": "a8fc36861de73ee25ca63e463c30f500bec688f5a9f77dc566c660f1c79e80a4",
-      "bytes": 7972,
+      "sha256": "9f1ad78fbe8bdc271580905a82c3d31f3009636da28b84d8c10beb8e0ccd83e3",
+      "bytes": 8133,
       "accepted_previous_sha256": [
         "119ab045611b26c1956cabd04a3150d0a64ae2146afdfa38c13019514aacfce5",
         "c91ce9114e0827562594b8abb4c97784831f6f2f91841d908df134d4234e024a"
@@ -85,8 +85,8 @@
       "accepted_previous_sha256": []
     },
     "static/avatar-studio.js": {
-      "sha256": "da41002964bebf87b86dda5274f258e5c46a7263782ba15e84a3b6684750b50f",
-      "bytes": 8556,
+      "sha256": "7e712078b725e2f7d8bb8a8eece77757fa67ea141f58a4059d8ea13af6c37c86",
+      "bytes": 8816,
       "accepted_previous_sha256": []
     },
     "static/character-fallback.js": {
@@ -95,8 +95,8 @@
       "accepted_previous_sha256": []
     },
     "static/character-renderer.js": {
-      "sha256": "8994975f57c5ba44a684a3c90ea3d5281277926ce8060ee4efe0c9b3737c8638",
-      "bytes": 16536,
+      "sha256": "78353d5ccb87de7114b7807e13e0edfb0aad9db2de239365c84e51b045836b3d",
+      "bytes": 16548,
       "accepted_previous_sha256": [
         "d86d2695bf8b89daae4678c2d093665b90f37528424f930832f73109aa9948b2",
         "24326373919ae71e0babd5d75d4d0969caaa79d91c224d2c2be1367497f251b2",
@@ -223,8 +223,8 @@
     },
     "static/character.js": {
       "accepted_previous_sha256": [],
-      "sha256": "ee2b1153a26cad0207347eb1f9bdb75d6455c35e46b6ff1a9bc87e7f10d7882d",
-      "bytes": 10600
+      "sha256": "5e479849a73578334be30bbeb94c2fb676bbfb122d08448f46678808ad5a98aa",
+      "bytes": 10590
     }
   }
 }

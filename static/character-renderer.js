@@ -3,12 +3,14 @@
 'use strict';
 window.FitnessCharacterRenderer=class {
  constructor(canvas){
-  this.canvas=canvas;this.yaw=-.28;this.phase=0;this.running=false;this.events=new AbortController();this.resources=[];this.bones={};this.frame=null;this.inView=true;
+  this.logicalWidth=canvas.width||640;this.logicalHeight=canvas.height||690;canvas.style.aspectRatio=`${this.logicalWidth} / ${this.logicalHeight}`;this.canvas=canvas;this.yaw=-.28;this.phase=0;this.running=false;this.events=new AbortController();this.resources=[];this.bones={};this.frame=null;this.inView=true;
   const T=window.THREE;
   try{if(!T)throw Error('3D engine unavailable');this.gpu=new T.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'low-power'});}catch(e){this.fallback=new FitnessBlockFallback(canvas);canvas.dataset.renderer='fallback';canvas.setAttribute('aria-label','โหมดภาพสำรอง — อุปกรณ์นี้เปิด WebGL ไม่ได้');return;}
-  canvas.dataset.renderer='webgl';this.gpu.setPixelRatio(Math.min(window.devicePixelRatio||1,2));this.gpu.outputColorSpace=T.SRGBColorSpace;this.gpu.toneMapping=T.ACESFilmicToneMapping;this.gpu.toneMappingExposure=1.15;
+  canvas.dataset.renderer='webgl';this.gpu.outputColorSpace=T.SRGBColorSpace;this.gpu.toneMapping=T.ACESFilmicToneMapping;this.gpu.toneMappingExposure=1.15;
   this.scene=new T.Scene();this.camera=new T.PerspectiveCamera(31,1,.05,50);this.scene.add(new T.HemisphereLight(0xe7efff,0x67566b,2.2));
   for(const [color,intensity,x,y,z]of [[0xffdfc0,3.8,-3,6,5],[0xb4c8ff,2.2,3,3,-3],[0xffffff,.7,2,2,5]]){const l=new T.DirectionalLight(color,intensity);l.position.set(x,y,z);this.scene.add(l)}
+  canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();this.contextLost=true;this.cancel()},{signal:this.events.signal});
+  canvas.addEventListener('webglcontextrestored',()=>{this.contextLost=false;this.renderWidth=0;this.draw();this.schedule()},{signal:this.events.signal});
   this.root=new T.Group();this.scene.add(this.root);this.lastTime=0;
   canvas.style.touchAction='pan-y';canvas.tabIndex=0;
   canvas.addEventListener('pointerdown',e=>{this.drag={x:e.clientX,yaw:this.yaw};canvas.setPointerCapture?.(e.pointerId)},{signal:this.events.signal});
@@ -53,22 +55,29 @@ window.FitnessCharacterRenderer=class {
   // Tailored sportswear, with a covered sports top for female characters.
   const top=this.material(a.top_color||'#284b73',.9);
   if(a.clothing==='tank'||a.clothing==='tee'){
-   this.surface([[1.88,waist+.025,belly+.03],[2.13,waist+.03,belly*1.04+.03],[2.55,chest+.025,.29+full*.05],[2.73,shoulder+.02,.23],[2.84,.18,.15]],top,body);
+   const shirt=[[1.86,waist+.03,belly+.03],[1.92,waist+.03,belly+.03],[2.13,waist*.96+.03,belly*1.04+.03,.018*full],[2.35,chest*.96+.03,.25+full*.09],[2.56,chest+.03,.265+muscle*.04+full*.05],[2.72,shoulder+.03,.23]];
+   if(a.clothing==='tee')shirt.push([2.82,.40+muscle*.05,.19],[2.91,.185,.155]);
+   else shirt.push([2.84,.18,.15]);
+   this.surface(shirt,top,body);
   }else if(female){
    this.surface([[2.36,chest+.02,.25+full*.09],[2.57,chest+.025,.29+full*.05],[2.68,chest*.94,.25]],top,body);
    for(const sign of [-1,1])this.tube([[sign*.24,2.57,.25],[sign*.25,2.81,.12],[sign*.25,2.65,-.21]],.035,top,body);
   }
   // Fitted shorts and waistband.
-  this.surface([[1.47,.39+full*.09,.265],[1.60,.41+full*.09,.28],[1.74,.39+full*.10,.27],[1.86,waist+.018,belly+.015]],cloth,body);
+  this.surface([[1.47,.39+full*.09,.265+full*.08],[1.60,.41+full*.09,.28+full*.08],[1.74,.39+full*.10,.27+full*.10],[1.86,waist+.025,belly+.03]],cloth,body);
   this.surface([[1.82,waist+.021,belly+.018],[1.88,waist+.021,belly+.018]],trim,body);
   for(const sign of [-1,1])this.tube([[sign*.04,1.85,belly+.025],[sign*.02,1.78,belly+.032],[sign*.045,1.71,belly+.035]],.009,trim,body);
   this.hipY=1.7;this.shoulderY=2.76;
   for(const [side,sign]of [['right',-1],['left',1]]){
    const upper=new T.Group(),lower=new T.Group();upper.position.set(sign*(shoulder+.035),2.76,0);body.add(upper);upper.add(lower);lower.position.y=-.53;
    this.bones[side+'Arm']={upper,lower,length:.53};
-   if(a.clothing==='tee')this.surface([[.02,.19,.20],[-.25,.19,.19]],top,upper);
+
    const ar=.135+muscle*.045+full*.035+growth('arms')*.30;
    this.ell(0,-.055,0,ar*1.15,.20,ar*1.12,skin,upper);
+   if(a.clothing==='tee'){
+    this.ell(0,-.055,0,ar*1.15+.018,.218,ar*1.12+.018,top,upper);
+    this.surface([[-.05,ar*1.17+.018,ar*1.14+.018],[-.18,ar*1.12+.018,ar*1.12+.018],[-.29,ar+.025,ar*1.06+.025]],top,upper);
+   }
    this.surface([[0,ar*.75,ar*.82],[-.16,ar,ar*1.07],[-.32,ar*.88,ar*.94],[-.49,.09+full*.02,.10]],skin,upper);
    this.ell(0,0,0,.10,.105,.10,skin,lower);
    this.surface([[0,.095,.10],[-.12,ar*.84,ar*.87],[-.31,.09+full*.015,.085],[-.48,.067,.066]],skin,lower);
@@ -124,9 +133,15 @@ window.FitnessCharacterRenderer=class {
  setLivePose(pose){this.livePose=pose;if(this.fallback)return this.fallback.setLivePose(pose);this.draw()}
  rotate(delta){this.yaw+=delta;if(this.fallback)return this.fallback.rotate(delta);this.draw()}
  draw(){
-  if(this.destroyed||!this.model)return;if(this.fallback){this.fallback.yaw=this.yaw;return this.fallback.draw()}
-  const T=THREE,live=this.livePose,canvas=this.canvas,w=Math.max(1,canvas.width),h=Math.max(1,canvas.height);
-  if(this.renderWidth!==w||this.renderHeight!==h){this.gpu.setSize(w,h,false);this.renderWidth=w;this.renderHeight=h}this.camera.aspect=w/h;this.camera.updateProjectionMatrix();
+  if(this.destroyed||this.contextLost||!this.model)return;if(this.fallback){this.fallback.yaw=this.yaw;return this.fallback.draw()}
+  // CSS dimensions are logical pixels. Never feed the DPR-scaled buffer back into setSize.
+  const T=THREE,live=this.livePose,canvas=this.canvas,rect=canvas.getBoundingClientRect();
+  const w=Math.max(1,Math.round(rect.width||this.logicalWidth)),h=Math.max(1,Math.round(rect.height||this.logicalHeight));
+  const ratio=Math.min(window.devicePixelRatio||1,2,2048/Math.max(w,h));
+  if(this.renderWidth!==w||this.renderHeight!==h||this.renderRatio!==ratio){
+   this.gpu.setDrawingBufferSize(w,h,ratio);this.renderWidth=w;this.renderHeight=h;this.renderRatio=ratio;
+  }
+  this.camera.aspect=w/h;this.camera.updateProjectionMatrix();
   this.body.quaternion.identity();this.restPose();this.root.rotation.set(0,live?0:this.yaw,0);this.root.scale.set(this.height*(live?.mirror?-1:1),this.height,this.height);
   if(live){
    const basis=new T.Matrix4().makeBasis(new T.Vector3(...live.x),new T.Vector3(...live.y),new T.Vector3(...live.z));this.body.quaternion.setFromRotationMatrix(basis);
@@ -148,7 +163,7 @@ window.FitnessCharacterRenderer=class {
   this.gpu.render(this.scene,this.camera);this.onRotate?.(this.yaw);
  }
  cancel(){if(this.frame!==null)cancelAnimationFrame(this.frame);this.frame=null}
- schedule(){if(this.fallback)return this.fallback.schedule();if(this.frame!==null||!this.running||this.destroyed||document.hidden||!this.inView)return;if(this.motion.matches){this.draw();return}this.frame=requestAnimationFrame(t=>{this.frame=null;if(t-this.lastTime>50){this.phase=t/1000;this.lastTime=t;this.draw()}this.schedule()})}
+ schedule(){if(this.fallback)return this.fallback.schedule();if(this.frame!==null||!this.running||this.destroyed||this.contextLost||document.hidden||!this.inView)return;if(this.motion.matches){this.draw();return}this.frame=requestAnimationFrame(t=>{this.frame=null;if(t-this.lastTime>50){this.phase=t/1000;this.lastTime=t;this.draw()}this.schedule()})}
  start(){this.running=true;if(this.fallback)return this.fallback.start();this.schedule()}
  stop(){this.running=false;if(this.fallback)return this.fallback.stop();this.cancel()}
  destroy(){this.stop();this.destroyed=true;if(this.fallback)return this.fallback.destroy();this.events.abort();this.observer?.disconnect();this.resize?.disconnect();this.clear();this.gpu.dispose();this.gpu.forceContextLoss()}

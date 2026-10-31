@@ -19,7 +19,7 @@ window.CageFighter=class extends FitnessImportedAvatar{
   this.body.updateMatrixWorld(true);this.skeleton.calculateInverses();this.skeleton.init();
  }
  build(){
-  super.build();if(!this.body)return;const T=THREE;
+  super.build();if(!this.body)return;this.belt=null;const T=THREE;
   for(const mesh of [...this.body.children]){
    if(mesh.isSkinnedMesh){const index=mesh.geometry.attributes.skinIndex,weight=mesh.geometry.attributes.skinWeight,position=mesh.geometry.attributes.position;
     // Reweight only the original root contribution; limb and finger weights stay authored.
@@ -40,10 +40,45 @@ window.CageFighter=class extends FitnessImportedAvatar{
   const glove=this.material(this.id===0?'#252b36':'#3c2429',.7);
   for(const side of ['left','right']){const b=this.bones[side+'Arm'],grip=this.handGrips[side];if(!b||!grip)continue;const center=b.lower.worldToLocal(this.body.localToWorld(grip.center.clone()));this.ell(center.x,center.y,center.z,.135,.10,.16,glove,b.lower)}
  }
+ makeBelt(){
+  if(this.belt)return;const T=THREE,w=this.world;this.belt=new T.Group();this.pelvis.add(this.belt);this.belt.position.y=.12;
+  const leather=w.mesh(new T.CylinderGeometry(.46,.46,.39,40,1,true),w.mat('#171412',{roughness:.82,side:T.DoubleSide}),this.belt);leather.scale.z=.72;
+  const gold=w.mat('#dcb253',{metalness:.78,roughness:.28});
+  const plate=w.mesh(new T.CylinderGeometry(.35,.35,.065,8),gold,this.belt);plate.rotation.x=Math.PI/2;plate.position.z=.35;plate.scale.x=1.08;
+  const texture=new T.TextureLoader().load('/static/images/boxing/champion-belt.svg?v=1');texture.colorSpace=T.SRGBColorSpace;w.resources.push(texture);
+  const face=w.mesh(new T.PlaneGeometry(1.65,.677),w.mat('#fff',{map:texture,transparent:true,metalness:.36,roughness:.4,side:T.DoubleSide}),this.belt);face.position.z=.391;
+  for(const sign of [-1,1]){const side=w.mesh(new T.BoxGeometry(.22,.28,.045),gold,this.belt);side.position.set(sign*.40,0,.24);side.rotation.y=sign*.7}
+  this.belt.visible=false;
+ }
+ presentation(state,dt){
+  const T=THREE,kind=state.presentation,age=Math.max(0,(performance.now()-(state.presentationAt??performance.now()))/1000),smooth=(a,b,v)=>T.MathUtils.smoothstep(v,a,b);
+  if(kind==='champion')this.makeBelt();if(this.belt)this.belt.visible=kind==='champion'&&age>=.7;
+  this.canvas.dataset.presentation=kind||'fighting';
+  if(!kind){this.downAmount=0;return;}
+  this.gait=0;this.punchAt=-1000;
+  let down=kind==='down'?smooth(0,.75,age):0;
+  if(kind==='down'&&state.recoverAfter!=null)down*=1-smooth(state.recoverAfter-1.8,state.recoverAfter-.25,age);
+  this.downAmount=down;
+  if(kind==='down')this.canvas.dataset.presentation=down>.95?'seated':age<1?'falling':down>.01?'rising':'ready';
+  this.pelvis.rotation.set(.05*down,0,.035*down);this.spine.rotation.set(.22*down,0,.05*down);this.chest.rotation.set(.24*down,0,0);this.neck.rotation.set(.22*down,0,0);
+  this.body.position.set(0,-.06,0);
+  const inv=this.pelvis.quaternion.clone().multiply(this.spine.quaternion).multiply(this.chest.quaternion).invert(),lift=kind==='champion'?smooth(.35,1.5,age):0;
+  if(kind==='champion'){this.yaw+=Math.atan2(Math.sin(-this.yaw),Math.cos(-this.yaw))*(1-Math.exp(-dt*4));this.root.rotation.y=this.yaw}
+  for(const [side,sign]of [['left',1],['right',-1]]){
+   const arm=this.bones[side+'Arm'],u=new T.Vector3(sign*.25,-.5,.65).normalize().lerp(new T.Vector3(sign*.22,-.7,.6).normalize(),down),l=new T.Vector3(-sign*.15,.8,.4).normalize().lerp(new T.Vector3(-sign*.1,-.4,.9).normalize(),down);
+   if(lift){u.lerp(new T.Vector3(sign*.65,.75,.1).normalize(),lift);l.lerp(new T.Vector3(sign*.05,.99,.1).normalize(),lift)}
+   const uq=new T.Quaternion().setFromUnitVectors(arm.restUpper,u.normalize().applyQuaternion(inv)),lq=uq.clone().invert().multiply(new T.Quaternion().setFromUnitVectors(arm.restLower,l.normalize().applyQuaternion(inv)));
+   arm.upper.position.copy(arm.cageBindPosition);arm.upper.quaternion.copy(uq);arm.lower.quaternion.copy(lq);arm.cageUpper.copy(uq);arm.cageLower.copy(lq);
+   const leg=this.bones[side+'Leg'],sitU=new T.Vector3(sign*.22,.32,.92).normalize(),sitL=new T.Vector3(sign*.06,-.66,.75).normalize(),lu=new T.Quaternion().setFromUnitVectors(leg.restUpper,sitU),ll=lu.clone().invert().multiply(new T.Quaternion().setFromUnitVectors(leg.restLower,sitL));
+   lu.premultiply(this.pelvis.quaternion.clone().invert());leg.upper.quaternion.slerp(lu,down);leg.lower.quaternion.slerp(ll,down);
+  }
+  // Keep the seated feet above the canvas as hips descend, including different saved heights.
+  if(down>0){this.body.updateMatrixWorld(true);const ankles=['left','right'].map(side=>{const b=this.bones[side+'Leg'];return b.lower.localToWorld(b.end.clone()).y});this.body.position.y+=(.07*this.height-Math.min(...ankles))/this.root.scale.y}
+ }
  punch(hand,token,type='straight'){if(this.punchToken===token)return;this.punchToken=token;this.punchHand=hand;this.punchType=type;this.punchAt=performance.now()}
  update(state,target,dt,time){
   if(!this.body)return;const T=THREE;this.state=state;this.target={x:state.x||0,z:state.z||0};const ease=1-Math.exp(-dt*15);this.position.lerp(new T.Vector2(this.target.x,this.target.z),ease);
-  this.root.position.set(this.position.x,0,this.position.y);const yaw=Math.atan2(target.x-this.position.x,target.z-this.position.y);this.yaw=(this.yaw??yaw)+Math.atan2(Math.sin(yaw-(this.yaw??yaw)),Math.cos(yaw-(this.yaw??yaw)))*ease;this.root.rotation.y=this.yaw;
+  this.root.position.set(this.position.x,0,this.position.y);const yaw=state.presentation==='champion'?0:Math.atan2(target.x-this.position.x,target.z-this.position.y);this.yaw=(this.yaw??yaw)+Math.atan2(Math.sin(yaw-(this.yaw??yaw)),Math.cos(yaw-(this.yaw??yaw)))*ease;this.root.rotation.y=this.yaw;
   this.phase=time;super.restPose();for(const key of ['bend','slip','crouch'])this.poseSmooth[key]+=(Number(state[key]||0)-this.poseSmooth[key])*ease;
   const pose=this.poseSmooth,bow=Math.max(0,pose.bend),sway=Math.abs(pose.slip);
   const elapsed=performance.now()-(this.punchAt??-1000),envelope=elapsed<0||elapsed>360?0:Math.sin(Math.PI*elapsed/360);
@@ -83,6 +118,7 @@ window.CageFighter=class extends FitnessImportedAvatar{
    leg.lower.rotation.x=.20+1.35*pose.crouch+.24*bow+.12*sway+lift*.48*gait;
    leg.upper.quaternion.premultiply(this.pelvis.quaternion.clone().invert());
   }
+  this.presentation(state,dt);
  }
 };
 window.BoxingWorld=class{
@@ -134,18 +170,19 @@ window.BoxingWorld=class{
  add(model,id){const actor=new CageFighter(this,model,id);this.actors.push(actor);return actor}
  clearActors(){for(const a of this.actors)a.destroy();this.actors=[];this.states=[];this.loading()}
  loading(){const error=this.actors.some(a=>a.canvas.dataset.avatarState==='error'),pending=this.actors.some(a=>a.canvas.dataset.avatarState!=='ready');this.notice.textContent=error?(window.I18N?.lang==='en'?'Avatar unavailable. Leave and reopen the arena to retry.':'โหลดตัวละครไม่ได้ ออกแล้วเปิดสนามใหม่เพื่อลองอีกครั้ง'):pending?(window.I18N?.lang==='en'?'Loading your fighters…':'กำลังโหลดตัวละครของคุณ…'):''}
- set(states,practice=true){this.states=states;this.practice=practice;this.bag.visible=practice;this.loading()}
+ set(states,practice=true){this.states=states;this.practice=practice;this.bag.visible=practice;const champion=states.findIndex(s=>s.presentation==='champion');if(champion>=0&&!this.celebrating){this.mode='champion';this.distance=3.8;this.elevation=.18}if(champion<0&&this.celebrating)this.view('side');this.celebrating=champion>=0;this.loading()}
  hitBag(){this.bagHit=performance.now()}
  project(x,z,y=1.65){const v=new THREE.Vector3(x,y,z).project(this.camera);return{x:(v.x*.5+.5)*100,y:(-.5*v.y+.5)*100}}
  tick(now){
   if(!this.running)return;this.frame=requestAnimationFrame(t=>this.tick(t));const dt=Math.min(.05,(now-this.last)/1000);this.last=now;if(document.hidden||this.lost)return;
   const T=THREE,rect=this.canvas.getBoundingClientRect();if(rect.width<2||rect.height<2)return;const ratio=Math.min(devicePixelRatio||1,1.5);if(this.width!==rect.width||this.height!==rect.height){this.width=rect.width;this.height=rect.height;this.renderer.setPixelRatio(ratio);this.renderer.setSize(rect.width,rect.height,false);this.camera.aspect=rect.width/rect.height;this.camera.updateProjectionMatrix()}
   const states=this.states;for(let i=0;i<this.actors.length;i++){const state=states[i]||{},target=states[1-i]||{x:0,z:0};this.actors[i].update(state,target,dt,now/1000)}
-  let x=0,z=0;for(const s of states){x+=s.x||0;z+=s.z||0}const count=states.length||1;this.focus.lerp(new T.Vector3(x/count,.9,z/count),1-Math.exp(-dt*5));
+  let x=0,z=0;for(const s of states){x+=s.x||0;z+=s.z||0}const count=states.length||1,champion=this.mode==='champion'?this.actors[states.findIndex(s=>s.presentation==='champion')]:null;this.focus.lerp(new T.Vector3(champion?champion.position.x:x/count,champion?1.02:.9,champion?champion.position.y:z/count),1-Math.exp(-dt*5));
+  if(champion)this.yaw+=Math.atan2(Math.sin(-this.yaw),Math.cos(-this.yaw))*(1-Math.exp(-dt*3));
   if(this.mode==='side'&&states.length===2){const dx=states[1].x-states[0].x,dz=states[1].z-states[0].z,desired=Math.atan2(-dz,dx)+.18;this.yaw+=Math.atan2(Math.sin(desired-this.yaw),Math.cos(desired-this.yaw))*(1-Math.exp(-dt*3))}
   if(this.mode==='follow'&&this.actors[this.selfIndex||0])this.yaw=this.actors[this.selfIndex||0].yaw+Math.PI+.30;
   const separation=states.length===2?Math.hypot(states[0].x-states[1].x,states[0].z-states[1].z):1;
-  const radius=Math.max(this.distance,separation*1.15+2.5)/Math.min(1,Math.max(.6,this.camera.aspect));this.camera.position.set(this.focus.x+Math.sin(this.yaw)*radius*Math.cos(this.elevation),this.focus.y+Math.sin(this.elevation)*radius,this.focus.z+Math.cos(this.yaw)*radius*Math.cos(this.elevation));this.camera.lookAt(this.focus);
+  const radius=Math.max(this.distance,champion?0:separation*1.15+2.5)/Math.min(1,Math.max(.6,this.camera.aspect));this.camera.position.set(this.focus.x+Math.sin(this.yaw)*radius*Math.cos(this.elevation),this.focus.y+Math.sin(this.elevation)*radius,this.focus.z+Math.cos(this.yaw)*radius*Math.cos(this.elevation));this.camera.lookAt(this.focus);
   for(const f of this.fences){const towardCamera=f.mid.clone().sub(this.focus).dot(this.camera.position.clone().sub(this.focus));f.group.visible=towardCamera<4}
   for(const lamp of this.lamps)lamp.visible=this.camera.position.y<5.3;for(const beam of this.beams)beam.visible=this.camera.position.y<5.3;
   const motion=!matchMedia('(prefers-reduced-motion: reduce)').matches&&document.body.dataset.effects!=='off';for(let i=0;i<this.beams.length;i++)this.beams[i].rotation.z=motion?Math.sin(now/2600+i)*.15:0;

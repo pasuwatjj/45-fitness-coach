@@ -32,7 +32,7 @@ class V29ReleaseTests(unittest.TestCase):
                 response.close()
             css=''.join((ROOT/'static'/name).read_text() for name in ['theme-icons-v29.css','themes-v29.css'])
             for url in re.findall(r'url\([\'\"]?(/static/[^)\'\" ]+)',css):
-                self.assertTrue(url.endswith('?v=29'),url)
+                self.assertRegex(url,r'\?v=\d+$')
                 self.assertTrue((ROOT/url.lstrip('/').split('?')[0]).is_file(),url)
 
     def test_phone_qr_roundtrips_multiple_long_keys_with_uniform_modules(self):

@@ -18,13 +18,13 @@ body[data-theme] .home-tile:nth-child(3n+2){background:var(--theme-wash)!importa
 body[data-theme] .home-tile:nth-child(3n){background:var(--lavender)!important}
 body[data-theme] .home-tile strong{color:var(--text)!important;font-size:clamp(24px,3vw,34px)}
 body[data-theme] .home-tile small{color:var(--muted)!important;max-width:85%;line-height:1.7}
-.home-tile::after{content:"";position:absolute;right:18px;top:16px;width:62px;height:62px;background:var(--theme-motif) center/contain no-repeat;opacity:.65;pointer-events:none;transform:rotate(12deg);z-index:-1}
+
 body[data-theme] .home-tile:first-child{min-height:270px}
 .home-tile img{opacity:.08;object-position:center 35%}
 .home-tile-copy{gap:8px}.home-setup p{font-size:14px}
 /* The same compact button padding and type sizes are retained from v26. */
-.theme-sticker::before{content:"";display:inline-block;width:26px;height:26px;margin-inline-end:6px;vertical-align:middle;background:var(--theme-icon) center/contain no-repeat;flex-shrink:0;pointer-events:none}
-.theme-sticker-only{font-size:0;line-height:1}.theme-sticker-only::before{width:62px;height:62px;margin:0}
+.theme-sticker::before{content:"";display:inline-block;width:26px;height:26px;margin-inline-end:6px;vertical-align:middle;background-image:var(--theme-icon);background-position:var(--icon-position,center);background-size:var(--icon-size,contain);background-repeat:no-repeat;flex-shrink:0;pointer-events:none}
+.theme-sticker-only{font-size:0;line-height:1;display:block}.theme-sticker-only::before{width:62px;height:62px;margin:0}
 .home-group summary.theme-sticker::before{width:38px;height:38px;margin-inline-end:10px}
 #mainApp h2.theme-sticker::before,.friend-chat h3.theme-sticker::before{width:38px;height:38px;margin-inline-end:10px}
 .tabs .theme-sticker::before{width:23px;height:23px;margin-inline-end:5px}

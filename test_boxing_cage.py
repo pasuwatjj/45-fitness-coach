@@ -63,15 +63,28 @@ class CageRoutes(unittest.TestCase):
         for i in range(8):self.control(self.b,guard=True);self.now+=.4
         self.control(self.b,guard=True);self.strike();m=self.impact();self.assertEqual(m['event']['result'],'block');self.assertEqual(m['players'][1]['armor'],9);self.assertEqual(m['players'][1]['hp'],10)
         self.now+=.5;self.control(self.b,guard=True,slip=-1);self.strike();m=self.impact();self.assertEqual(m['event']['result'],'dodge');self.assertEqual(m['players'][1]['armor'],9)
-    def test_two_rounds_single_trophy_and_queued_strikes_cancelled(self):
+    def test_two_rounds_knockdown_recovery_single_belt_and_cancelled_strikes(self):
         for round_no in [1,2]:
             for i in range(3):
                 self.strike('right');m=self.impact();self.now+=.3
             self.assertEqual(m['players'][0]['wins'],round_no);self.assertEqual(m['pending_strikes'],[])
             if round_no==1:
-                self.assertEqual(m['status'],'round_break');self.now=m['next_round_at'];m=self.snapshot();self.assertEqual([p['hp'] for p in m['players']],[10,10])
-        self.assertEqual(m['winner'],self.uid)
+                self.assertEqual(m['status'],'round_break');down=m['knockdown'];self.assertEqual(down['uid'],self.other);self.assertEqual(down['recover_at'],down['at']+5)
+                self.assertFalse(m.get('belt_awarded'));self.assertEqual(self.a.get('/social/boxing/belts/'+str(self.pa)).json['belts'],0)
+                self.assertEqual(self.control(self.b,'left',strike_id='while-down').status_code,400)
+                self.now=m['next_round_at']-.01;self.assertEqual(self.snapshot()['status'],'round_break')
+                self.now=m['next_round_at'];m=self.snapshot();self.assertEqual([p['hp'] for p in m['players']],[10,10]);self.assertNotIn('knockdown',m)
+        self.assertEqual(m['winner'],self.uid);self.assertTrue(m['belt_awarded']);self.assertIsNone(m['knockdown']['recover_at'])
         for i in range(3):self.snapshot()
+        self.assertEqual(self.a.get('/social/boxing/trophies/'+str(self.pa)).json['trophies'],1)
+        self.assertEqual(self.a.get('/social/boxing/belts/'+str(self.pa)).json['belts'],1)
+        self.assertEqual(self.b.get('/social/boxing/belts/'+str(self.pa)).status_code,404)
+        self.assertEqual(self.b.get('/social/boxing/belts/'+str(self.pb)).json['belts'],0)
+    def test_historical_victories_are_preserved_as_belts(self):
+        self.snapshot()
+        with self.store.connect() as db:
+            db.execute('INSERT INTO boxing_trophies VALUES(?,?,?,?)',('historical-victory',self.uid,self.pa,self.now-100))
+        self.assertEqual(self.a.get('/social/boxing/belts/'+str(self.pa)).json['belts'],1)
         self.assertEqual(self.a.get('/social/boxing/trophies/'+str(self.pa)).json['trophies'],1)
     def test_leave_cancels_windup(self):
         self.strike();m=self.act(self.b,'leave').json['match'];self.assertEqual(m['pending_strikes'],[]);self.assertEqual(m['players'][1]['hp'],10)

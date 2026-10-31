@@ -34,6 +34,7 @@ def advance(m,now):
     if m['status']=='countdown' and now>=m['start']:m['status']='active';m['round_start']=m['start']
     if m['status']=='round_break' and now>=m['next_round_at']:
         m.update(status='active',round=m['round']+1,round_start=m['next_round_at'],motion_at=now)
+        m.pop('knockdown',None)
         for i,p in enumerate(m['players']):
             p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,hp=10,armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,guard_since=None,guard_until=0,last_punch=0,last_hand=None,control_at=0)
     if m['status']=='active':
@@ -47,6 +48,7 @@ def finish(m,winner,result,now):
     if m['status']=='active':m['elapsed']=m.get('elapsed',0)+max(0,now-m.get('round_start',m.get('start') or now))
     m['pending_strikes']=[]
     m.update(status='finished',winner=winner,result=result,ended_at=now)
+    if result not in ['best_of_three','knockout']:m.pop('knockdown',None)
     for p in m['players']:p.update(move=0,crouch=0,slip=0,bend=0,side=0,side_since=None,guard_until=0)
 
 def knockout(m,winner,now):
@@ -54,7 +56,9 @@ def knockout(m,winner,now):
     duration=max(0,now-m['round_start']);m['elapsed']=m.get('elapsed',0)+duration
     winner['wins']=winner.get('wins',0)+1
     m.setdefault('rounds',[]).append(dict(number=m['round'],winner=winner['uid'],duration=duration))
-    m.update(status='round_break',round_winner=winner['uid'],next_round_at=now+5)
+    m.update(status='round_break',round_winner=winner['uid'],round_ended_at=now,next_round_at=now+5)
+    loser=next(p for p in m['players'] if p['uid']!=winner['uid'])
+    m['knockdown']=dict(uid=loser['uid'],at=now,recover_at=None if winner['wins']>=2 else now+5)
     for p in m['players']:p.update(move=0,crouch=0,slip=0,bend=0,side=0,side_since=None,guard_until=0)
     if winner['wins']>=2:finish(m,winner['uid'],'best_of_three',now)
 
@@ -62,7 +66,7 @@ def award(db,m,now):
     if m.get('rules') not in [2,3,4] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
     winner=next((p for p in m['players'] if p['uid']==m.get('winner') and p.get('profile_id')),None)
     if winner:
-        db.execute('INSERT OR IGNORE INTO boxing_trophies VALUES(?,?,?,?)',(m['id'],winner['uid'],winner['profile_id'],now));m['trophy_awarded']=True
+        db.execute('INSERT OR IGNORE INTO boxing_trophies VALUES(?,?,?,?)',(m['id'],winner['uid'],winner['profile_id'],now));m['trophy_awarded']=True;m['belt_awarded']=True
 
 def action(m,uid,data,now):
     p=next(p for p in m['players'] if p['uid']==uid);kind=data.get('action');p['seen']=now
@@ -119,11 +123,14 @@ def register(app,get_store):
     def guard():
         if not getattr(g,'account',None):return jsonify(error='Sign in'),401
         schema(get_store())
+    @bp.get('/social/boxing/belts/<int:pid>')
     @bp.get('/social/boxing/trophies/<int:pid>')
     def trophies(pid):
         with get_store().connect() as db:
             if not db.execute('SELECT 1 FROM profile_owners WHERE profile_id=? AND owner=?',(pid,'account:'+str(g.account['id']))).fetchone():return jsonify(error='Profile not found'),404
-            return jsonify(trophies=db.execute('SELECT COUNT(*) FROM boxing_trophies WHERE profile_id=? AND account_id=?',(pid,g.account['id'])).fetchone()[0])
+            # Keep the historical ledger so existing victories remain owned; the old route is compatible.
+            count=db.execute('SELECT COUNT(*) FROM boxing_trophies WHERE profile_id=? AND account_id=?',(pid,g.account['id'])).fetchone()[0]
+            return jsonify(belts=count,trophies=count)
     @bp.get('/social/boxing')
     def listing():
         store=get_store();uid=g.account['id'];now=clock();rows=[]

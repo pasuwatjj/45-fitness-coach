@@ -7,11 +7,12 @@ def get(path):
  r=s.get(origin+path,timeout=40);r.raise_for_status();return r
 assert get('/status?release='+revision).json()['revision']==revision
 assert 'boxing-mode-cards' in get('/static/boxing.js?release='+revision).text
-for name in ['boxing-world.js','images/boxing/mode-menu.png','images/boxing/arena-championship.png','inbox.js','character.js','character-renderer.js','cozy-ui.css','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
+for name in ['boxing-world.js','images/boxing/champion-belt.svg','images/boxing/mode-menu.png','images/boxing/arena-championship.png','inbox.js','character.js','character-renderer.js','cozy-ui.css','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
  assert get('/static/'+name+'?release='+revision).content==Path('static',name).read_bytes(),name
 assert s.get(origin+'/social/boxing',timeout=40).status_code==401
-html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=9' in html
-for asset in ['boxing-world.js?v=3','boxing-pose.js?v=7','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=8']:
+assert s.get(origin+'/social/boxing/belts/1',timeout=40).status_code==401
+html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=10' in html
+for asset in ['profile.js?v=50','boxing-world.js?v=4','boxing-pose.js?v=7','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=9']:
  assert '/static/'+asset in html,asset
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']);page=b.new_page();page.set_content('<main></main>');page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
@@ -33,6 +34,10 @@ with sync_playwright() as p:
  page.evaluate("sceneSmoke.add({appearance:{gender:'female'},growth:{},visual:{}},1);sceneSmoke.set([{x:-.7,z:0},{x:.7,z:0}],false);sceneSmoke.view('top')")
  page.wait_for_function("sceneSmoke.actors[1].canvas.dataset.avatarState==='ready'")
  assert page.evaluate("!sceneSmoke.bag.visible&&document.querySelectorAll('#arena canvas').length===1")
+ page.evaluate("sceneSmoke.set([{x:-.7,z:0,presentation:'down',presentationAt:performance.now()-1500,recoverAfter:5},{x:.7,z:0,presentation:'waiting'}],false)")
+ page.wait_for_function('sceneSmoke.actors[0].downAmount>.9')
+ page.evaluate("sceneSmoke.set([{x:-.7,z:0,presentation:'champion',presentationAt:performance.now()-2000},{x:.7,z:0,presentation:'down',presentationAt:performance.now()-2000,recoverAfter:null}],false)")
+ page.wait_for_function('sceneSmoke.actors[0].belt?.visible&&sceneSmoke.actors[0].belt.children.some(m=>m.material?.map?.image?.complete)&&sceneSmoke.actors[1].downAmount>.9')
  page.evaluate('sceneSmoke.destroy()');assert page.locator('#arena canvas').count()==0
  assert not errors,errors
  # Render the deployed menu without accessing private APIs or requesting a camera.
@@ -48,4 +53,4 @@ with sync_playwright() as p:
  assert page.evaluate('Boxing.world===null&&document.querySelector(".boxing-preview video").srcObject===null')
  assert not errors,errors
  b.close()
-print('VERIFIED exact deployed Boxing assets, template, private API, pose confidence guard and shared 3D male/female scene with bend/slip, bag removal and cleanup',revision)
+print('VERIFIED exact deployed Boxing assets, template, private API, pose confidence guard and shared 3D male/female scene with bend/slip, seated knockdown, 45 champion belt, bag removal and cleanup',revision)

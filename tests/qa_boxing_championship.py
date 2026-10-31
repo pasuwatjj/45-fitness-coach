@@ -2,7 +2,7 @@
 from playwright.sync_api import sync_playwright
 from pathlib import Path
 import time
-root=__import__('os').environ.get('BOXING_TEST_ORIGIN','http://127.0.0.1:5055');out=Path('work/championship-review');out.mkdir(exist_ok=True)
+root=__import__('os').environ.get('BOXING_TEST_ORIGIN','http://127.0.0.1:5055');out=Path('work/championship-review');out.mkdir(parents=True,exist_ok=True)
 def account(c,name):
  assert c.request.post(root+'/auth/register',data={'email':f'champ{time.time_ns()}@example.com','password':'Testing-pass-123','recovery_number':'48'}).ok
  h={'X-Coach-Session':c.request.post(root+'/session').json()['session_token']};r=c.request.post(root+'/profiles',headers=h,data={'name':name+str(time.time_ns())[-5:]});assert r.ok;pid=r.json()['profile']['id'];assert c.request.post(root+f'/profiles/{pid}/character',headers=h,data={'appearance':{}}).ok;return c.request.get(root+'/social/me',headers=h).json()['account_id'],pid,h
@@ -76,12 +76,16 @@ with sync_playwright() as p:
   for page in [a,c]:page.wait_for_function("Boxing.state.status==="+repr('finished' if round_number==3 else 'round_break'))
   if round_number<3:
    for page in [a,c]:
-    page.wait_for_function("/Round over|จบยก/.test(document.querySelector('.boxing-banner').textContent)");page.wait_for_timeout(400);assert page.locator('.boxing-banner').inner_text()
-   assert ca.request.get(root+f'/social/boxing/trophies/{pid}',headers=h).json()['trophies']==0
-   a.wait_for_function(f"Boxing.state.round==={round_number+1}",timeout=10000);assert a.evaluate('Boxing.state.players.every(p=>p.hp===10&&p.armor===10)')
+    page.wait_for_function("/Round over|จบยก/.test(document.querySelector('.boxing-banner').textContent)");page.wait_for_function(f"Boxing.world.actors[{target}].downAmount>.9");assert not page.evaluate('Boxing.world.actors.some(a=>a.belt?.visible)')
+   assert ca.request.get(root+f'/social/boxing/belts/{pid}',headers=h).json()['belts']==0
+   a.wait_for_function(f"Boxing.state.round==={round_number+1}",timeout=10000);assert a.evaluate('Boxing.state.players.every(p=>p.hp===10&&p.armor===10)');a.wait_for_function('Boxing.world.actors.every(a=>a.canvas.dataset.presentation==="fighting")')
   print('round',round_number,'PASS',flush=True)
- assert a.evaluate('Boxing.state.winner')==uid;assert a.evaluate('Boxing.state.players.map(p=>p.wins)')==[2,1];assert ca.request.get(root+f'/social/boxing/trophies/{pid}',headers=h).json()['trophies']==1
+ assert a.evaluate('Boxing.state.winner')==uid;assert a.evaluate('Boxing.state.players.map(p=>p.wins)')==[2,1];assert ca.request.get(root+f'/social/boxing/belts/{pid}',headers=h).json()['belts']==1
+ for page in [a,c]:
+  page.wait_for_function('Boxing.world.actors[0].belt?.visible&&Boxing.world.actors[1].downAmount>.9');assert page.locator('.boxing-result').is_visible();assert '45' in page.locator('.boxing-result').inner_text();assert page.evaluate('Boxing.state.belt_awarded')
  frozen=a.locator('.boxing-clock strong').inner_text();a.wait_for_timeout(1200);assert a.locator('.boxing-clock strong').inner_text()==frozen
  for page,width in [(a,1280),(c,390)]:
   page.evaluate('FitnessCharacterRenderer.prototype.schedule=()=>{}');page.add_style_tag(content='.boxing-ambience i{animation:none!important}');page.screenshot(path=str(out/f'{width}-championship.png'));assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+2')
- assert not errors,errors;print('PASS both-client crouch sync, three rounds 2–1, resets, clock and single final trophy; no JS errors',flush=True);b.close()
+ a.evaluate("setTab('profile')");a.wait_for_function("document.querySelector('.profile-belts strong')?.textContent==='1'");assert a.locator('.profile-belts img').is_visible();assert 'troph' not in a.locator('.profile-belts').inner_text().lower();a.screenshot(path=str(out/'profile-belt.png'))
+ assert ca.request.get(root+f'/social/boxing/belts/{pid}',headers=h).json()['belts']==1
+ assert not errors,errors;print('PASS both-client knockdown/recovery, three rounds 2–1, champion belt, profile collection, clock and exactly one belt; no JS errors',flush=True);b.close()

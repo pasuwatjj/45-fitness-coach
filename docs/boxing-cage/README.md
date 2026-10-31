@@ -11,7 +11,7 @@ The boxing room now uses a single Three.js scene for both existing profile avata
 - Hold both elbows near shoulder height for three seconds to guard. Armor is consumed only by a blocked impact. Slips/ducks and movement cost no armor. Uppercuts can counter a deep duck.
 - The bag is at the arena center in Training. Friend mode waits in the invitation lobby and loads a two-fighter arena after both cameras are ready. Hits show projected damage numbers and bag motion. Both players see HP/armor and match damage feedback.
 - Drag to orbit, scroll/pinch to zoom, or select Ringside, Follow fighter, Overhead and Full screen. Ringside tracks the line between the fighters; Follow uses the current user's fighter.
-- Matches remain best of three (first to two knockouts), with a five-second break, fresh HP/armor each round and one trophy recorded on the winner's profile. The clock counts active round time. Instructions are also available in Thai/English under the arena.
+- Matches remain best of three (first to two knockouts), with a five-second break, fresh HP/armor each round and one 45 championship belt recorded on the winner's profile. The clock counts active round time. Instructions are also available in Thai/English under the arena.
 
 ## Mechanics and compatibility
 
@@ -41,10 +41,18 @@ node tests/test_boxing_pose.cjs
 node tests/test_avatar_browser.cjs
 ```
 
-The championship browser test runs two accounts at 1280 px and 390 px with real browser fake-camera streams and synthetic upper-body landmarks. It covers forward/back movement, crouch/stand, torso bend, two-second circling without hips/legs, camera views/orbit/zoom, fullscreen and fallback, reduced motion, English/Thai, center bag damage, directional evasion, recoil suppression, a complete 2–1 match, per-round reset and one final trophy. Dedicated route/geometry cases cover timing, stale signals, boundaries/collision, guard, duck/uppercut, range, invalid controls and strike-ID replay. The avatar regression covers customization, save/reload and rotation.
+The championship browser test runs two accounts at 1280 px and 390 px with real browser fake-camera streams and synthetic upper-body landmarks. It covers forward/back movement, crouch/stand, torso bend, two-second circling without hips/legs, camera views/orbit/zoom, fullscreen and fallback, reduced motion, English/Thai, center bag damage, directional evasion, recoil suppression, a complete 2–1 match, per-round reset and one final belt. Dedicated route/geometry cases cover timing, stale signals, boundaries/collision, guard, duck/uppercut, range, invalid controls and strike-ID replay. The avatar regression covers customization, save/reload and rotation.
 
 Physical webcam accuracy has not been measured on the user's camera. The read-only deployment verifier checks the exact release revision/assets and exercises a shared scene with the public avatar assets without creating live accounts.
 
 The current change is checked with root Python and installer/source tests, detector fixtures, the championship flow, and the natural-rig/control regressions above. The rig check measures full arm-chain reach, preserves short-jab extension during the impact envelope, verifies finite normalized skin weights, and exercises both saved avatar genders. Browser animation assertions wait for rendered state rather than assuming that a software renderer completes an animation on a fixed wall-clock frame.
 
 Review images: [ringside](ringside.png), [solo practice](practice.png), [overhead](overhead.png), [mobile](mobile.png).
+
+## Knockdown and championship belt
+
+A non-final knockout starts a five-second server-timed recovery: the loser drops into a seated daze, begins rising at 3.2 seconds, and is back in guard before the next round. Both clients use the same knockout timestamp. Tracking cannot override the recovery pose, and attacks are rejected during the break. On the deciding knockout (a 2–0 or 2–1 result), the loser remains seated and the winner raises both arms with the original black-and-gold 45 belt, framed by a victory camera and localized result panel. Reduced-motion settings retain the readable result without decorative flashes.
+
+The profile now shows a belt collection. The existing unique-per-match reward ledger is retained so previous victories are preserved; `/social/boxing/belts/<profile>` is the new authenticated endpoint and the old trophy route remains compatible. The reward still belongs to the winning profile and is not duplicated by polling, reopening a match or refreshing the profile. Existing disconnect/forfeit reward rules are unchanged; leaving before a fight starts does not earn a belt.
+
+`tests/qa_boxing_belts.py` checks seated foot clearance, timed recovery, final KO persistence, both avatar genders, visible belt and cleanup. The championship browser test checks both clients through a 2–1 match and the winner's profile; route tests cover 2–0, historical reward preservation and ownership. `tests/verify_live_boxing.py` checks exact deployed assets and read-only knockdown/belt rendering.

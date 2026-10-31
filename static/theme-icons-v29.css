@@ -1,32 +1,4 @@
-/* Original local SVG icon family. Decorative only: labels stay in DOM. */
-body[data-theme="spicy"] [data-theme-icon="home"]{--theme-icon:url("/static/images/themes/spicy-home.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="home"]{--theme-icon:url("/static/images/themes/power-home.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="workout"]{--theme-icon:url("/static/images/themes/spicy-workout.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="workout"]{--theme-icon:url("/static/images/themes/power-workout.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="calendar"]{--theme-icon:url("/static/images/themes/spicy-calendar.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="calendar"]{--theme-icon:url("/static/images/themes/power-calendar.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="leader"]{--theme-icon:url("/static/images/themes/spicy-leader.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="leader"]{--theme-icon:url("/static/images/themes/power-leader.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="cardio"]{--theme-icon:url("/static/images/themes/spicy-cardio.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="cardio"]{--theme-icon:url("/static/images/themes/power-cardio.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="health"]{--theme-icon:url("/static/images/themes/spicy-health.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="health"]{--theme-icon:url("/static/images/themes/power-health.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="character"]{--theme-icon:url("/static/images/themes/spicy-character.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="character"]{--theme-icon:url("/static/images/themes/power-character.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="profile"]{--theme-icon:url("/static/images/themes/spicy-profile.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="profile"]{--theme-icon:url("/static/images/themes/power-profile.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="vip"]{--theme-icon:url("/static/images/themes/spicy-vip.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="vip"]{--theme-icon:url("/static/images/themes/power-vip.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="rewards"]{--theme-icon:url("/static/images/themes/spicy-rewards.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="rewards"]{--theme-icon:url("/static/images/themes/power-rewards.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="challenges"]{--theme-icon:url("/static/images/themes/spicy-challenges.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="challenges"]{--theme-icon:url("/static/images/themes/power-challenges.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="friends"]{--theme-icon:url("/static/images/themes/spicy-friends.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="friends"]{--theme-icon:url("/static/images/themes/power-friends.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="admin"]{--theme-icon:url("/static/images/themes/spicy-admin.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="admin"]{--theme-icon:url("/static/images/themes/power-admin.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="chat"]{--theme-icon:url("/static/images/themes/spicy-chat.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="chat"]{--theme-icon:url("/static/images/themes/power-chat.svg?v=29")}
+/* Muscle group illustrations. */
 body[data-theme="spicy"] [data-theme-icon="back"]{--theme-icon:url("/static/images/themes/spicy-back.svg?v=29")}
 body[data-theme="power"] [data-theme-icon="back"]{--theme-icon:url("/static/images/themes/power-back.svg?v=29")}
 body[data-theme="spicy"] [data-theme-icon="arms"]{--theme-icon:url("/static/images/themes/spicy-arms.svg?v=29")}
@@ -37,5 +9,20 @@ body[data-theme="spicy"] [data-theme-icon="shoulders"]{--theme-icon:url("/static
 body[data-theme="power"] [data-theme-icon="shoulders"]{--theme-icon:url("/static/images/themes/power-shoulders.svg?v=29")}
 body[data-theme="spicy"] [data-theme-icon="legs"]{--theme-icon:url("/static/images/themes/spicy-legs.svg?v=29")}
 body[data-theme="power"] [data-theme-icon="legs"]{--theme-icon:url("/static/images/themes/power-legs.svg?v=29")}
-body[data-theme="spicy"] [data-theme-icon="star"]{--theme-icon:url("/static/images/themes/spicy-star.svg?v=29")}
-body[data-theme="power"] [data-theme-icon="star"]{--theme-icon:url("/static/images/themes/power-star.svg?v=29")}
+/* Generated standalone category icons, one sprite per label. */
+body[data-theme] [data-theme-icon="home"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:2.09644% 4.19287%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="workout"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:35.11530% 4.19287%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="cardio"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:68.13417% 4.19287%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="calendar"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:99.58071% 4.19287%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="leader"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:2.09644% 35.63941%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="health"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:35.11530% 35.63941%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="character"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:68.13417% 35.63941%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="rewards"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:99.58071% 35.63941%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="chat"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:2.09644% 67.08595%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="admin"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:35.11530% 67.08595%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="profile"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:68.13417% 67.08595%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="vip"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:99.58071% 67.08595%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="challenges"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:2.09644% 98.53249%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="friends"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:35.11530% 98.53249%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="settings"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:68.13417% 98.53249%;--icon-size:418% 418%}
+body[data-theme] [data-theme-icon="star"]{--theme-icon:url("/static/images/ui/category-icons.png?v=1");--icon-position:99.58071% 98.53249%;--icon-size:418% 418%}

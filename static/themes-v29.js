@@ -10,7 +10,7 @@
   if(!node)return;
   if(node.dataset.themeIcon!==kind)node.dataset.themeIcon=kind;
   node.classList.add('theme-sticker');
-  if(iconOnly){node.classList.add('theme-sticker-only');node.setAttribute('aria-hidden','true');return}
+  if(iconOnly){if(node.textContent)node.textContent='';node.classList.add('theme-sticker-only');node.setAttribute('aria-hidden','true');return}
   // Read and modify text nodes in place; controls retain identity and accessible names.
   const text=[...node.childNodes].find(n=>n.nodeType===3&&n.textContent.trim());
   if(text){const clean=text.textContent.replace(leading,'');if(clean&&clean!==text.textContent)text.textContent=clean}

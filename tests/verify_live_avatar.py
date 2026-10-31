@@ -14,7 +14,7 @@ def read(path):
 status=read('/status').json();assert status['ok'] and status['avatar_progression']=='verified-muscle-v1';assert status['revision']==revision,status
 html=read('/45-fitness-coach').text
 for name in ['muscle-progression.js','imported-avatar.js','character.js']:assert name in html
-for name in ['static/muscle-progression.js','static/imported-avatar.js','static/character.js','static/profile.js','static/character-renderer.js','static/live-avatar.js','static/models/quaternius/male-rig.json','static/models/quaternius/female-rig.json','static/app.js','static/models/quaternius/male.json','static/models/quaternius/female.json']:
+for name in ['static/muscle-progression.js','static/imported-avatar.js','static/character.js','static/profile.js','static/character-renderer.js','static/live-avatar.js','static/live-avatar.css','static/models/quaternius/male-rig.json','static/models/quaternius/female-rig.json','static/app.js','static/models/quaternius/male.json','static/models/quaternius/female.json']:
  assert hashlib.sha256(read('/'+name+'?release='+revision).content).hexdigest()==hashlib.sha256(Path(name).read_bytes()).hexdigest(),name
 out=Path('work/live-review');out.mkdir(parents=True,exist_ok=True)
 with sync_playwright() as p:
@@ -45,7 +45,7 @@ with sync_playwright() as p:
   cv.focus();page.keyboard.press('ArrowRight');assert cv.screenshot()!=end
   page.evaluate('reviewRenderer.setWorkoutPreview(true);reviewRenderer.motion={matches:false};reviewRenderer.phase=-Math.PI/3.4;reviewRenderer.draw()');lowered=cv.screenshot()
   page.evaluate('reviewRenderer.phase=Math.PI/3.4;reviewRenderer.draw()');curled=cv.screenshot(path=str(out/f'{width}-profile-curl.png'));assert lowered!=curled
-  page.evaluate("reviewRenderer.setWorkoutPreview(false);reviewRenderer.setLivePose(AvatarPose.neutral({exercise:'pushup'}))");floor=cv.screenshot(path=str(out/f'{width}-live-floor.png'));assert floor!=curled
+  page.evaluate("reviewRenderer.setWorkoutPreview(false);reviewRenderer.setDumbbells(true);reviewRenderer.setLivePose(AvatarPose.neutral({exercise:'pushup'}))");floor=cv.screenshot(path=str(out/f'{width}-live-floor.png'));assert floor!=curled
   assert not errors,errors;page.evaluate('reviewRenderer.destroy()');c.close();print(width,'live assets rendered, novice/developed pixels differ, rotation/profile curl/live floor pose passed; production writes blocked',flush=True)
  b.close()
 print('VERIFIED Render revision',revision,flush=True)

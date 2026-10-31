@@ -6,20 +6,36 @@ window.CageFighter=class extends FitnessImportedAvatar{
  start(){this.running=true}stop(){this.running=false}schedule(){}draw(){}
  buildRig(deform){
   super.buildRig(deform);const T=THREE,hip=(deform(...this.assetRig.joints.leftLeg[0])[1]+deform(...this.assetRig.joints.rightLeg[0])[1])/2;
-  this.hip=hip;this.spine=new T.Bone();this.spine.position.y=hip;this.skeleton.bones[0].add(this.spine);
-  for(const side of ['left','right']){const upper=this.bones[side+'Arm'].upper;this.spine.add(upper);upper.position.y-=hip}
-  this.spineIndex=this.skeleton.bones.length;this.skeleton.bones.push(this.spine);this.body.updateMatrixWorld(true);this.skeleton.calculateInverses();this.skeleton.init();
+  this.hip=hip;this.shoulderHeight=deform(...this.assetRig.joints.leftArm[0])[1];
+  const base=this.skeleton.bones[0];this.pelvis=new T.Bone();this.pelvis.position.y=hip;base.add(this.pelvis);
+  this.spine=new T.Bone();this.spine.position.y=.22;this.pelvis.add(this.spine);
+  this.chest=new T.Bone();this.chest.position.y=.42;this.spine.add(this.chest);
+  this.neck=new T.Bone();this.neck.position.y=this.shoulderHeight+.12-hip-.64;this.chest.add(this.neck);
+  for(const side of ['left','right']){
+   const arm=this.bones[side+'Arm'].upper;this.chest.add(arm);arm.position.y-=hip+.64;this.bones[side+'Arm'].cageBindPosition=arm.position.clone();
+   const leg=this.bones[side+'Leg'].upper;this.pelvis.add(leg);leg.position.y-=hip;
+  }
+  for(const name of ['pelvis','spine','chest','neck']){this[name+'Index']=this.skeleton.bones.length;this.skeleton.bones.push(this[name])}
+  this.body.updateMatrixWorld(true);this.skeleton.calculateInverses();this.skeleton.init();
  }
  build(){
   super.build();if(!this.body)return;const T=THREE;
   for(const mesh of [...this.body.children]){
    if(mesh.isSkinnedMesh){const index=mesh.geometry.attributes.skinIndex,weight=mesh.geometry.attributes.skinWeight,position=mesh.geometry.attributes.position;
-    for(let i=0;i<position.count;i++){const blend=T.MathUtils.clamp((position.getY(i)-this.hip)/.38,0,1);if(!blend)continue;let base=-1,empty=-1;
+    // Reweight only the original root contribution; limb and finger weights stay authored.
+    const zones=[[this.hip-.25,0],[this.hip+.05,this.pelvisIndex],[this.hip+.45,this.spineIndex],[this.shoulderHeight-.12,this.chestIndex],[this.shoulderHeight+.25,this.neckIndex]];
+    for(let i=0;i<position.count;i++){
+     const y=position.getY(i);let low=zones[0],high=zones[0];
+     for(let j=1;j<zones.length;j++){low=zones[j-1];high=zones[j];if(y<=high[0])break}
+     const blend=T.MathUtils.smoothstep(y,low[0],high[0]);let base=-1,empty=-1;
      for(let k=0;k<4;k++){if(index.array[i*4+k]===0&&weight.array[i*4+k]>0)base=k;if(weight.array[i*4+k]===0)empty=k}
-     if(base>=0){const w=weight.array[i*4+base];if(blend===1||empty<0)index.array[i*4+base]=this.spineIndex;else{weight.array[i*4+base]=w*(1-blend);index.array[i*4+empty]=this.spineIndex;weight.array[i*4+empty]=w*blend}}
+     if(base<0)continue;const w=weight.array[i*4+base];
+     index.array[i*4+base]=blend<.5?low[1]:high[1];
+     if(empty>=0&&blend>0&&blend<1){index.array[i*4+base]=low[1];weight.array[i*4+base]=w*(1-blend);index.array[i*4+empty]=high[1];weight.array[i*4+empty]=w*blend}
     }index.needsUpdate=true;weight.needsUpdate=true;mesh.castShadow=true;mesh.receiveShadow=true;
-   }else if(mesh.isMesh){mesh.geometry.computeBoundingBox();const bottom=mesh.geometry.boundingBox.min.y*mesh.scale.y+mesh.position.y;if(bottom>this.hip+.2){this.spine.add(mesh);mesh.position.y-=this.hip}mesh.castShadow=true}
+   }else if(mesh.isMesh){mesh.geometry.computeBoundingBox();const bottom=mesh.geometry.boundingBox.min.y*mesh.scale.y+mesh.position.y;if(bottom>this.hip+.2){this.neck.add(mesh);mesh.position.y-=this.shoulderHeight+.12}mesh.castShadow=true}
   }
+  // Build glove attachment in the bind pose, before any animated posture is applied.
   this.root.scale.setScalar(this.height*.5);this.body.updateMatrixWorld(true);
   const glove=this.material(this.id===0?'#252b36':'#3c2429',.7);
   for(const side of ['left','right']){const b=this.bones[side+'Arm'],grip=this.handGrips[side];if(!b||!grip)continue;const center=b.lower.worldToLocal(this.body.localToWorld(grip.center.clone()));this.ell(center.x,center.y,center.z,.135,.10,.16,glove,b.lower)}
@@ -29,20 +45,28 @@ window.CageFighter=class extends FitnessImportedAvatar{
   if(!this.body)return;const T=THREE;this.state=state;this.target={x:state.x||0,z:state.z||0};const ease=1-Math.exp(-dt*15);this.position.lerp(new T.Vector2(this.target.x,this.target.z),ease);
   this.root.position.set(this.position.x,0,this.position.y);const yaw=Math.atan2(target.x-this.position.x,target.z-this.position.y);this.yaw=(this.yaw??yaw)+Math.atan2(Math.sin(yaw-(this.yaw??yaw)),Math.cos(yaw-(this.yaw??yaw)))*ease;this.root.rotation.y=this.yaw;
   this.phase=time;super.restPose();for(const key of ['bend','slip','crouch'])this.poseSmooth[key]+=(Number(state[key]||0)-this.poseSmooth[key])*ease;
-  const pose=this.poseSmooth;this.spine.rotation.set(pose.bend*.75,0,-pose.slip*.52);this.body.position.set(0,-.06-.55*pose.crouch,0);
+  const pose=this.poseSmooth,bow=Math.max(0,pose.bend),sway=Math.abs(pose.slip);
+  const elapsed=performance.now()-(this.punchAt??-1000),envelope=elapsed<0||elapsed>360?0:Math.sin(Math.PI*elapsed/360);
+  const striking=state.arms?.[this.punchHand],alignment=striking?striking.upper.reduce((sum,v,i)=>sum+v*striking.lower[i],0):.7;
+  let power=.16+.84*T.MathUtils.clamp((alignment-.15)/.85,0,1);if(this.punchType==='hook')power=Math.max(power,.55);if(this.punchType==='uppercut')power=Math.max(power,.45);
+  const drive=envelope*power,twist=(this.punchHand==='left'?1:-1)*drive;
+  // Hips initiate the action; lumbar/chest flex separately so the back actually rounds.
+  this.pelvis.rotation.set(pose.bend*.18,twist*.10,-pose.slip*.10);
+  this.spine.rotation.set(pose.bend*.42,twist*.13,-pose.slip*.22);
+  this.chest.rotation.set(pose.bend*.50+drive*(this.punchType==='uppercut'?-.08:.07),twist*(this.punchType==='hook'?.30:.18),-pose.slip*.25-twist*.05);
+  this.neck.rotation.set(-pose.bend*.28,-twist*.12,pose.slip*.18);
+  this.body.position.set(pose.slip*.06,-.06-.55*pose.crouch-.07*bow-.035*sway,-bow*.10);
   for(const {name,bone}of this.fingers||[]){if(name.includes('leaf'))continue;const grip=this.handGrips[name.endsWith('_l')?'left':'right'];bone.quaternion.setFromAxisAngle(grip.axis,name.startsWith('thumb')?.6:1.3)}
-  const elapsed=performance.now()-(this.punchAt??-1000),extension=elapsed<0||elapsed>380?0:elapsed<100?elapsed/100:elapsed<220?1:1-(elapsed-220)/160;
-  // Rotate the chest and roll the striking shoulder with the punch, then recover.
-  const twist=(this.punchHand==='left'?1:-1)*extension;
-  this.spine.rotation.y=twist*(this.punchType==='hook'?.42:.25);
-  this.spine.rotation.x+=extension*(this.punchType==='uppercut'?-.10:.12);
-  this.spine.rotation.z-=twist*.09;
+  const inverseTorso=this.pelvis.quaternion.clone().multiply(this.spine.quaternion).multiply(this.chest.quaternion).invert();
   for(const side of ['left','right']){
    const b=this.bones[side+'Arm'],sign=side==='left'?1:-1,measured=state.arms?.[side];if(!b)continue;
    const upper=new T.Vector3(...(measured?.upper||[sign*.25,-.5,.65])).normalize(),lower=new T.Vector3(...(measured?.lower||[-sign*.15,.8,.4])).normalize();
-   const punch=this.punchHand===side?extension:0;
-   if(punch){const path=this.punchType==='uppercut'?[[sign*.1,-.15,.8],[0,.85,.45]]:this.punchType==='hook'?[[sign*.55,.12,.7],[-sign*.6,.12,.8]]:[[sign*.06,.08,1],[0,.04,1]];upper.lerp(new T.Vector3(...path[0]).normalize(),punch).normalize();lower.lerp(new T.Vector3(...path[1]).normalize(),punch).normalize()}
-   b.upper.scale.setScalar(1+.10*punch);const uq=new T.Quaternion().setFromUnitVectors(b.restUpper,upper),lq=uq.clone().invert().multiply(new T.Quaternion().setFromUnitVectors(b.restLower,lower));b.cageUpper??=uq.clone();b.cageLower??=lq.clone();b.cageUpper.slerp(uq,punch?.8:ease);b.cageLower.slerp(lq,punch?.8:ease);b.upper.quaternion.copy(b.cageUpper);b.lower.quaternion.copy(b.cageLower);
+   // Tracked elbows/wrists own the pose, even during a scoring event. No canned extension.
+   upper.applyQuaternion(inverseTorso);lower.applyQuaternion(inverseTorso);
+   b.upper.position.copy(b.cageBindPosition);b.upper.position.z+=(this.punchHand===side?.06:-.015)*drive;
+   b.upper.scale.setScalar(1);const uq=new T.Quaternion().setFromUnitVectors(b.restUpper,upper),lq=uq.clone().invert().multiply(new T.Quaternion().setFromUnitVectors(b.restLower,lower));
+   b.cageUpper??=uq.clone();b.cageLower??=lq.clone();const armEase=1-Math.exp(-dt*32);
+   b.cageUpper.slerp(uq,armEase);b.cageLower.slerp(lq,armEase);b.upper.quaternion.copy(b.cageUpper);b.lower.quaternion.copy(b.cageLower);
   }
   // Advance a shuffle cycle from actual displacement, so feet stop at cage/bag limits.
   const previous=this.previousStep,dx=previous?this.position.x-previous.x:0,dz=previous?this.position.y-previous.y:0;
@@ -55,8 +79,9 @@ window.CageFighter=class extends FitnessImportedAvatar{
   for(const [side,sign]of [['left',1],['right',-1]]){
    const leg=this.bones[side+'Leg'];if(!leg)continue;const step=Math.sin(phase)*sign,lift=Math.max(0,step);
    leg.upper.rotation.z=sign*.10+step*.26*lateral*gait;
-   leg.upper.rotation.x=-.10-.7*pose.crouch+step*.32*forward*gait;
-   leg.lower.rotation.x=.20+1.35*pose.crouch+lift*.48*gait;
+   leg.upper.rotation.x=-.10+sign*.07-.7*pose.crouch-.13*bow+step*.32*forward*gait;
+   leg.lower.rotation.x=.20+1.35*pose.crouch+.24*bow+.12*sway+lift*.48*gait;
+   leg.upper.quaternion.premultiply(this.pelvis.quaternion.clone().invert());
   }
  }
 };

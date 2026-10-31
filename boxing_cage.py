@@ -3,6 +3,7 @@ import math,uuid
 APOTHEM=5.0
 SPEED=1.05
 RANGE=1.65
+MOVE_HOLD=2.0
 
 def clamp(x,z):
     for _ in range(2):
@@ -25,8 +26,8 @@ def motion(m,now):
     for i,p in enumerate(ps):
         dt=max(0,min(now,p.get('control_at',0)+.65)-max(m.get('motion_at',now),m.get('round_start',m.get('start') or now)))
         q=ps[1-i] if len(ps)>1 else dict(x=0,z=0);fx,fz=direction(p,q)
-        side=p.get('side',0) if p.get('side_since') is not None and now-p['side_since']>=5 else 0
-        side_dt=max(0,min(now,p.get('control_at',0)+.65)-max(m.get('motion_at',now),p.get('side_since',now)+5)) if side else 0
+        side=p.get('side',0) if p.get('side_since') is not None and now-p['side_since']>=MOVE_HOLD else 0
+        side_dt=max(0,min(now,p.get('control_at',0)+.65)-max(m.get('motion_at',now),p.get('side_since',now)+MOVE_HOLD)) if side else 0
         move=p.get('move',0);scale=max(1,math.hypot(move,side))
         p['x'],p['z']=clamp(p['x']+(fx*move*dt+fz*side*side_dt)*SPEED/scale,p['z']+(fz*move*dt-fx*side*side_dt)*SPEED/scale)
     if len(ps)==2:
@@ -37,7 +38,7 @@ def motion(m,now):
     m['motion_at']=now
 
 def control(p,slip,bend,now):
-    side=1 if slip>.45 else -1 if slip<-.45 else 0
+    side=1 if slip>.35 else -1 if slip<-.35 else 0
     if now-p.get('control_at',0)>.7 or side!=p.get('side',0):p['side_since']=now if side else None
     if not side:p['side_since']=None
     p.update(side=side,slip=slip,bend=bend)
@@ -55,8 +56,8 @@ def resolve(m,now,knockout):
         dx,dz=q['x']-p['x'],q['z']-p['z'];distance=math.hypot(dx,dz)
         fresh=now-q.get('control_at',0)<.65
         slip=q.get('slip',0) if fresh else 0
-        duck=fresh and (q.get('bend',0)>.55 or q.get('crouch',0)>.65)
-        evade=(strike['hand']=='left' and slip<-.48) or (strike['hand']=='right' and slip>.48)
+        duck=fresh and (q.get('bend',0)>.24 or q.get('bend',0)<-.12 or q.get('crouch',0)>.50)
+        evade=(strike['hand']=='left' and slip<-.35) or (strike['hand']=='right' and slip>.35)
         if distance>RANGE or (distance>.01 and (dx*strike['fx']+dz*strike['fz'])/distance<.72):result='miss'
         elif evade or (duck and strike['punch_type']!='uppercut'):result='dodge'
         elif q['guard_until']>now and q['armor']>0:q['armor']-=1;result='block'

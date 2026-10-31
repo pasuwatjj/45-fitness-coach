@@ -2,7 +2,7 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import time
-root='http://127.0.0.1:5055'
+root=__import__('os').environ.get('BOXING_TEST_ORIGIN','http://127.0.0.1:5055')
 out=Path('work/boxing-menu-review');out.mkdir(exist_ok=True)
 def account(c,name):
  assert c.request.post(root+'/auth/register',data={'email':f'menu{time.time_ns()}@example.com','password':'Testing-pass-123','recovery_number':'48'}).ok

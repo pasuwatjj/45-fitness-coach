@@ -2,7 +2,7 @@
 from playwright.sync_api import sync_playwright
 from pathlib import Path
 import time
-root='http://127.0.0.1:5055';out=Path('work/championship-review');out.mkdir(exist_ok=True)
+root=__import__('os').environ.get('BOXING_TEST_ORIGIN','http://127.0.0.1:5055');out=Path('work/championship-review');out.mkdir(exist_ok=True)
 def account(c,name):
  assert c.request.post(root+'/auth/register',data={'email':f'champ{time.time_ns()}@example.com','password':'Testing-pass-123','recovery_number':'48'}).ok
  h={'X-Coach-Session':c.request.post(root+'/session').json()['session_token']};r=c.request.post(root+'/profiles',headers=h,data={'name':name+str(time.time_ns())[-5:]});assert r.ok;pid=r.json()['profile']['id'];assert c.request.post(root+f'/profiles/{pid}/character',headers=h,data={'appearance':{}}).ok;return c.request.get(root+'/social/me',headers=h).json()['account_id'],pid,h
@@ -23,7 +23,7 @@ with sync_playwright() as p:
   page.on('pageerror',lambda e:errors.append(str(e)));page.goto(root+'/45-fitness-coach?lang='+lang);page.wait_for_timeout(1000);page.locator('#homeBoxingTile').click();page.wait_for_function("!document.querySelector('[data-mode=practice]').disabled");page.evaluate(pose);page.locator('[data-mode=practice]').click();page.wait_for_function("Boxing.world?.actors[0]?.canvas.dataset.avatarState==='ready'");page.evaluate(pose);page.evaluate("const render=Boxing.world.renderer.render.bind(Boxing.world.renderer);let lastDraw=0;Boxing.world.renderer.render=(...args)=>{const now=performance.now();if(now-lastDraw>80){lastDraw=now;render(...args)}};void 0");page.wait_for_function("/Ready|พร้อม/.test(document.querySelector('.boxing-status').textContent)",timeout=15000)
   assert page.locator('.boxing-clock').is_hidden()
   start_x=page.evaluate('Boxing.world.states[0].x')
-  page.evaluate('testPose[0].z=.055');page.wait_for_timeout(3500);assert abs(page.evaluate('Boxing.world.states[0].x')-start_x)<.03
+  page.evaluate('testPose[0].z=.055');page.wait_for_timeout(1000);assert abs(page.evaluate('Boxing.world.states[0].x')-start_x)<.03
   page.wait_for_function("Boxing.world.states[0].x < -1.35");reset(page)
   page.evaluate('testPose[0].z=-.1');page.wait_for_function("Boxing.world.states[0].x > -1.05");reset(page)
   page.evaluate('for(const i of [0,11,12,13,14,15,16,23,24])testPose[i].y+=.17');page.wait_for_function("Boxing.world.actors[0].body.position.y<-.54");assert page.evaluate('Boxing.world.actors[0].bones.leftLeg.lower.rotation.x')>1
@@ -41,9 +41,9 @@ with sync_playwright() as p:
   before=page.evaluate('Boxing.world.distance');page.mouse.wheel(0,-150);page.wait_for_timeout(200);assert page.evaluate('Boxing.world.distance')<before
   page.get_by_role('button',name='Ringside' if lang=='en' else 'ข้างสนาม',exact=True).click()
   # Hide hips/legs: torso still bends and lateral hold moves around the center.
-  page.evaluate('testPose[23].visibility=testPose[24].visibility=0;testPose[0].z=-.4');page.wait_for_function('Boxing.world.actors[0].spine.rotation.x>.55');reset(page)
+  page.evaluate('testPose[23].visibility=testPose[24].visibility=0;testPose[0].z=-.4');page.wait_for_function('Boxing.world.actors[0].spine.rotation.x+Boxing.world.actors[0].chest.rotation.x>.70');reset(page)
   page.evaluate('testPose[23].visibility=testPose[24].visibility=0;for(const i of [0,11,12,13,14,15,16])testPose[i].x-=.10')
-  page.wait_for_function('Boxing.world.actors[0].spine.rotation.z<-.20');page.wait_for_timeout(3500);assert abs(page.evaluate('Boxing.world.states[0].z'))<.05
+  page.wait_for_function('Boxing.world.actors[0].spine.rotation.z+Boxing.world.actors[0].chest.rotation.z<-.20');page.wait_for_timeout(1000);assert abs(page.evaluate('Boxing.world.states[0].z'))<.05
   page.wait_for_function('Math.abs(Boxing.world.states[0].z)>.25',timeout=6000);page.wait_for_function('Boxing.world.actors[0].gait>.3');page.wait_for_function('Math.abs(Boxing.world.actors[0].bones.leftLeg.upper.rotation.z-.1)>.04');reset(page)
   # Return to the practice starting point via a normal profile selection refresh.
   page.get_by_role('button',name='Disable character control camera' if lang=='en' else 'ปิดกล้องสำหรับควบคุมตัวละคร',exact=True).click()

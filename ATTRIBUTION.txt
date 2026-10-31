@@ -40,3 +40,9 @@ scenes drawn for this release. Spicylifter uses generic pastel bunny/cloud/bow/
 heart/star motifs; Powerlifter uses generic friendly ghost/pumpkin/bat/moon motifs.
 No LINE, Sanrio or other third-party character/logo assets are incorporated.
 The existing 45 team logo and all prior exercise/media attributions remain unchanged.
+
+Quaternius Universal Base Characters Standard — CC0 1.0
+Official source: https://quaternius.itch.io/universal-base-characters
+Derived editor meshes/textures: static/models/quaternius/
+Verbatim included license: static/models/quaternius/LICENSE.txt
+Conversion and verification details: docs/AVATAR_MODEL_RESEARCH.md

@@ -1,6 +1,6 @@
 """Server-authoritative planar cage movement and timed head-strike resolution."""
 import math,uuid
-APOTHEM=4.3
+APOTHEM=5.0
 SPEED=1.05
 RANGE=1.65
 

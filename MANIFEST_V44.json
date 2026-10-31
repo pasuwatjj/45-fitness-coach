@@ -106,15 +106,16 @@
       ]
     },
     "static/character-renderer.js": {
-      "sha256": "2f98b003f307fa5284fa6378a6e63eb36e3fed779b5beb78b03ba10d1159266d",
-      "bytes": 16930,
+      "sha256": "3ce95350d02e42a88a1e7d4f57d2f6ff822339993aa29ca92d7040908593a297",
+      "bytes": 17232,
       "accepted_previous_sha256": [
         "d86d2695bf8b89daae4678c2d093665b90f37528424f930832f73109aa9948b2",
         "24326373919ae71e0babd5d75d4d0969caaa79d91c224d2c2be1367497f251b2",
         "9ddca4e3a4318540f80342ff35cab4c1107b24c7a25197633b413df5393ff2b9",
         "78353d5ccb87de7114b7807e13e0edfb0aad9db2de239365c84e51b045836b3d",
         "25cdd2830202602157de2a63c73f629e23c15e8e500a2f3f576a1d30e2f896c8",
-        "131819b668131b0ecb561378c0be52b6221c49c2b03fc31352cdb7062cee8167"
+        "131819b668131b0ecb561378c0be52b6221c49c2b03fc31352cdb7062cee8167",
+        "2f98b003f307fa5284fa6378a6e63eb36e3fed779b5beb78b03ba10d1159266d"
       ]
     },
     "static/live-avatar.css": {
@@ -228,8 +229,8 @@
       ]
     },
     "templates/index.html": {
-      "sha256": "be74fdc1f02c43cd26d6f1d543c64fd3349f1dfc33945e919d5f9c1169ac68b8",
-      "bytes": 43694,
+      "sha256": "6ba6efad2a054b0e3caa12dba280e5c6aee21e21e96290f65e0f9eb1d27dd030",
+      "bytes": 43745,
       "accepted_previous_sha256": [
         "9b7cf7d4198fb203d3da37dcf5b6c7950d83f0f5f4f7b5a366e8af5025df2460",
         "e130cbad8629911513b5cf66cce6cc5ff279acfcaa9b4d1d8e743cfaee6a6fcb",
@@ -248,7 +249,8 @@
         "2151b28da7fcb94cc0a506206175f9aafa07ab0a1949d774bca08091ad0a1282",
         "887943fc37c0c0762e3be5f4073366614d9205373f3acfb069b7de0a3da8fd31",
         "35ed5b65fb4fdff1ec7eedbf2300787e2e5d53721dc8d2653275b3956803bb40",
-        "85dbb7e15625a0e1c9f94d1e12fc75a9ef399483fa475aaa15f55cdf41118e4d"
+        "85dbb7e15625a0e1c9f94d1e12fc75a9ef399483fa475aaa15f55cdf41118e4d",
+        "be74fdc1f02c43cd26d6f1d543c64fd3349f1dfc33945e919d5f9c1169ac68b8"
       ]
     },
     "static/character.js": {
@@ -441,39 +443,43 @@
       "accepted_previous_sha256": [
         "9c7adb5b9294457b3a44023a48020d012dfa12a6e3f94cfe85984c1651c23325",
         "299b536fed257cb5efc297288771ee6507b5a48f3d7b239c278a25953c148644",
-        "ea7dbfe07eddd2cb0e9f29f8c63ee1298bb56242b8f7811c34a0135f28b65700"
+        "ea7dbfe07eddd2cb0e9f29f8c63ee1298bb56242b8f7811c34a0135f28b65700",
+        "1d5820ef3a09583e072d06064c8360a088e54ec337e3e00904803925a33cacb3"
       ],
-      "sha256": "1d5820ef3a09583e072d06064c8360a088e54ec337e3e00904803925a33cacb3",
-      "bytes": 11889
+      "sha256": "255a29204db85df7ce92b1e3291fab2bf8d9108b9f7ab6777625b8215a45442e",
+      "bytes": 12872
     },
     "static/boxing.js": {
       "accepted_previous_sha256": [
         "42a72f3595d895860ad8b93fa7a4f071ef03173715c6ef48821a102cfafc498d",
         "4a0f1da0db2b5eca01cd45f66a5e306dc0d0bc6ec743cd69c66c916e12f3550f",
         "6a34d7f07d78965bad28163760804e927b1944a0af20230b79021e14489c4845",
-        "d3b16ad7f19a2adf8a7dca3add1bfc2b0aaa3ed99bcef43920f693f05f02ab69"
+        "d3b16ad7f19a2adf8a7dca3add1bfc2b0aaa3ed99bcef43920f693f05f02ab69",
+        "a3f77e836736494869219c7e05c15ef70aa2f27c450d36847fe9a64f1f836b77"
       ],
-      "sha256": "a3f77e836736494869219c7e05c15ef70aa2f27c450d36847fe9a64f1f836b77",
-      "bytes": 26006
+      "sha256": "1cd04dd47115603fd55d9fdc665a84b44de8e8656f44cdf1d4d391a57224a426",
+      "bytes": 27452
     },
     "static/boxing-pose.js": {
       "accepted_previous_sha256": [
         "2ef478f3367a766900036832f1f2040f647777f440c613bb6404d6d4ed7db812",
         "426a0e4cbe230cf61fda4654012cab414835d5069428bbe27f78f74492c7a713",
-        "8579d654247302b8bc08135aea28a354a52a7877ae91d1344eb9a8e361c2fbc2"
+        "8579d654247302b8bc08135aea28a354a52a7877ae91d1344eb9a8e361c2fbc2",
+        "642936b165595533b43dd4729827a26961db216f43acfc18bcba5b144e13d671"
       ],
-      "sha256": "642936b165595533b43dd4729827a26961db216f43acfc18bcba5b144e13d671",
-      "bytes": 6357
+      "sha256": "a3f4e35c47f4e380c57cd43a4673143c764eacc04cc14c4fdb028c2f61c8034a",
+      "bytes": 8215
     },
     "static/boxing.css": {
       "accepted_previous_sha256": [
         "9cc9e7e6711d47f3cf3b5ce5d1e2f1b2504ceb9d07f1488f596ca4025039a6ec",
         "e875d673eb2e1debb31bfea37f20b3eb4482b587611d226700e3f5975dfcf424",
         "57539784c3279394e9dfe1695febd3d7de235f81134849286e526b0b12f81cee",
-        "b95954de43b10beb34a0480e94b7aea4a05cf438bc3ef6c97d41325b0e14b77a"
+        "b95954de43b10beb34a0480e94b7aea4a05cf438bc3ef6c97d41325b0e14b77a",
+        "93676c74766d549cefc48c4866fd44fa89ef7b9bfcd56b8a2f136ece85b35fea"
       ],
-      "sha256": "93676c74766d549cefc48c4866fd44fa89ef7b9bfcd56b8a2f136ece85b35fea",
-      "bytes": 12078
+      "sha256": "0465965452c385c1221a1309f7b6820d92e8f2db08546a72ac51386f02c7c62a",
+      "bytes": 13742
     },
     "static/images/boxing/arena.png": {
       "accepted_previous_sha256": [],
@@ -494,6 +500,16 @@
       "accepted_previous_sha256": [],
       "sha256": "643a991e54b3d82070cd4aa4397875cce169311d22385eb0496a4addac789ad7",
       "bytes": 2482475
+    },
+    "boxing_cage.py": {
+      "accepted_previous_sha256": [],
+      "sha256": "4deedad22a1c836c83b4df513a59d35e464d333d1ece93342898c3a8bbfcedf4",
+      "bytes": 3518
+    },
+    "static/boxing-world.js": {
+      "accepted_previous_sha256": [],
+      "sha256": "5996a135e24edd7c3aba83b99ae7a01856be39b3b1a45db7d20b5a225921a057",
+      "bytes": 19036
     }
   }
 }

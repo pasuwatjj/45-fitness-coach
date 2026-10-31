@@ -21,3 +21,17 @@ for(const side of ['left','right'])for(const type of ['straight','hook','uppercu
 // Guard activation remains a 3-second elbow hold.
 {const {p,settle}=fixture();p[13].y=p[14].y=.4;const r=settle(50);assert(r.guard);assert.equal(r.guardSeconds,3)}
 console.log('PASS mild backward lean, depth conflict, perspective fallback, crouch/stand, cropped/occluded body, assisted left/right straight/hook/uppercut, hold suppression, guard and English');
+// Retraction, held extension and small jitter never create a bonus uppercut/hook.
+for(const side of ['left','right']){
+ const {p,read,settle}=fixture(),s=side==='left'?11:12,e=s+2,h=s+4,sign=side==='left'?1:-1,neutral=JSON.parse(JSON.stringify(p));
+ const extend=()=>{Object.assign(p[e],{x:p[s].x+sign*.035,y:.43,z:-.15});Object.assign(p[h],{x:p[s].x+sign*.08,y:.36,z:-.3})};extend();assert.equal(read().action,side);settle(12);
+ for(const i of [e,h])Object.assign(p[i],neutral[i]);assert.equal(read().action,'control');for(let i=0;i<8;i++)assert.equal(read().action,'control');
+ extend();assert.equal(read().action,side);for(let i=0;i<20;i++){p[h].x+=(i%2?1:-1)*.005;assert.equal(read().action,'control')}
+}
+// Upper-body-only lateral movement: immediate slip, five-second hold, neutral/reversal reset.
+{const {p,read,settle}=fixture();p[23].visibility=p[24].visibility=0;for(const i of [0,11,12,13,14,15,16])p[i].x-=.10;let r=settle(5);assert(r.slip>.5);assert.equal(r.strafe,0);r=settle(60);assert.equal(r.strafe,0);r=settle(12);assert.equal(r.strafe,1);for(const i of [0,11,12,13,14,15,16])p[i].x+=.20;r=settle(8);assert(r.slip<-.5);assert.equal(r.strafe,0);for(const i of [0,11,12,13,14,15,16])p[i].x-=.10;r=settle(10);assert.equal(r.strafe,0);assert.equal(r.sideSeconds,0)}
+// Deep bow changes the torso and suppresses forward travel; missing hands do not strike on recovery.
+{const {p,settle}=fixture();p[23].visibility=p[24].visibility=0;p[0].z=-.4;let r=settle(15);assert(r.bend>.8);assert.equal(r.move,0);p[0].z=0;r=settle(15);assert(Math.abs(r.bend)<.05);p[15].visibility=0;settle();p[15].visibility=1;assert.equal(settle(3).action,'control')}
+console.log('PASS no recoil/hold/jitter bonus punches, deliberate rearm, upper-body 5-second circling, reversal/neutral reset, deep bend and occlusion recovery');
+{const {p,d}=fixture();assert.equal(d.read(p,p,10000).valid,false);assert.equal(d.sideAt,null);assert.equal(d.walk,0)}
+console.log('PASS stalled tracking recalibrates rather than completing a stale side hold');

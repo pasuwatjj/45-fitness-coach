@@ -19,25 +19,47 @@ with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'])
  ca=b.new_context(viewport={'width':1280,'height':1000});cb=b.new_context(viewport={'width':390,'height':950});uid,pid,h=account(ca,'Blue');other,opid,oh=account(cb,'Red');ca.request.post(root+'/social/friends',headers=h,data={'action':'request','account_id':other});cb.request.post(root+'/social/friends',headers=oh,data={'action':'accept','account_id':uid});a=ca.new_page();c=cb.new_page();errors=[]
  for page,lang in [(a,'en'),(c,'th')]:
-  page.on('pageerror',lambda e:errors.append(str(e)));page.goto(root+'/45-fitness-coach?lang='+lang);page.wait_for_timeout(1000);page.locator('#homeBoxingTile').click();page.wait_for_selector('.boxing-fighters canvas[data-avatar-state=ready]');page.evaluate(pose);page.get_by_role('button',name='Enable character control camera' if lang=='en' else 'เปิดกล้องสำหรับควบคุมตัวละคร',exact=True).click();page.wait_for_function("/Ready|พร้อม/.test(document.querySelector('.boxing-status').textContent)",timeout=15000)
-  page.evaluate('testPose[0].z=.055');page.wait_for_function("parseFloat(document.querySelector('.boxing-fighters canvas').style.left)<30");reset(page)
-  page.evaluate('testPose[0].z=-.1');page.wait_for_function("parseFloat(document.querySelector('.boxing-fighters canvas').style.left)>35");reset(page)
-  page.evaluate('for(const i of [0,11,12,13,14,15,16,23,24])testPose[i].y+=.17');page.wait_for_function("document.querySelector('.boxing-fighters canvas')._fighter.poseOffsetY<-.48");assert page.locator('.boxing-fighters canvas').evaluate('c=>c._fighter.bones.leftLeg.lower.rotation.x')>1
-  reset(page);page.wait_for_function("Math.abs(document.querySelector('.boxing-fighters canvas')._fighter.poseOffsetY)<.04")
+  page.on('pageerror',lambda e:errors.append(str(e)));page.goto(root+'/45-fitness-coach?lang='+lang);page.wait_for_timeout(1000);page.locator('#homeBoxingTile').click();page.wait_for_function("Boxing.world?.actors[0]?.canvas.dataset.avatarState==='ready'");page.evaluate(pose);page.get_by_role('button',name='Enable character control camera' if lang=='en' else 'เปิดกล้องสำหรับควบคุมตัวละคร',exact=True).click();page.wait_for_function("/Ready|พร้อม/.test(document.querySelector('.boxing-status').textContent)",timeout=15000)
+  page.evaluate('testPose[0].z=.055');page.wait_for_function("Boxing.world.states[0].x < -1.35");reset(page)
+  page.evaluate('testPose[0].z=-.1');page.wait_for_function("Boxing.world.states[0].x > -1.05");reset(page)
+  page.evaluate('for(const i of [0,11,12,13,14,15,16,23,24])testPose[i].y+=.17');page.wait_for_function("Boxing.world.actors[0].body.position.y<-.54");assert page.evaluate('Boxing.world.actors[0].bones.leftLeg.lower.rotation.x')>1
+  reset(page);page.wait_for_function("Math.abs(Boxing.world.actors[0].body.position.y+.06)<.04")
   for side,kind in [('right','hook'),('left','uppercut'),('right','straight')]:
-   reset(page);n=page.evaluate('damageLog.length');punch(page,side,kind);page.wait_for_function('damageLog.length>'+str(n));assert page.locator('.boxing-fighters canvas').evaluate('c=>c._fighter.punchType')==kind
+   reset(page);n=page.evaluate('damageLog.length');punch(page,side,kind);page.wait_for_function('damageLog.length>'+str(n));assert page.evaluate('Boxing.world.actors[0].punchType')==kind
   assert page.locator('.boxing-bag-damage').inner_text()=='−1 HP';reset(page)
+  # One world renderer, profile mesh and actual center bag. Orbit/zoom presets are interactive.
+  assert page.locator('.boxing-fighters canvas').count()==1
+  assert page.evaluate('Boxing.world.bag.visible&&Boxing.world.bag.position.length()===0')
+  page.get_by_role('button',name='Overhead' if lang=='en' else 'มุมสูง',exact=True).click();assert page.evaluate('Boxing.world.mode')=='top'
+  page.get_by_role('button',name='Ringside' if lang=='en' else 'ข้างสนาม',exact=True).click()
+  rect=page.locator('.cage-canvas').bounding_box();px=rect['x']+rect['width']*.5;py=rect['y']+rect['height']*.6
+  page.mouse.move(px,py);page.mouse.down();page.mouse.move(px+45,py-20);page.mouse.up();assert page.evaluate('Boxing.world.mode')=='orbit'
+  before=page.evaluate('Boxing.world.distance');page.mouse.wheel(0,-150);page.wait_for_timeout(200);assert page.evaluate('Boxing.world.distance')<before
+  page.get_by_role('button',name='Ringside' if lang=='en' else 'ข้างสนาม',exact=True).click()
+  # Hide hips/legs: torso still bends and lateral hold moves around the center.
+  page.evaluate('testPose[23].visibility=testPose[24].visibility=0;testPose[0].z=-.4');page.wait_for_function('Boxing.world.actors[0].spine.rotation.x>.55');reset(page)
+  page.evaluate('testPose[23].visibility=testPose[24].visibility=0;for(const i of [0,11,12,13,14,15,16])testPose[i].x-=.10')
+  page.wait_for_function('Boxing.world.actors[0].spine.rotation.z<-.20');page.wait_for_timeout(3500);assert abs(page.evaluate('Boxing.world.states[0].z'))<.05
+  page.wait_for_function('Math.abs(Boxing.world.states[0].z)>.25',timeout=6000);reset(page)
+  # Return to the practice starting point via a normal profile selection refresh.
+  page.get_by_role('button',name='Disable character control camera' if lang=='en' else 'ปิดกล้องสำหรับควบคุมตัวละคร',exact=True).click()
+  page.locator('.boxing-controls select').first.dispatch_event('change');page.wait_for_function("Boxing.world.actors[0]?.canvas.dataset.avatarState==='ready'&&Math.abs(Boxing.world.states[0]?.x+1.05)<.01")
+  page.get_by_role('button',name='Enable character control camera' if lang=='en' else 'เปิดกล้องสำหรับควบคุมตัวละคร',exact=True).click();page.wait_for_function("/Ready|พร้อม/.test(document.querySelector('.boxing-status').textContent)",timeout=15000)
+
   assert page.locator('.boxing-vitals').first.evaluate('n=>getComputedStyle(n).backgroundColor')=='rgba(0, 0, 0, 0)'
   page.locator('.boxing-expand').click();page.wait_for_function("document.fullscreenElement||document.querySelector('.boxing-expanded')");assert page.locator('.boxing-arena').bounding_box()['width']>=page.viewport_size['width']-2;page.locator('.boxing-expand').click();page.wait_for_function("!document.fullscreenElement&&!document.querySelector('.boxing-expanded')")
   page.evaluate("document.querySelector('.boxing-arena').requestFullscreen=undefined");page.locator('.boxing-expand').click();page.wait_for_selector('.boxing-expanded');page.keyboard.press('Escape');page.wait_for_function("!document.querySelector('.boxing-expanded')")
-  page.evaluate("document.body.dataset.effects='on'");before=page.locator('.beam-a').evaluate('n=>getComputedStyle(n).transform');page.wait_for_timeout(350);assert page.locator('.beam-a').evaluate('n=>getComputedStyle(n).transform')!=before
-  page.emulate_media(reduced_motion='reduce');assert page.locator('.beam-a').evaluate('n=>getComputedStyle(n).animationName')=='none';page.emulate_media(reduced_motion='no-preference')
+  page.evaluate("document.body.dataset.effects='on'");before=page.evaluate('Boxing.world.beams[0].rotation.z');page.wait_for_timeout(350);assert page.evaluate('Boxing.world.beams[0].rotation.z')!=before
+  page.emulate_media(reduced_motion='reduce');page.wait_for_function('Boxing.world.beams[0].rotation.z===0');page.emulate_media(reduced_motion='no-preference')
   if lang=='en':assert not __import__('re').search('[ก-๙]',page.locator('#boxingPage').inner_text()),page.locator('#boxingPage').inner_text()
   print(lang,'PASS gentle backward/forward, crouch/stand rig, assisted types, bag damage, native/fallback fullscreen, transparent HUD and moving/reduced-motion arena',flush=True)
  a.get_by_role('button',name='Invite friend',exact=True).click();a.wait_for_function('Boxing.state?.id');c.wait_for_selector('.boxing-rooms button');c.get_by_role('button',name='รับคำชวน',exact=True).click()
  for page,button in [(a,'Ready'),(c,'พร้อม')]:page.wait_for_function('Boxing.state?.players.length===2');page.get_by_role('button',name=button,exact=True).click()
- a.wait_for_function("Boxing.state.status==='active'",timeout=12000);initial=a.locator('.boxing-clock strong').inner_text();a.wait_for_timeout(1100);assert a.locator('.boxing-clock strong').inner_text()!=initial
- c.evaluate('for(const i of [0,11,12,13,14,15,16,23,24])testPose[i].y+=.17');a.wait_for_function('Boxing.state.players[1].crouch>.9');a.wait_for_function("document.querySelectorAll('.boxing-fighters canvas')[1]._fighter.poseOffsetY<-.45");reset(c);a.wait_for_function('Boxing.state.players[1].crouch<.05')
+ a.wait_for_function("Boxing.state.status==='active'",timeout=12000);assert a.evaluate('!Boxing.world.bag.visible&&Boxing.world.actors.length===2');initial=a.locator('.boxing-clock strong').inner_text();a.wait_for_timeout(1100);assert a.locator('.boxing-clock strong').inner_text()!=initial
+ c.evaluate('for(const i of [0,11,12,13,14,15,16,23,24])testPose[i].y+=.17');a.wait_for_function('Boxing.state.players[1].crouch>.9');a.wait_for_function("Boxing.world.actors[1].body.position.y<-.51");reset(c);a.wait_for_function('Boxing.state.players[1].crouch<.05')
+ # Correct-side slip avoids a real timed punch; recovery does not add a second strike.
+ c.evaluate('testPose[0].x+=.12');c.wait_for_function('Boxing.world.states[1].slip<-.6');punch(a,'left');a.wait_for_function("Boxing.state.event?.result==='dodge'",timeout=7000);assert a.evaluate('Boxing.state.players[1].hp')==10
+ reset(a);reset(c);n=a.evaluate('Boxing.state.events.length');a.wait_for_timeout(900);assert a.evaluate('Boxing.state.events.length')==n
  # Split the first two rounds, then win the deciding third, using the actual pose loop.
  for round_number,attacker,target in [(1,a,1),(2,c,0),(3,a,1)]:
   attacker.wait_for_function(f"Boxing.state.status==='active'&&Boxing.state.round==={round_number}",timeout=12000)
@@ -54,5 +76,5 @@ with sync_playwright() as p:
  assert a.evaluate('Boxing.state.winner')==uid;assert a.evaluate('Boxing.state.players.map(p=>p.wins)')==[2,1];assert ca.request.get(root+f'/social/boxing/trophies/{pid}',headers=h).json()['trophies']==1
  frozen=a.locator('.boxing-clock strong').inner_text();a.wait_for_timeout(1200);assert a.locator('.boxing-clock strong').inner_text()==frozen
  for page,width in [(a,1280),(c,390)]:
-  page.evaluate('FitnessCharacterRenderer.prototype.schedule=()=>{}');page.add_style_tag(content='.boxing-ambience i{animation:none!important}');page.locator('.boxing-arena').screenshot(path=str(out/f'{width}-championship.png'));assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+2')
+  page.evaluate('FitnessCharacterRenderer.prototype.schedule=()=>{}');page.add_style_tag(content='.boxing-ambience i{animation:none!important}');page.screenshot(path=str(out/f'{width}-championship.png'));assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+2')
  assert not errors,errors;print('PASS both-client crouch sync, three rounds 2–1, resets, clock and single final trophy; no JS errors',flush=True);b.close()

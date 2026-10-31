@@ -6,6 +6,7 @@ import app as server
 class BoxingTests(unittest.TestCase):
     def setUp(self):
         fixtures.RouteTests.setUp(self)
+        legacy=patch('boxing.MATCH_RULES',3);legacy.start();self.addCleanup(legacy.stop) # Existing rooms keep their original rules.
         self.uid=int(self.owner.split(':')[1]);self.other=int(self.reg.items[self.tb]['owner'].split(':')[1]);self.now=1000
         self.patcher=patch('boxing.clock',side_effect=lambda:self.now);self.patcher.start();self.addCleanup(self.patcher.stop)
         self.a.post('/social/friends',json={'action':'request','account_id':self.other});self.b.post('/social/friends',json={'action':'accept','account_id':self.uid})

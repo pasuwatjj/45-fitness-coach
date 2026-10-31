@@ -2,8 +2,8 @@
 'use strict';
 (() => {
  const byId={homeTab:'home',backHome:'home',workoutTab:'workout',calendarTab:'calendar',leaderTab:'leader',cardioTab:'cardio',healthTab:'health',characterTab:'character',profileTab:'profile',accountTab:'profile',vipTab:'vip',inboxTab:'chat',rewardsTab:'rewards',challengesTab:'challenges',friendsTab:'friends',adminTab:'admin',powerTheme:'workout',spicyTheme:'health'};
- const tileIcons=['workout','cardio','calendar','leader','health','character','rewards','chat','admin'];
- const pageIcons={characterPage:'character',cardioPage:'cardio',friendsPage:'friends',adminPage:'admin',vipPage:'vip',challengesPage:'challenges',inboxPage:'chat',rewardsPage:'rewards',profilePage:'profile',calendarPage:'calendar',leaderPage:'leader',healthPage:'health'};
+ const tileIcons=['workout','cardio','calendar','leader','health','character','rewards','chat','admin','boxing'];
+ const pageIcons={boxingPage:'boxing',characterPage:'character',cardioPage:'cardio',friendsPage:'friends',adminPage:'admin',vipPage:'vip',challengesPage:'challenges',inboxPage:'chat',rewardsPage:'rewards',profilePage:'profile',calendarPage:'calendar',leaderPage:'leader',healthPage:'health'};
  // Strip only a leading presentation symbol, preserving all translated text, badges and counts.
  const leading=/^[\s\uFE0F\u200D\u2600-\u27BF\u2300-\u23FF\u25A0-\u25FF\u{1F300}-\u{1FAFF}]+/u;
  function mark(node,kind,iconOnly=false){

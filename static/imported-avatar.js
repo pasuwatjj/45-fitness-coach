@@ -1,5 +1,5 @@
 /* Quaternius Universal Base Characters, CC0. See models/quaternius/LICENSE.txt.
-   Profile editor renderer. Live pose tracking retains the articulated renderer. */
+   Shared saved avatar with authored skin weights for previews and live pose tracking. */
 'use strict';
 window.FitnessImportedAvatar=class extends FitnessCharacterRenderer {
  static cache=new Map();
@@ -10,12 +10,12 @@ window.FitnessImportedAvatar=class extends FitnessCharacterRenderer {
   if(this.loadedGender===gender){this.build();this.draw();return}
   this.canvas.dataset.avatarState='loading';this.canvas.setAttribute('aria-busy','true');
   // Retain a visible avatar while asynchronous assets load, including offline fallback.
-  if(!this.body){super.build();this.draw()}
+  if(!this.body){this.rigged=false;super.build();this.draw()}
   const serial=this.loadSerial=(this.loadSerial||0)+1;
-  Promise.all([FitnessImportedAvatar.asset(gender),...['Hair_Buzzed','Hair_SimpleParted','Hair_Long'].map(n=>FitnessImportedAvatar.asset(n)),this.loadTextures(gender)]).then(([body,...parts])=>{
+  Promise.all([FitnessImportedAvatar.asset(gender),FitnessImportedAvatar.asset(gender+'-rig'),...['Hair_Buzzed','Hair_SimpleParted','Hair_Long'].map(n=>FitnessImportedAvatar.asset(n)),this.loadTextures(gender)]).then(([body,rig,...parts])=>{
    if(this.destroyed||serial!==this.loadSerial)return;
-   this.assetBody=body;this.assetHair=parts.slice(0,3);this.loadedGender=gender;this.build();this.canvas.dataset.avatarState='ready';this.canvas.setAttribute('aria-busy','false');this.draw();
-  }).catch(()=>{if(!this.destroyed&&serial===this.loadSerial){this.canvas.dataset.avatarState='error';this.canvas.setAttribute('aria-busy','false');this.canvas.setAttribute('aria-label','3D asset unavailable. Showing the fallback avatar.');super.build();this.draw()}});
+   this.assetBody=body;this.assetRig=rig;this.assetHair=parts.slice(0,3);this.loadedGender=gender;this.build();this.canvas.dataset.avatarState='ready';this.canvas.setAttribute('aria-busy','false');this.draw();
+  }).catch(()=>{if(!this.destroyed&&serial===this.loadSerial){this.canvas.dataset.avatarState='error';this.canvas.setAttribute('aria-busy','false');this.canvas.setAttribute('aria-label','3D asset unavailable. Showing the fallback avatar.');this.rigged=false;super.build();this.draw()}});
  }
  tint(color,base){const b=new THREE.Color(base);color.r/=b.r;color.g/=b.g;color.b/=b.b;}
  loadTextures(gender){
@@ -66,12 +66,15 @@ window.FitnessImportedAvatar=class extends FitnessCharacterRenderer {
    }
    return [x*unit,y*unit,z*unit];
   };
-  const make=(data,mat,index=data.index,offset=0)=>{
+  this.buildRig(deform);
+  const make=(data,mat,index=data.index,offset=0,skin=this.assetRig.meshes[data.name]?.skin)=>{
    const vertices=[];for(let i=0;i<data.position.length;i+=3){const p=deform(...data.position.slice(i,i+3));for(let k=0;k<3;k++)vertices.push(p[k]+offset*data.normal[i+k])}
-   const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geo.setAttribute('uv',new T.Float32BufferAttribute(data.uv,2));geo.setAttribute('muscleDevelopment',new T.Float32BufferAttribute(data.position.filter((_,i)=>i%3===0).map((_,i)=>FitnessMuscleProgression.deform(...data.position.slice(i*3,i*3+3),maxY,development).detail),1));geo.setIndex(index);if(offset)geo.setAttribute('normal',new T.Float32BufferAttribute(data.normal,3));else geo.computeVertexNormals();return this.mesh(geo,mat,this.body);
+   const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geo.setAttribute('uv',new T.Float32BufferAttribute(data.uv,2));geo.setAttribute('muscleDevelopment',new T.Float32BufferAttribute(data.position.filter((_,i)=>i%3===0).map((_,i)=>FitnessMuscleProgression.deform(...data.position.slice(i*3,i*3+3),maxY,development).detail),1));geo.setIndex(index);if(offset)geo.setAttribute('normal',new T.Float32BufferAttribute(data.normal,3));else geo.computeVertexNormals();if(!skin)return this.mesh(geo,mat,this.body);
+   geo.setAttribute('skinIndex',new T.Uint16BufferAttribute(skin.index,4));geo.setAttribute('skinWeight',new T.Float32BufferAttribute(skin.weight,4));
+   const mesh=new T.SkinnedMesh(geo,mat);mesh.frustumCulled=false;this.resources.push(geo);this.body.add(mesh);mesh.bind(this.skeleton);return mesh;
   };
   for(const data of this.assetBody){make(data,data.name.includes('Super')?skin:data.name==='Eyes'?eyes:hair);
-   if(data.name.includes('Super')){make(data.clothing.shorts,shorts,data.clothing.shorts.index,.018);const style=a.clothing==='tee'?'tee':a.clothing==='tank'?'tank':gender==='female'?'sports':null;if(style)make(data.clothing[style],top,data.clothing[style].index,.022)}
+   if(data.name.includes('Super')){make(data.clothing.shorts,shorts,data.clothing.shorts.index,.018,this.assetRig.meshes[data.name].clothing.shorts);const style=a.clothing==='tee'?'tee':a.clothing==='tank'?'tank':gender==='female'?'sports':null;if(style)make(data.clothing[style],top,data.clothing[style].index,.022,this.assetRig.meshes[data.name].clothing[style])}
   }
   const style=a.hair||'short',hairIndex={short:0,swept:1,bob:2,ponytail:0,curly:0}[style];
   if(hairIndex!==undefined)for(const data of this.assetHair[hairIndex]){
@@ -80,7 +83,61 @@ window.FitnessImportedAvatar=class extends FitnessCharacterRenderer {
   const plainHair=this.material(a.hair_color||'#302333',.9);
   if(style==='curly')for(let i=0;i<60;i++){const theta=i*2.39996,r=.088*Math.sqrt(i/60),x=Math.cos(theta)*r,z=Math.sin(theta)*r;this.ell(x*unit,(maxY-.016+.043*Math.sqrt(1-r*r/.008))*unit,(z-.012)*unit,.018*unit,.022*unit,.018*unit,plainHair,this.body)}
   if(style==='ponytail'){this.ell(0,(maxY-.08)*unit,-.10*unit,.037*unit,.05*unit,.04*unit,plainHair,this.body);this.ell(0,(maxY-.20)*unit,-.12*unit,.035*unit,.13*unit,.036*unit,plainHair,this.body)}
+  if(this.workoutPreview)this.addDumbbells();
   this.root.scale.setScalar(this.height);this.restPose();
+ }
+
+ // The bind pose and weights come from the approved CC0 model, not a replacement mesh.
+ buildRig(deform){
+  const T=THREE,base=new T.Bone(),bones=[base];this.body.add(base);this.rigged=true;
+  for(const side of ['left','right'])for(const kind of ['Arm','Leg']){
+   const points=this.assetRig.joints[side+kind].map(p=>new T.Vector3(...deform(...p))),[shoulder,elbow,wrist]=points;
+   const upper=new T.Bone(),lower=new T.Bone();upper.position.copy(shoulder);lower.position.copy(elbow).sub(shoulder);base.add(upper);upper.add(lower);bones.push(upper,lower);
+   this.bones[side+kind]={upper,lower,restUpper:elbow.clone().sub(shoulder).normalize(),restLower:wrist.clone().sub(elbow).normalize(),end:wrist.clone().sub(elbow)};
+  }
+  this.fingers=[];const byName={hand_l:this.bones.leftArm.lower,hand_r:this.bones.rightArm.lower};
+  for(const data of this.assetRig.fingers){
+   const bone=new T.Bone(),parent=byName[data.parent],world=new T.Vector3(...deform(...data.position));
+   // Positions here are in body bind coordinates, independent of profile root scaling.
+   const parentBind=data.parent.startsWith('hand_')?this.assetRig.joints[data.parent.endsWith('_l')?'leftArm':'rightArm'][1]:this.assetRig.fingers.find(f=>f.name===data.parent).position;
+   bone.position.copy(world).sub(new T.Vector3(...deform(...parentBind)));parent.add(bone);byName[data.name]=bone;bones.push(bone);this.fingers.push({bone,name:data.name});
+  }
+  this.body.updateMatrixWorld(true);this.skeleton=new T.Skeleton(bones);this.resources.push(this.skeleton);
+ }
+ restPose(){
+  if(!this.rigged)return super.restPose();
+  for(const b of Object.values(this.bones)){b.upper.quaternion.identity();b.lower.quaternion.identity()}
+  for(const {bone,name}of this.fingers||[]){bone.rotation.set(0,0,0);if(this.workoutPreview&&!this.livePose&&!name.includes('leaf')){bone.rotation.x=name.startsWith('thumb')?-.65:-1.05;}}
+  if(this.workoutPreview&&!this.livePose){
+   const curl=this.motion?.matches?1.1:.25+(1+Math.sin(this.phase*1.7))*.95;
+   for(const side of ['left','right'])this.bones[side+'Arm']?.lower.quaternion.setFromAxisAngle(new THREE.Vector3(-1,0,0),curl);
+  }
+ }
+ applyPose(live,inverse){
+  if(!this.rigged)return super.applyPose(live,inverse);
+  for(const [kind,group]of [['Arm','arms'],['Leg','legs']])for(const side of ['left','right']){
+   const b=this.bones[side+kind],p=live[group]?.[side];if(!b||!p)continue;
+   const upper=new THREE.Vector3(...p.upper).applyQuaternion(inverse).normalize(),lower=new THREE.Vector3(...p.lower).applyQuaternion(inverse).normalize();
+   b.upper.quaternion.setFromUnitVectors(b.restUpper,upper);
+   b.lower.quaternion.copy(b.upper.quaternion).invert().multiply(new THREE.Quaternion().setFromUnitVectors(b.restLower,lower));
+  }
+ }
+ poseBounds(){
+  if(!this.rigged)return super.poseBounds();
+  // Joint endpoints give stable framing without reading every skinned vertex each frame.
+  this.root.updateMatrixWorld(true);const box=new THREE.Box3();
+  for(const b of Object.values(this.bones))for(const p of [b.upper.getWorldPosition(new THREE.Vector3()),b.lower.getWorldPosition(new THREE.Vector3()),b.lower.localToWorld(b.end.clone())])box.expandByPoint(p);
+  for(const x of [-.4,.4])for(const y of [1.5,3.8])box.expandByPoint(this.body.localToWorld(new THREE.Vector3(x,y,0)));
+  return box.expandByScalar(.3*this.height);
+ }
+ setWorkoutPreview(enabled){this.workoutPreview=!!enabled;if(this.assetBody){this.build();this.draw()}}
+ addDumbbells(){
+  const T=THREE,metal=this.material('#aebac8',.28),plate=this.material('#253140',.65);
+  for(const side of ['left','right']){
+   const b=this.bones[side+'Arm'],grip=new T.Group();grip.name='preview-dumbbell';grip.position.copy(b.end).addScaledVector(b.restLower,.12);grip.position.z+=.025;b.lower.add(grip);
+   const bar=this.mesh(new T.CylinderGeometry(.028,.028,.42,12),metal,grip);bar.rotation.z=Math.PI/2;
+   for(const x of [-.18,.18]){const weight=this.mesh(new T.CylinderGeometry(.115,.115,.10,12),plate,grip);weight.rotation.z=Math.PI/2;weight.position.x=x}
+  }
  }
  destroy(){super.destroy();for(const texture of Object.values(this.textures||{}))texture.dispose();this.loadSerial=(this.loadSerial||0)+1}
 };

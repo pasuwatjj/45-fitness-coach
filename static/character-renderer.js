@@ -19,7 +19,7 @@ window.FitnessCharacterRenderer=class {
   canvas.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();this.rotate(e.key==='ArrowLeft'?-.15:.15)}},{signal:this.events.signal});
   this.visibility=()=>{if(document.hidden)this.cancel();else this.schedule()};document.addEventListener('visibilitychange',this.visibility,{signal:this.events.signal});
   this.observer=new IntersectionObserver(entries=>{this.inView=entries[0].isIntersecting;this.inView?this.schedule():this.cancel()});this.observer.observe(canvas);
-  this.motion=matchMedia('(prefers-reduced-motion: reduce)');this.resize=new ResizeObserver(()=>this.draw());this.resize.observe(canvas);
+  this.motion=matchMedia('(prefers-reduced-motion: reduce)');this.motion.addEventListener('change',()=>{this.cancel();this.draw();this.schedule()},{signal:this.events.signal});this.resize=new ResizeObserver(()=>this.draw());this.resize.observe(canvas);
  }
  set(model){this.model=model;if(this.fallback)return this.fallback.set(model);this.build();this.draw()}
  material(color,roughness=.62){const m=new THREE.MeshStandardMaterial({color,roughness,metalness:0});this.resources.push(m);return m}
@@ -132,6 +132,14 @@ window.FitnessCharacterRenderer=class {
  restPose(){for(const side of ['left','right']){const arm=this.bones[side+'Arm'],leg=this.bones[side+'Leg'];if(arm){arm.upper.quaternion.identity();arm.upper.rotation.z=side==='left'?.12:-.12;arm.lower.quaternion.identity()}if(leg){leg.upper.quaternion.identity();leg.lower.quaternion.identity()}}}
  setLivePose(pose){this.livePose=pose;if(this.fallback)return this.fallback.setLivePose(pose);this.draw()}
  rotate(delta){this.yaw+=delta;if(this.fallback)return this.fallback.rotate(delta);this.draw()}
+ applyPose(live,inverse){const T=THREE,down=new T.Vector3(0,-1,0);
+   for(const [key,group]of [['Arm','arms'],['Leg','legs']])for(const side of ['left','right']){
+    const b=this.bones[side+key],p=live[group]?.[side];if(!p||!b)continue;
+    const upper=new T.Vector3(...p.upper).applyQuaternion(inverse).normalize(),lower=new T.Vector3(...p.lower).applyQuaternion(inverse).normalize();
+    b.upper.quaternion.setFromUnitVectors(down,upper);b.lower.quaternion.setFromUnitVectors(down,lower.applyQuaternion(b.upper.quaternion.clone().invert()));
+   }
+ }
+ poseBounds(){return new THREE.Box3().setFromObject(this.root)}
  draw(){
   if(this.destroyed||this.contextLost||!this.model)return;if(this.fallback){this.fallback.yaw=this.yaw;return this.fallback.draw()}
   // CSS dimensions are logical pixels. Never feed the DPR-scaled buffer back into setSize.
@@ -145,15 +153,11 @@ window.FitnessCharacterRenderer=class {
   this.body.quaternion.identity();this.restPose();this.root.rotation.set(0,live?0:this.yaw,0);this.root.scale.set(this.height*(live?.mirror?-1:1),this.height,this.height);
   if(live){
    const basis=new T.Matrix4().makeBasis(new T.Vector3(...live.x),new T.Vector3(...live.y),new T.Vector3(...live.z));this.body.quaternion.setFromRotationMatrix(basis);
-   const inverse=this.body.quaternion.clone().invert(),down=new T.Vector3(0,-1,0);
-   for(const [key,group]of [['Arm','arms'],['Leg','legs']])for(const side of ['left','right']){
-    const b=this.bones[side+key],p=live[group]?.[side];if(!p)continue;
-    const upper=new T.Vector3(...p.upper).applyQuaternion(inverse).normalize(),lower=new T.Vector3(...p.lower).applyQuaternion(inverse).normalize();
-    b.upper.quaternion.setFromUnitVectors(down,upper);b.lower.quaternion.setFromUnitVectors(down,lower.applyQuaternion(b.upper.quaternion.clone().invert()));
-   }
+   const inverse=this.body.quaternion.clone().invert();
+   this.applyPose(live,inverse);
    // Rotate around hip, then frame every transformed vertex for floor/standing movements.
    this.body.position.set(0,0,0);
-   const bounds=new T.Box3().setFromObject(this.root),center=bounds.getCenter(new T.Vector3()),size=bounds.getSize(new T.Vector3());
+   const bounds=this.poseBounds(),center=bounds.getCenter(new T.Vector3()),size=bounds.getSize(new T.Vector3());
    const distance=Math.max(size.y,size.x/this.camera.aspect)/(2*Math.tan(31*Math.PI/360))*1.18;
    this.camera.position.set(center.x,center.y,center.z+Math.max(3,distance));this.camera.lookAt(center);this.gpu.setClearColor(0x000000,0);
   }else{

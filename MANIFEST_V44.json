@@ -102,12 +102,13 @@
       ]
     },
     "static/character-renderer.js": {
-      "sha256": "78353d5ccb87de7114b7807e13e0edfb0aad9db2de239365c84e51b045836b3d",
-      "bytes": 16548,
+      "sha256": "25cdd2830202602157de2a63c73f629e23c15e8e500a2f3f576a1d30e2f896c8",
+      "bytes": 16787,
       "accepted_previous_sha256": [
         "d86d2695bf8b89daae4678c2d093665b90f37528424f930832f73109aa9948b2",
         "24326373919ae71e0babd5d75d4d0969caaa79d91c224d2c2be1367497f251b2",
-        "9ddca4e3a4318540f80342ff35cab4c1107b24c7a25197633b413df5393ff2b9"
+        "9ddca4e3a4318540f80342ff35cab4c1107b24c7a25197633b413df5393ff2b9",
+        "78353d5ccb87de7114b7807e13e0edfb0aad9db2de239365c84e51b045836b3d"
       ]
     },
     "static/live-avatar.css": {
@@ -119,11 +120,12 @@
       ]
     },
     "static/live-avatar.js": {
-      "sha256": "72850172ddb8fe2edb2479f8c1d7ee358bb123cd6ecf2dbef6f32eec19d2521c",
-      "bytes": 6551,
+      "sha256": "11d272b1bdbd1f8808278c192fa11a886c59d0da2e4e0d7957b9d6413f43321a",
+      "bytes": 6548,
       "accepted_previous_sha256": [
         "00b67d15eb477d518d7dc9743e3691410a08b52bf4f26f605cc71a1bf602ab7b",
-        "b85d0e9e7e8f2c88afd9a7cb0cd0110e21fa5dd21c9a7a52c6f2dfafcf3081a7"
+        "b85d0e9e7e8f2c88afd9a7cb0cd0110e21fa5dd21c9a7a52c6f2dfafcf3081a7",
+        "72850172ddb8fe2edb2479f8c1d7ee358bb123cd6ecf2dbef6f32eec19d2521c"
       ]
     },
     "static/local-pose.js": {
@@ -219,7 +221,7 @@
       ]
     },
     "templates/index.html": {
-      "sha256": "dfb6577762f6588e5c35bf4f16c871b71fb034bbb3fc42533d61078ab34393d7",
+      "sha256": "6207fcfda2732f5693741a299a1be356a69cf7a7f86bd780849e743b9788b027",
       "bytes": 42949,
       "accepted_previous_sha256": [
         "9b7cf7d4198fb203d3da37dcf5b6c7950d83f0f5f4f7b5a366e8af5025df2460",
@@ -228,7 +230,8 @@
         "bae3d2914f408b9844017a1e77ff7acf95aa9349cefc120baffb5353a08b1efd",
         "09a442a2f2b86e7af6505c756fcabe941d98ddb83c86cd195e2d0a660ee8ec41",
         "f04d4d075b4a6c0579e893a43bf5f9af19f856a5d85a355f12178ca28c323d04",
-        "517ad2c11380c81c59c2fec9513a5ba68ff7e69525208ba3d33afa87946780c0"
+        "517ad2c11380c81c59c2fec9513a5ba68ff7e69525208ba3d33afa87946780c0",
+        "dfb6577762f6588e5c35bf4f16c871b71fb034bbb3fc42533d61078ab34393d7"
       ]
     },
     "static/character.js": {
@@ -241,10 +244,11 @@
     },
     "static/imported-avatar.js": {
       "accepted_previous_sha256": [
-        "e00fd25becefc4381c6138f0517d9a85701ac47778a6b709ed4d790f3c975ccc"
+        "e00fd25becefc4381c6138f0517d9a85701ac47778a6b709ed4d790f3c975ccc",
+        "9928208934264af1b521c62106fa3d5a421b4f0746d9e53e560bad519bc470ed"
       ],
-      "sha256": "9928208934264af1b521c62106fa3d5a421b4f0746d9e53e560bad519bc470ed",
-      "bytes": 8294
+      "sha256": "2b9d5cee7cc794f525d0615c539c216dbc22bba0c4f1ac6ce90b68e5b14df638",
+      "bytes": 12953
     },
     "static/models/quaternius/LICENSE.txt": {
       "accepted_previous_sha256": [],
@@ -327,11 +331,22 @@
       "accepted_previous_sha256": []
     },
     "static/profile.js": {
-      "sha256": "dc4601b0bff98e06c90e9ca4bc2af598eb42fbdd1615d0ce3a15b73f6ef97cdf",
-      "bytes": 28969,
+      "sha256": "422f362ffed7609eb4a9cce6105f0a7ad13c183d704dd029abfaa6a77018feaa",
+      "bytes": 29010,
       "accepted_previous_sha256": [
-        "b03131b35f47b896fbb8d41502be819e66a1a963725c1738007e47c95fddb1d9"
+        "b03131b35f47b896fbb8d41502be819e66a1a963725c1738007e47c95fddb1d9",
+        "dc4601b0bff98e06c90e9ca4bc2af598eb42fbdd1615d0ce3a15b73f6ef97cdf"
       ]
+    },
+    "static/models/quaternius/male-rig.json": {
+      "accepted_previous_sha256": [],
+      "sha256": "7de4ae2e128b15587458fb3543804612d64f9013155b70fc68655927cac4ef05",
+      "bytes": 743942
+    },
+    "static/models/quaternius/female-rig.json": {
+      "accepted_previous_sha256": [],
+      "sha256": "d33975ffb4a320015f7aa8f272a122ce8ba88434bdabde1d6c433be2def9ce2a",
+      "bytes": 916382
     }
   }
 }

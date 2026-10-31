@@ -6,11 +6,12 @@ origin=sys.argv[2] if len(sys.argv)>2 else 'https://four5-fitness-coach.onrender
 def get(path):
  r=s.get(origin+path,timeout=40);r.raise_for_status();return r
 assert get('/status?release='+revision).json()['revision']==revision
-for name in ['boxing-world.js','images/boxing/arena-championship.png','inbox.js','character.js','character-renderer.js','cozy-ui.css','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
+assert 'boxing-mode-cards' in get('/static/boxing.js?release='+revision).text
+for name in ['boxing-world.js','images/boxing/mode-menu.png','images/boxing/arena-championship.png','inbox.js','character.js','character-renderer.js','cozy-ui.css','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
  assert get('/static/'+name+'?release='+revision).content==Path('static',name).read_bytes(),name
 assert s.get(origin+'/social/boxing',timeout=40).status_code==401
-html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=7' in html
-for asset in ['boxing-world.js?v=2','boxing-pose.js?v=6','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=7']:
+html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=8' in html
+for asset in ['boxing-world.js?v=2','boxing-pose.js?v=6','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=8']:
  assert '/static/'+asset in html,asset
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']);page=b.new_page();page.set_content('<main></main>');page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
@@ -33,6 +34,18 @@ with sync_playwright() as p:
  page.wait_for_function("sceneSmoke.actors[1].canvas.dataset.avatarState==='ready'")
  assert page.evaluate("!sceneSmoke.bag.visible&&document.querySelectorAll('#arena canvas').length===1")
  page.evaluate('sceneSmoke.destroy()');assert page.locator('#arena canvas').count()==0
+ assert not errors,errors
+ # Render the deployed menu without accessing private APIs or requesting a camera.
+ page.set_content('<select id="profile"><option value="1">Preview</option></select><section id="boxingPage"></section>')
+ page.evaluate("window.I18N={lang:'th'};window.FitnessAccount={guest:true}")
+ page.add_style_tag(content=get('/static/boxing.css?release='+revision).text)
+ page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
+ page.add_script_tag(content=get('/static/boxing.js?release='+revision).text)
+ page.evaluate('Boxing.open()')
+ assert page.locator('.boxing-menu').is_visible()
+ assert page.locator('.boxing-mode-card').count()==2
+ assert page.locator('.boxing-arena').is_hidden()
+ assert page.evaluate('Boxing.world===null&&document.querySelector(".boxing-preview video").srcObject===null')
  assert not errors,errors
  b.close()
 print('VERIFIED exact deployed Boxing assets, template, private API, pose confidence guard and shared 3D male/female scene with bend/slip, bag removal and cleanup',revision)

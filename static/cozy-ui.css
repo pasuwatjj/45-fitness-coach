@@ -14,3 +14,5 @@ body[data-effects=on] .home-tile,body[data-effects=on] .cozy-page button{transit
 
 /* Homepage cards already provide these shortcuts. */
 body:has(#homePage:not([hidden])) .rewards-shortcuts{display:none!important}
+
+.character-zoom{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;padding:12px 0}.character-zoom input[type=range]{width:130px;max-width:35vw;accent-color:var(--green)}.character-zoom output{color:#fff;font-variant-numeric:tabular-nums;min-width:48px}.character-zoom button{min-width:42px;min-height:42px}

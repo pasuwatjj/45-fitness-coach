@@ -1838,6 +1838,8 @@ import community
 community.register(app,lambda:store)
 import inbox_features
 inbox_features.register(app,lambda:store)
+import boxing
+boxing.register(app,lambda:store)
 import collaboration_features
 collaboration_features.register(app,lambda:store,lambda:sessions,lambda:STABLE_PUBLIC_URL)
 

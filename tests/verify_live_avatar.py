@@ -30,7 +30,12 @@ with sync_playwright() as p:
    req.fulfill(status=response.status_code,headers={'Content-Type':response.headers.get('Content-Type','application/octet-stream')},body=response.content)
   page.route('**/*',route)
   page.on('console',lambda m:errors.append(m.text) if m.type=='error' and 'THREE.WebGLProgram' in m.text else None)
-  page.goto(origin+'/45-fitness-coach',wait_until='domcontentloaded');page.wait_for_function('typeof FitnessImportedAvatar === "function"')
+  # The full app wraps fetch until /session resolves. Keep this read-only check
+  # isolated from authenticated bootstrap while using the exact deployed assets.
+  page.goto(origin+'/status',wait_until='domcontentloaded')
+  page.set_content('<!doctype html><html><body></body></html>')
+  for asset in ['vendor/three-r160.min.js','character-fallback.js','character-renderer.js','muscle-progression.js','imported-avatar.js']:
+   page.add_script_tag(url=origin+'/static/'+asset+'?release='+revision)
   # Use actual deployed scripts and assets; levels below are only in this browser.
   page.evaluate('''()=>{document.body.replaceChildren();const canvas=document.createElement('canvas');canvas.width=600;canvas.height=700;canvas.style.width='min(90vw,600px)';canvas.style.background='#122033';document.body.append(canvas);window.reviewRenderer=new FitnessImportedAvatar(canvas);window.reviewModel={appearance:{gender:'male',hair:'swept',clothing:'sports',skin_color:'#c78f68',hair_color:'#292536'},visual:{height_scale:1.03,fullness:.35},growth:{levels:{arms:0,chest:0,back:0,legs:0,shoulders:0},arm_levels:{left:0,right:0}}};reviewRenderer.set(reviewModel)}''')
   page.wait_for_selector('canvas[data-avatar-state=ready]');cv=page.locator('canvas');begin=cv.screenshot(path=str(out/f'{width}-beginner.png'))

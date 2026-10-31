@@ -1,5 +1,6 @@
 """Guest ownership, recovery, manual VIP review and relaxed directional counting."""
 import math
+from types import SimpleNamespace
 import time
 import unittest
 from unittest.mock import patch
@@ -66,6 +67,8 @@ class GuestTests(unittest.TestCase):
         self.a.post('/start',json=dict(profile_id=self.pa,exercise='curl',arm='right'))
         coach=self.reg.items[self.ta]['coach']
         _,image=cv2.imencode('.jpg',np.zeros((240,320,3),dtype=np.uint8))
+        # The default FakeDetector is empty; hand tracking requires a visible body.
+        coach.detector.detect_for_video=lambda *_:SimpleNamespace(pose_landmarks=[landmarks()[0]],pose_world_landmarks=[landmarks()[1]])
         with patch.object(server.mp.solutions.hands,'Hands',side_effect=RuntimeError('hand tracker unavailable')),self.assertLogs(level='ERROR'):
             result=self.a.post('/frame',data=image.tobytes(),content_type='image/jpeg',headers={'X-Set-ID':coach.state['set_id'],'X-Frame-Format':'landmarks'})
         self.assertEqual(result.status_code,200);self.assertEqual(result.json['hands'],[]);self.assertTrue(result.json['state']['running'])

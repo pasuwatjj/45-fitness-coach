@@ -57,10 +57,15 @@ def growth(store,profile):
     from training_economy import schema as training_schema
     with store.lock,store.connect() as db:
         training_schema(db)
-        for r in db.execute("""SELECT w.exercise,w.reps,w.left_reps,w.right_reps,
+        # A quality row is written only after the server accepts and saves a set.
+        # Missing/failed/unverified records earn no avatar EXP; history is never deleted.
+        has_quality=db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='quality_sets'").fetchone()
+        rows=db.execute("""SELECT w.exercise,MIN(w.reps,q.reps) reps,w.left_reps,w.right_reps,
             COALESCE(t.difficulty,'beginner') difficulty FROM workout_sets w
+            JOIN quality_sets q ON q.id=w.id AND q.profile_id=w.profile_id AND q.exercise=w.exercise
             LEFT JOIN training_sets t ON t.set_id=w.id AND t.profile_id=w.profile_id
-            WHERE w.profile_id=?""",(profile,)):
+            WHERE w.profile_id=? AND q.reps>0""",(profile,)) if has_quality else []
+        for r in rows:
             group=CATALOG.get(r['exercise'],{}).get('group')
             rate=EXP_PER_REP[r['difficulty']]
             if group in reps:
@@ -87,10 +92,12 @@ def overview(store,profile,private=False):
     dims=dimensions(store,profile)
     height=dims.get('height_cm') or 170
     weight=dims.get('weight_kg') or 65
-    # Weight/height guide silhouette only; muscle preference is independent of BMI.
+    # Height and weight guide approximate silhouette, never muscle mass.
+    # Missing either measurement uses the complete neutral default.
+    if not (dims.get('height_cm') and dims.get('weight_kg')):height,weight=170,65
     bmi=weight/(height/100)**2
     fullness=max(0,min(1,(bmi-18.5)/18))
-    visual=dict(height_scale=round(max(.88,min(1.12,height/170)),3),
+    visual=dict(muscle_definition=.45,height_scale=round(max(.88,min(1.12,height/170)),3),
         fullness=round(fullness,4),waist_scale=round(.88+fullness*.60,3),
         has_dimensions=bool(dims.get('height_cm') and dims.get('weight_kg')))
     result=dict(version=AVATAR_VERSION,needs_recreation=not bool(saved),created=bool(saved),profile=store.profile(profile),appearance=appearance,growth=growth(store,profile),visual=visual)

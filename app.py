@@ -1283,7 +1283,7 @@ def connection_qr(number):
 @app.get('/status')
 def status():
     if not request.headers.get('X-Coach-Session'):
-        return jsonify(ok=True,version=GENTLE_COACH_VERSION,camera_source='browser')
+        return jsonify(ok=True,version=GENTLE_COACH_VERSION,camera_source='browser',avatar_progression='verified-muscle-v1',revision=os.environ.get('RENDER_GIT_COMMIT','local'))
     return jsonify(dict(coach.snapshot(),server_today=today_thailand().isoformat()))
 
 

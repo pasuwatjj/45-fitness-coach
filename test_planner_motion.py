@@ -211,10 +211,11 @@ class MotionTests(unittest.TestCase):
             for t in range(8600,9500,100):f.update(self.values(f.family,start),t)
             self.assertEqual(f.counter.reps,before)
 
-    def test_wrong_initial_posture_does_not_calibrate(self):
+    def test_initial_reference_does_not_grant_a_free_rep(self):
         f=MotionCoach('floor_press',SETTINGS)
         for t in range(0,3000,100):f.update(dict(elbow=90,lean=0,arm=50,joint_elbow=90,knee=170),t)
-        self.assertIsNone(f.baseline)
+        self.assertIsNotNone(f.baseline)
+        self.assertEqual(f.counter.reps,0)
 
     def test_warning_requires_hold_clears_and_still_counts(self):
         f,start,end=self.sequence('single_row')

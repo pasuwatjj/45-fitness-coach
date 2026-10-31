@@ -79,13 +79,14 @@ class FormTests(unittest.TestCase):
         self.assertTrue(self.feed(160, 1000, lean=35)['feedback'])
         self.assertFalse(self.feed(160, 750)['feedback'])
 
-    def test_untrusted_initial_posture_cannot_calibrate(self):
+    def test_initial_reference_never_grants_a_free_rep(self):
         for condition in ({'lean': 35}, {'arm': 40}, {}):
             c = FormCoach(SETTINGS)
             for t in range(0, 3000, 50):
                 out = c.update(dict(elbow=100 if not condition else 160,
                                     lean=condition.get('lean', 0), arm=condition.get('arm', 0)), t)
-            self.assertFalse(out['calibrated'])
+            # v35 records a reference immediately; the full cycle and form gate still apply.
+            self.assertTrue(out['calibrated'])
             self.assertEqual(out['reps'], 0)
 
     def test_pose_loss_cancels_unfinished_cycle_and_requires_recalibration(self):

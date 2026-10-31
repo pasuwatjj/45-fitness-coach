@@ -93,6 +93,6 @@ window.FitnessGrowthPanel=function(growth){
   row.append(bar,el('small',fmt(part.exp)+' / '+fmt(part.next_exp)+' EXP '+t('สู่ LV ','to LV ')+(part.level+1)));box.append(row);
  }
  if(growth?.arm_parts)box.append(el('p',t('แขนซ้าย / ขวา: ','Left / right arm: ')+'LV '+growth.arm_parts.left.level+' / LV '+growth.arm_parts.right.level));
- box.append(el('small',t('ประวัติเก่าที่ไม่มีระดับ ใช้อัตราผู้เริ่มต้น · ไม่นับรอบผิดหรือรอบที่ยังยืนยันไม่ได้ · ไม่ใช่มวลกล้ามเนื้อจริง','Older sets without saved difficulty use beginner. Rejected and unverified attempts earn no EXP. This does not measure real muscle mass.')));
+ box.append(el('small',t('เซตเก่าที่ผ่านการตรวจสอบแต่ไม่มีระดับ ใช้อัตราผู้เริ่มต้น · เซตที่ไม่มีผลตรวจสอบไม่เพิ่ม EXP · ไม่นับรอบผิดหรือรอบที่ยังยืนยันไม่ได้ · ไม่ใช่มวลกล้ามเนื้อจริง','Verified older sets without saved difficulty use beginner. Sets without verification, rejected attempts and unverified attempts earn no EXP. This does not measure real muscle mass.')));
  return box;
 };

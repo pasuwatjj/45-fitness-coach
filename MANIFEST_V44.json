@@ -23,18 +23,20 @@
       "accepted_previous_sha256": []
     },
     "app.py": {
-      "sha256": "ac3dc7f6ae642d118a1279ebb76498e847fa80a48fd4ba2ca9653cb35f900b1f",
-      "bytes": 106780,
+      "sha256": "1da072d0649deea8645f4e4d81c2fe722e121e1123c1c8de7d2c659d712006f3",
+      "bytes": 106873,
       "accepted_previous_sha256": [
-        "713fe94545ec8e1318e9cf713829facee21d5d92e84c79637d635be30a606810"
+        "713fe94545ec8e1318e9cf713829facee21d5d92e84c79637d635be30a606810",
+        "ac3dc7f6ae642d118a1279ebb76498e847fa80a48fd4ba2ca9653cb35f900b1f"
       ]
     },
     "character.py": {
-      "sha256": "a8fc36861de73ee25ca63e463c30f500bec688f5a9f77dc566c660f1c79e80a4",
-      "bytes": 7972,
+      "sha256": "7babbff59eda58582ec0318714f02845ff77d8eda10cc4a3760cbb7f3c6d9bc3",
+      "bytes": 8593,
       "accepted_previous_sha256": [
         "119ab045611b26c1956cabd04a3150d0a64ae2146afdfa38c13019514aacfce5",
-        "c91ce9114e0827562594b8abb4c97784831f6f2f91841d908df134d4234e024a"
+        "c91ce9114e0827562594b8abb4c97784831f6f2f91841d908df134d4234e024a",
+        "9f1ad78fbe8bdc271580905a82c3d31f3009636da28b84d8c10beb8e0ccd83e3"
       ]
     },
     "local_pose.py": {
@@ -66,8 +68,8 @@
       ]
     },
     "static/app.js": {
-      "sha256": "a142b8410841dbff828635079ef0cb595d031d2249b87a79a4a0c93b643fbf1f",
-      "bytes": 49997,
+      "sha256": "ed891167bf3943862fa767884767e7c0894d84e3f2076adfff9648712e3fd2a5",
+      "bytes": 50179,
       "accepted_previous_sha256": [
         "a142b8410841dbff828635079ef0cb595d031d2249b87a79a4a0c93b643fbf1f"
       ]
@@ -85,18 +87,23 @@
       "accepted_previous_sha256": []
     },
     "static/avatar-studio.js": {
-      "sha256": "da41002964bebf87b86dda5274f258e5c46a7263782ba15e84a3b6684750b50f",
-      "bytes": 8556,
-      "accepted_previous_sha256": []
+      "sha256": "8a5abff0c6017da883c512cb468d82569b56c0f8fa303c886f4e78533eab34ee",
+      "bytes": 9719,
+      "accepted_previous_sha256": [
+        "7e712078b725e2f7d8bb8a8eece77757fa67ea141f58a4059d8ea13af6c37c86",
+        "cd4e8f15faf690dbb7953d4b2f14f913742f56fb0db4dc9f5440f0d7d290851a"
+      ]
     },
     "static/character-fallback.js": {
-      "sha256": "ad3d1173d9ee1f4a4d7bd40d0c95eb021e36f20200b340af8e2e19369c7a98b6",
-      "bytes": 13248,
-      "accepted_previous_sha256": []
+      "sha256": "4478f626175ada466fb919c7921b87dbcb0dc39df5abbf55941077fb29502954",
+      "bytes": 13424,
+      "accepted_previous_sha256": [
+        "ad3d1173d9ee1f4a4d7bd40d0c95eb021e36f20200b340af8e2e19369c7a98b6"
+      ]
     },
     "static/character-renderer.js": {
-      "sha256": "8994975f57c5ba44a684a3c90ea3d5281277926ce8060ee4efe0c9b3737c8638",
-      "bytes": 16536,
+      "sha256": "78353d5ccb87de7114b7807e13e0edfb0aad9db2de239365c84e51b045836b3d",
+      "bytes": 16548,
       "accepted_previous_sha256": [
         "d86d2695bf8b89daae4678c2d093665b90f37528424f930832f73109aa9948b2",
         "24326373919ae71e0babd5d75d4d0969caaa79d91c224d2c2be1367497f251b2",
@@ -212,19 +219,111 @@
       ]
     },
     "templates/index.html": {
-      "sha256": "09a442a2f2b86e7af6505c756fcabe941d98ddb83c86cd195e2d0a660ee8ec41",
-      "bytes": 42836,
+      "sha256": "517ad2c11380c81c59c2fec9513a5ba68ff7e69525208ba3d33afa87946780c0",
+      "bytes": 42949,
       "accepted_previous_sha256": [
         "9b7cf7d4198fb203d3da37dcf5b6c7950d83f0f5f4f7b5a366e8af5025df2460",
         "e130cbad8629911513b5cf66cce6cc5ff279acfcaa9b4d1d8e743cfaee6a6fcb",
         "911557a001bf0ad585c5c790c015c944c1b3492278378abf9d9a35b793c8d7ed",
-        "bae3d2914f408b9844017a1e77ff7acf95aa9349cefc120baffb5353a08b1efd"
+        "bae3d2914f408b9844017a1e77ff7acf95aa9349cefc120baffb5353a08b1efd",
+        "09a442a2f2b86e7af6505c756fcabe941d98ddb83c86cd195e2d0a660ee8ec41",
+        "f04d4d075b4a6c0579e893a43bf5f9af19f856a5d85a355f12178ca28c323d04"
       ]
     },
     "static/character.js": {
+      "accepted_previous_sha256": [
+        "5e479849a73578334be30bbeb94c2fb676bbfb122d08448f46678808ad5a98aa",
+        "8f1ddec3beb27a412c55f8e72df64a84d24e5905032e664690bdcffe7177561e"
+      ],
+      "sha256": "4ca6d2e474a972d843ce5b1aa37af5f2d82037d56987b7ace8362bb7eb48708c",
+      "bytes": 11158
+    },
+    "static/imported-avatar.js": {
+      "accepted_previous_sha256": [
+        "e00fd25becefc4381c6138f0517d9a85701ac47778a6b709ed4d790f3c975ccc"
+      ],
+      "sha256": "9928208934264af1b521c62106fa3d5a421b4f0746d9e53e560bad519bc470ed",
+      "bytes": 8294
+    },
+    "static/models/quaternius/LICENSE.txt": {
       "accepted_previous_sha256": [],
-      "sha256": "ee2b1153a26cad0207347eb1f9bdb75d6455c35e46b6ff1a9bc87e7f10d7882d",
-      "bytes": 10600
+      "sha256": "0f4beaf0fe360a7732e58bbe3dbf60a2422367fbea60cb9ea4add968f383268e",
+      "bytes": 806
+    },
+    "static/models/quaternius/female-color.jpg": {
+      "accepted_previous_sha256": [],
+      "sha256": "9b6945453718997aab9166abcbfb2500e269f71abc3236261bcad906dab9bd4c",
+      "bytes": 63797
+    },
+    "static/models/quaternius/male.json": {
+      "accepted_previous_sha256": [],
+      "sha256": "d56eeeb6909d96db01f6a5136e37281a0d6c403c7b12c767fd85131c568a36ed",
+      "bytes": 2114452
+    },
+    "static/models/quaternius/Hair_SimpleParted.json": {
+      "accepted_previous_sha256": [],
+      "sha256": "2813815e4cef0264529f3e40ff8e66062d0cfa884addb2a40acff8e148474ea0",
+      "bytes": 71142
+    },
+    "static/models/quaternius/Hair_Buzzed.json": {
+      "accepted_previous_sha256": [],
+      "sha256": "de5e1ca26f17e453e04de13acb24740b053a3c3574835bd7d98166460865971e",
+      "bytes": 43748
+    },
+    "static/models/quaternius/eyes-color.jpg": {
+      "accepted_previous_sha256": [],
+      "sha256": "132f8492f15ae736f6eafaf46a2b03ab0f430c25ab92365791c8441b35c8a625",
+      "bytes": 5557
+    },
+    "static/models/quaternius/female.json": {
+      "accepted_previous_sha256": [],
+      "sha256": "bd7da2864e2bcc5e9013661224c990a12994947abcaa32eac4a84b953e25c815",
+      "bytes": 2617214
+    },
+    "static/models/quaternius/hair-color.png": {
+      "accepted_previous_sha256": [],
+      "sha256": "bea25df74cf08996b245e6cd62ad27341eca10d7c85973648f079905a5aa893f",
+      "bytes": 222969
+    },
+    "static/models/quaternius/male-color.jpg": {
+      "accepted_previous_sha256": [],
+      "sha256": "ab8d3e4766ba9b1a190747e9603419068ef2c376ff1bab304216be67d945f322",
+      "bytes": 67060
+    },
+    "static/models/quaternius/female-normal.png": {
+      "accepted_previous_sha256": [],
+      "sha256": "2f25ab5f803dc1a735ff7c55803b7647f53947f0c87f1ae50a7d482aec546eba",
+      "bytes": 854138
+    },
+    "static/models/quaternius/Hair_Long.json": {
+      "accepted_previous_sha256": [],
+      "sha256": "7b0be676675a2ff423d525d8185add76dabdb1f7212d85037cf2a750342473e0",
+      "bytes": 267316
+    },
+    "static/models/quaternius/male-normal.png": {
+      "accepted_previous_sha256": [],
+      "sha256": "a95517412938369d1b55be59c9209156fa093807fe7971743f378a68b403dcaa",
+      "bytes": 1015126
+    },
+    "static/models/quaternius/hair-normal.png": {
+      "accepted_previous_sha256": [],
+      "sha256": "fadced21eb2bd44b40e25b64ca3fc8e6d3cbd3304f64f7cff8899e9fe1dedbfb",
+      "bytes": 352462
+    },
+    "static/models/quaternius/hair2-normal.png": {
+      "sha256": "1881bb53312772794bd61cefc1f50debab9212c111f0d2200ee39e8d49ca7b08",
+      "bytes": 421733,
+      "accepted_previous_sha256": []
+    },
+    "static/models/quaternius/hair2-color.png": {
+      "sha256": "dfd0c684e699d6a2d8ffc604dba8d674b570c28e76693abc3cd267250848ecd5",
+      "bytes": 254488,
+      "accepted_previous_sha256": []
+    },
+    "static/muscle-progression.js": {
+      "sha256": "d53a0a496b5b5730e2bcf5be84b55132c33ba08dfa73310a28786d6378c4fb57",
+      "bytes": 1978,
+      "accepted_previous_sha256": []
     }
   }
 }

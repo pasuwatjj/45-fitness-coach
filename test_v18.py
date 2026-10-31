@@ -56,9 +56,10 @@ class CardioTests(TestCase):
         self.assertEqual(self.round.reps,0)
         self.hold(pose(True));self.now+=2;self.hold(pose())
         self.assertEqual(self.round.reps,0)
-    def test_timer_starts_only_after_visible_start_pose(self):
-        self.hold(pose(True));self.assertIsNone(self.round.start_at)
+    def test_timer_starts_on_visible_pose_without_free_rep(self):
         self.hold(pose(hidden=True));self.assertIsNone(self.round.start_at)
+        self.hold(pose(True));self.assertIsNotNone(self.round.start_at)
+        self.assertEqual(self.round.reps,0)
         self.ready();self.assertEqual(self.round.reps,0)
     def test_cancelled_round_earns_no_coins(self):
         self.ready();self.cycle();self.round.stop();self.now+=30

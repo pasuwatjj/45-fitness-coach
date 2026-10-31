@@ -74,3 +74,30 @@ class BoxingTests(unittest.TestCase):
         self.assertNotIn('dimensions',r.json['players'][0]['model'])
     def test_rematch_after_finished_room_heartbeat(self):
         self.start();self.act(self.b,'leave');self.now+=1;self.act(self.a,'heartbeat');self.create()
+
+    def test_extended_range_and_recent_events(self):
+        self.start()
+        # Guest backs away slightly: just beyond the old .39 reach, within .44.
+        for i in range(4):
+            self.act(self.b,'control',i+1,move=-1);self.now+=.2
+        m=self.act(self.a,'right').json['match']
+        self.assertGreater(m['players'][1]['position']-.35,.39)
+        self.assertEqual(m['event']['result'],'hit')
+        self.assertEqual(m['event']['target'],self.other)
+        self.assertEqual(m['event']['damage'],4)
+        self.act(self.b,'left',5)
+        m=self.act(self.a,'heartbeat').json['match']
+        self.assertEqual(len(m['events']),2)
+        self.assertEqual({e['attacker'] for e in m['events']},{self.uid,self.other})
+        # Heartbeats repeat the same IDs, allowing clients to deduplicate feedback.
+        self.assertEqual(m['events'],self.act(self.b,'heartbeat').json['match']['events'])
+
+    def test_forward_back_and_stop_preserve_armor(self):
+        self.start()
+        self.act(self.a,'control',1,move=1);self.now+=.25
+        m=self.act(self.a,'control',2,move=-1).json['match'];forward=m['players'][0]['position']
+        self.assertGreater(forward,.35);self.now+=.25
+        m=self.act(self.a,'control',3,move=0).json['match'];stopped=m['players'][0]['position']
+        self.assertLess(stopped,forward);self.now+=1
+        m=self.act(self.a,'heartbeat').json['match'];self.assertEqual(m['players'][0]['position'],stopped)
+        self.assertEqual([p['armor'] for p in m['players']],[10,10])

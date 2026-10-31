@@ -151,8 +151,8 @@
       ]
     },
     "static/play-coach.js": {
-      "sha256": "c64aa7e9bc467a121721d5264ec69ad482a59f5f68c6b6a79641338c81bd0b53",
-      "bytes": 6709,
+      "sha256": "0ae054d1bee5dc81f3c8ed0f95eb536b56d48e43fe4d0f1a35c8fd52f84556e2",
+      "bytes": 6661,
       "accepted_previous_sha256": [
         "c64aa7e9bc467a121721d5264ec69ad482a59f5f68c6b6a79641338c81bd0b53"
       ]
@@ -222,8 +222,8 @@
       ]
     },
     "templates/index.html": {
-      "sha256": "3d5b2579ccb9fa61279530c8134479671d7b868bee70c4aa0ce2727b762a6cf5",
-      "bytes": 42949,
+      "sha256": "9c665602522d1490f218692db6f180186fe99dc20de7a5c777ee917279dfbcf4",
+      "bytes": 43051,
       "accepted_previous_sha256": [
         "9b7cf7d4198fb203d3da37dcf5b6c7950d83f0f5f4f7b5a366e8af5025df2460",
         "e130cbad8629911513b5cf66cce6cc5ff279acfcaa9b4d1d8e743cfaee6a6fcb",
@@ -233,7 +233,8 @@
         "f04d4d075b4a6c0579e893a43bf5f9af19f856a5d85a355f12178ca28c323d04",
         "517ad2c11380c81c59c2fec9513a5ba68ff7e69525208ba3d33afa87946780c0",
         "dfb6577762f6588e5c35bf4f16c871b71fb034bbb3fc42533d61078ab34393d7",
-        "6207fcfda2732f5693741a299a1be356a69cf7a7f86bd780849e743b9788b027"
+        "6207fcfda2732f5693741a299a1be356a69cf7a7f86bd780849e743b9788b027",
+        "3d5b2579ccb9fa61279530c8134479671d7b868bee70c4aa0ce2727b762a6cf5"
       ]
     },
     "static/character.js": {
@@ -350,6 +351,26 @@
       "accepted_previous_sha256": [],
       "sha256": "d33975ffb4a320015f7aa8f272a122ce8ba88434bdabde1d6c433be2def9ce2a",
       "bytes": 916382
+    },
+    "static/coin-art.js": {
+      "accepted_previous_sha256": [],
+      "sha256": "8b173ec834367d38b049c84e1dde35fbc5f3fd0ca039409d9e0ad4b7de2adaca",
+      "bytes": 1614
+    },
+    "static/coin-art.css": {
+      "accepted_previous_sha256": [],
+      "sha256": "7a4ba24a557b72eb4c0b04ddb2c496cf7e8cfcd70b33285c91ca8918dab06c96",
+      "bytes": 848
+    },
+    "static/rewards.js": {
+      "accepted_previous_sha256": [],
+      "sha256": "686cfc40c3070d4c8248edb77608b4a0f8049f2808c4f8b3ce503f01d6668b3b",
+      "bytes": 11196
+    },
+    "static/cardio.js": {
+      "accepted_previous_sha256": [],
+      "sha256": "33b757d5c4c5521d44872c66acbcaaeed4072ebf69a9eff017d2466777d8cf93",
+      "bytes": 19846
     }
   }
 }

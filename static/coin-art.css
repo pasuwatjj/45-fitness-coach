@@ -1,0 +1,7 @@
+.coin-art{display:inline-flex;position:relative;width:1.4em;height:1.4em;align-items:center;justify-content:center;vertical-align:middle;flex-shrink:0;line-height:1;overflow:hidden}
+.coin-art img{display:block;width:100%;height:100%;object-fit:contain;max-width:none}.coin-art img[hidden]{display:none}
+.training-wallet .coin-art{width:64px;height:64px;margin-bottom:6px}.exchange-buttons .coin-art{width:24px;height:24px}
+.rep-coin.accepted>.coin-art,.cardio-coin>.coin-art{width:64px;height:64px;filter:drop-shadow(0 2px 4px #0007)}
+.cardio-coin{display:flex;align-items:center;gap:7px}
+.rep-coin.rejected .coin-shard{filter:none}.rep-coin.rejected .coin-shard>.coin-art{width:78px;height:78px}
+@media(max-width:420px){.training-wallet .coin-art{width:52px;height:52px}.rep-coin.accepted>.coin-art,.cardio-coin>.coin-art{width:52px;height:52px}}

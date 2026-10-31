@@ -23,8 +23,8 @@
    const p=data&&Date.now()-data.at<1000?data.points[side==='left'?13:14]:null;
    const good=p&&p[2]>.65,x=good?(data.mirrored?1-p[0]:p[0]):.5,y=good?p[1]:.5;
    const coin=document.createElement('span');coin.className='rep-coin '+result;coin.setAttribute('aria-hidden','true');coin.textContent=label||(result==='rejected'?(en?'🔴 No count':'🔴 ไม่นับ'):result==='unverified'?(en?'⚪ Unclear':'⚪ รอตรวจ'):'🪙 +1');
-   if(result==='accepted'){coin.replaceChildren();const disc=document.createElement('i');disc.className='training-coin '+difficulty;disc.textContent='45';const caption=document.createElement('b');caption.textContent=label||'+1';coin.append(disc,caption)}
-   if(result==='rejected'){coin.replaceChildren();for(const half of ['left','right']){const shard=document.createElement('i');shard.className='coin-shard '+half;shard.textContent='🪙';coin.append(shard)}const caption=document.createElement('b');caption.textContent=en?'No count':'ไม่นับ';coin.append(caption)}
+   if(result==='accepted'){coin.replaceChildren();const disc=CoinArt.create(difficulty);const caption=document.createElement('b');caption.textContent=label||'+1';coin.append(disc,caption)}
+   if(result==='rejected'){coin.replaceChildren();for(const half of ['left','right']){const shard=document.createElement('i');shard.className='coin-shard '+half;shard.append(CoinArt.create(difficulty));coin.append(shard)}const caption=document.createElement('b');caption.textContent=en?'No count':'ไม่นับ';coin.append(caption)}
    coin.style.left=((rect.width-w)/2+x*w)+'px';coin.style.top=((rect.height-h)/2+y*h)+'px';screen.append(coin);
    coin.addEventListener('animationend',()=>coin.remove(),{once:true});setTimeout(()=>coin.remove(),1300);
   }
@@ -36,4 +36,4 @@ window.glassBreakSound=()=>{if(!soundEnabled||!audioContext||!$('coinEnabled').c
 
 (()=>{const b=document.createElement('button');b.type='button';b.className='secondary';b.dataset.i18nIgnore='';b.textContent=window.I18N?.lang==='en'?'🔊 Test broken-coin sound':'🔊 ทดสอบเสียงเหรียญแตก';b.onclick=()=>{soundUserMuted=false;enableSound();$('coinEnabled').checked=true;window.glassBreakSound();if(BrowserCamera.active)window.spawnCoachCoins($('arm').value,'rejected')};$('coinEnabled').parentElement.append(b)})();
 
-(()=>{const line=document.createElement('p');line.className='purple-balance';line.dataset.i18nIgnore='';$('reps').parentElement.after(line);setInterval(()=>{const s=window.fitnessState;line.hidden=!s?.challenge;if(s?.challenge){const n=Math.min(20,20-s.challenge.remaining+s.reps);line.textContent=(window.I18N?.lang==='en'?'🎯 Challenge ':'🎯 ชาเลนจ์ ')+n+'/20 · 🟣 +1'}},400)})();
+(()=>{const line=document.createElement('p');line.className='purple-balance';line.dataset.i18nIgnore='';$('reps').parentElement.after(line);setInterval(()=>{const s=window.fitnessState;line.hidden=!s?.challenge;if(s?.challenge){const n=Math.min(20,20-s.challenge.remaining+s.reps);CoinArt.text(line,(window.I18N?.lang==='en'?'🎯 Challenge ':'🎯 ชาเลนจ์ ')+n+'/20 · 🟣 +1')}},400)})();

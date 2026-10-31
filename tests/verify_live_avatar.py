@@ -14,7 +14,7 @@ def read(path):
 status=read('/status').json();assert status['ok'] and status['avatar_progression']=='verified-muscle-v1';assert status['revision']==revision,status
 html=read('/45-fitness-coach').text
 for name in ['muscle-progression.js','imported-avatar.js','character.js']:assert name in html
-for name in ['static/muscle-progression.js','static/imported-avatar.js','static/character.js','static/profile.js','static/app.js','static/models/quaternius/male.json','static/models/quaternius/female.json']:
+for name in ['static/muscle-progression.js','static/imported-avatar.js','static/character.js','static/profile.js','static/character-renderer.js','static/live-avatar.js','static/models/quaternius/male-rig.json','static/models/quaternius/female-rig.json','static/app.js','static/models/quaternius/male.json','static/models/quaternius/female.json']:
  assert hashlib.sha256(read('/'+name+'?release='+revision).content).hexdigest()==hashlib.sha256(Path(name).read_bytes()).hexdigest(),name
 out=Path('work/live-review');out.mkdir(parents=True,exist_ok=True)
 with sync_playwright() as p:
@@ -34,7 +34,7 @@ with sync_playwright() as p:
   # isolated from authenticated bootstrap while using the exact deployed assets.
   page.goto(origin+'/status',wait_until='domcontentloaded')
   page.set_content('<!doctype html><html><body></body></html>')
-  for asset in ['vendor/three-r160.min.js','character-fallback.js','character-renderer.js','muscle-progression.js','imported-avatar.js']:
+  for asset in ['vendor/three-r160.min.js','character-fallback.js','character-renderer.js','muscle-progression.js','avatar-pose.js','imported-avatar.js']:
    page.add_script_tag(url=origin+'/static/'+asset+'?release='+revision)
   # Use actual deployed scripts and assets; levels below are only in this browser.
   page.evaluate('''()=>{document.body.replaceChildren();const canvas=document.createElement('canvas');canvas.width=600;canvas.height=700;canvas.style.width='min(90vw,600px)';canvas.style.background='#122033';document.body.append(canvas);window.reviewRenderer=new FitnessImportedAvatar(canvas);window.reviewModel={appearance:{gender:'male',hair:'swept',clothing:'sports',skin_color:'#c78f68',hair_color:'#292536'},visual:{height_scale:1.03,fullness:.35},growth:{levels:{arms:0,chest:0,back:0,legs:0,shoulders:0},arm_levels:{left:0,right:0}}};reviewRenderer.set(reviewModel)}''')
@@ -43,6 +43,9 @@ with sync_playwright() as p:
   end=cv.screenshot(path=str(out/f'{width}-developed.png'))
   diff=ImageChops.difference(Image.open(io.BytesIO(begin)).convert('RGB'),Image.open(io.BytesIO(end)).convert('RGB'));assert sum(max(p)>15 for p in diff.getdata())>500
   cv.focus();page.keyboard.press('ArrowRight');assert cv.screenshot()!=end
-  assert not errors,errors;page.evaluate('reviewRenderer.destroy()');c.close();print(width,'live assets rendered, novice/developed pixels differ, rotation passed; production writes blocked',flush=True)
+  page.evaluate('reviewRenderer.setWorkoutPreview(true);reviewRenderer.motion={matches:false};reviewRenderer.phase=-Math.PI/3.4;reviewRenderer.draw()');lowered=cv.screenshot()
+  page.evaluate('reviewRenderer.phase=Math.PI/3.4;reviewRenderer.draw()');curled=cv.screenshot(path=str(out/f'{width}-profile-curl.png'));assert lowered!=curled
+  page.evaluate("reviewRenderer.setWorkoutPreview(false);reviewRenderer.setLivePose(AvatarPose.neutral({exercise:'pushup'}))");floor=cv.screenshot(path=str(out/f'{width}-live-floor.png'));assert floor!=curled
+  assert not errors,errors;page.evaluate('reviewRenderer.destroy()');c.close();print(width,'live assets rendered, novice/developed pixels differ, rotation/profile curl/live floor pose passed; production writes blocked',flush=True)
  b.close()
 print('VERIFIED Render revision',revision,flush=True)

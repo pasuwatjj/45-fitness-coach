@@ -161,7 +161,7 @@ window.FitnessCharacterRenderer=class {
    const distance=Math.max(size.y,size.x/this.camera.aspect)/(2*Math.tan(31*Math.PI/360))*1.18;
    this.camera.position.set(center.x,center.y,center.z+Math.max(3,distance));this.camera.lookAt(center);this.gpu.setClearColor(0x000000,0);
   }else{
-   this.body.position.set(0,Math.sin(this.phase*1.6)*.008,0);
+   this.body.position.set(0,Math.sin(this.phase*1.6)*.008+(this.poseOffsetY||0),0);
    const distance=Math.max(4.5,2.3/this.camera.aspect)/(2*Math.tan(31*Math.PI/360));const focus=1.97+Math.min(1,Math.max(0,(this.previewZoom||1)-1))*.75;this.camera.position.set(0,focus+.11,distance);this.camera.lookAt(0,focus,0);this.gpu.setClearColor(0x111c30,0);
   }
   this.gpu.render(this.scene,this.camera);this.onRotate?.(this.yaw);

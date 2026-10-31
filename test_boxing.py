@@ -27,7 +27,7 @@ class BoxingTests(unittest.TestCase):
         m=self.act(self.a,'right').json['match'];self.assertEqual(m['players'][1]['hp'],6)
         self.now+=1;m=self.act(self.a,'right').json['match'];self.assertEqual(m['players'][1]['hp'],6) # duplicate
         m=self.act(self.a,'right',2).json['match'];self.assertEqual(m['players'][1]['hp'],2)
-        self.now+=1;m=self.act(self.a,'left',3).json['match'];self.assertEqual(m['status'],'finished');self.assertEqual(m['winner'],self.uid)
+        self.now+=1;m=self.act(self.a,'left',3).json['match'];self.assertEqual(m['status'],'round_break');self.assertEqual(m['players'][0]['wins'],1);self.assertNotIn('trophy_awarded',m)
     def test_guard_hold_break_and_trophy_once(self):
         self.start();n=0
         for i in range(7):
@@ -38,6 +38,10 @@ class BoxingTests(unittest.TestCase):
         self.assertEqual(m['players'][1]['armor'],0)
         for i in range(3):
             n+=1;self.act(self.b,'control',n,guard=True);m=self.act(self.a,'right',11+i).json['match'];self.now+=.5
+        self.assertEqual(m['status'],'round_break');self.assertEqual(m['players'][0]['wins'],1)
+        self.now=m['next_round_at'];self.act(self.a,'heartbeat');self.act(self.b,'heartbeat')
+        for i in range(3):
+            self.now+=.5;m=self.act(self.a,'right',20+i).json['match']
         self.assertEqual(m['winner'],self.uid);self.assertTrue(m['trophy_awarded'])
         for _ in range(3):self.a.get('/social/boxing/'+self.mid);self.act(self.a,'heartbeat')
         self.assertEqual(self.a.get('/social/boxing/trophies/'+str(self.pa)).json['trophies'],1)
@@ -101,3 +105,27 @@ class BoxingTests(unittest.TestCase):
         self.assertLess(stopped,forward);self.now+=1
         m=self.act(self.a,'heartbeat').json['match'];self.assertEqual(m['players'][0]['position'],stopped)
         self.assertEqual([p['armor'] for p in m['players']],[10,10])
+
+    def test_three_round_comeback_and_clock(self):
+        self.start();seq={self.uid:0,self.other:0}
+        def win(client,uid):
+            for _ in range(3):
+                self.now+=.5;seq[uid]+=1;r=self.act(client,'right',seq[uid],punch_type='uppercut',crouch=.6);self.assertEqual(r.status_code,200,r.json)
+            return r.json['match']
+        m=win(self.a,self.uid);self.assertEqual(m['round'],1);self.assertEqual(m['status'],'round_break');self.assertGreater(m['elapsed'],0)
+        self.assertEqual(self.act(self.b,'left',1).status_code,400)
+        self.assertEqual(self.a.get('/social/boxing/trophies/'+str(self.pa)).json['trophies'],0)
+        elapsed=m['elapsed'];self.now=m['next_round_at'];m=self.act(self.a,'heartbeat').json['match'];self.assertEqual(m['round'],2)
+        self.assertEqual([(p['hp'],p['armor']) for p in m['players']],[(10,10),(10,10)]);self.assertEqual(m['elapsed'],elapsed)
+        m=win(self.b,self.other);self.assertEqual([p.get('wins',0) for p in m['players']],[1,1]);self.now=m['next_round_at'];self.act(self.b,'heartbeat')
+        m=win(self.b,self.other);self.assertEqual(m['round'],3);self.assertEqual(m['status'],'finished');self.assertEqual(m['winner'],self.other);self.assertEqual(len(m['rounds']),3)
+        self.assertEqual(m['event']['punch_type'],'uppercut');self.assertAlmostEqual(m['elapsed'],sum(r['duration'] for r in m['rounds']))
+        frozen=m['elapsed'];self.now+=4;self.assertEqual(self.act(self.a,'heartbeat').json['match']['elapsed'],frozen)
+        self.assertTrue(m['trophy_awarded'])
+
+    def test_crouch_and_punch_type_validation(self):
+        self.start()
+        for posture in [-.1,1.1,True,'1',float('nan')]:self.assertEqual(self.act(self.a,'control',1,crouch=posture).status_code,400)
+        self.assertEqual(self.act(self.a,'left',1,punch_type='laser').status_code,400)
+        m=self.act(self.a,'control',1,crouch=.7).json['match'];self.assertEqual(m['players'][0]['crouch'],.7)
+        self.now+=.5;m=self.act(self.a,'left',2,punch_type='hook').json['match'];self.assertEqual(m['event']['damage'],2);self.assertEqual(m['event']['punch_type'],'hook')

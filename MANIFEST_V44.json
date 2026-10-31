@@ -219,7 +219,7 @@
       ]
     },
     "templates/index.html": {
-      "sha256": "517ad2c11380c81c59c2fec9513a5ba68ff7e69525208ba3d33afa87946780c0",
+      "sha256": "dfb6577762f6588e5c35bf4f16c871b71fb034bbb3fc42533d61078ab34393d7",
       "bytes": 42949,
       "accepted_previous_sha256": [
         "9b7cf7d4198fb203d3da37dcf5b6c7950d83f0f5f4f7b5a366e8af5025df2460",
@@ -227,7 +227,8 @@
         "911557a001bf0ad585c5c790c015c944c1b3492278378abf9d9a35b793c8d7ed",
         "bae3d2914f408b9844017a1e77ff7acf95aa9349cefc120baffb5353a08b1efd",
         "09a442a2f2b86e7af6505c756fcabe941d98ddb83c86cd195e2d0a660ee8ec41",
-        "f04d4d075b4a6c0579e893a43bf5f9af19f856a5d85a355f12178ca28c323d04"
+        "f04d4d075b4a6c0579e893a43bf5f9af19f856a5d85a355f12178ca28c323d04",
+        "517ad2c11380c81c59c2fec9513a5ba68ff7e69525208ba3d33afa87946780c0"
       ]
     },
     "static/character.js": {
@@ -324,6 +325,13 @@
       "sha256": "d53a0a496b5b5730e2bcf5be84b55132c33ba08dfa73310a28786d6378c4fb57",
       "bytes": 1978,
       "accepted_previous_sha256": []
+    },
+    "static/profile.js": {
+      "sha256": "dc4601b0bff98e06c90e9ca4bc2af598eb42fbdd1615d0ce3a15b73f6ef97cdf",
+      "bytes": 28969,
+      "accepted_previous_sha256": [
+        "b03131b35f47b896fbb8d41502be819e66a1a963725c1738007e47c95fddb1d9"
+      ]
     }
   }
 }

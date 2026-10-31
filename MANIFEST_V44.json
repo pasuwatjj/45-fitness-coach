@@ -151,8 +151,8 @@
       ]
     },
     "static/play-coach.js": {
-      "sha256": "c64aa7e9bc467a121721d5264ec69ad482a59f5f68c6b6a79641338c81bd0b53",
-      "bytes": 6709,
+      "sha256": "0ae054d1bee5dc81f3c8ed0f95eb536b56d48e43fe4d0f1a35c8fd52f84556e2",
+      "bytes": 6661,
       "accepted_previous_sha256": [
         "c64aa7e9bc467a121721d5264ec69ad482a59f5f68c6b6a79641338c81bd0b53"
       ]
@@ -222,8 +222,8 @@
       ]
     },
     "templates/index.html": {
-      "sha256": "3d5b2579ccb9fa61279530c8134479671d7b868bee70c4aa0ce2727b762a6cf5",
-      "bytes": 42949,
+      "sha256": "9f60e7f47bf1194c02d0c06b8da4ec9686735e837051ad744a2564c8130155cd",
+      "bytes": 43132,
       "accepted_previous_sha256": [
         "9b7cf7d4198fb203d3da37dcf5b6c7950d83f0f5f4f7b5a366e8af5025df2460",
         "e130cbad8629911513b5cf66cce6cc5ff279acfcaa9b4d1d8e743cfaee6a6fcb",
@@ -233,7 +233,8 @@
         "f04d4d075b4a6c0579e893a43bf5f9af19f856a5d85a355f12178ca28c323d04",
         "517ad2c11380c81c59c2fec9513a5ba68ff7e69525208ba3d33afa87946780c0",
         "dfb6577762f6588e5c35bf4f16c871b71fb034bbb3fc42533d61078ab34393d7",
-        "6207fcfda2732f5693741a299a1be356a69cf7a7f86bd780849e743b9788b027"
+        "6207fcfda2732f5693741a299a1be356a69cf7a7f86bd780849e743b9788b027",
+        "3d5b2579ccb9fa61279530c8134479671d7b868bee70c4aa0ce2727b762a6cf5"
       ]
     },
     "static/character.js": {
@@ -334,11 +335,12 @@
       "accepted_previous_sha256": []
     },
     "static/profile.js": {
-      "sha256": "422f362ffed7609eb4a9cce6105f0a7ad13c183d704dd029abfaa6a77018feaa",
-      "bytes": 29010,
+      "sha256": "d8204d60eee86550e6a8809839a9c8d3118ca0064eb447adf80a144f469e819b",
+      "bytes": 29091,
       "accepted_previous_sha256": [
         "b03131b35f47b896fbb8d41502be819e66a1a963725c1738007e47c95fddb1d9",
-        "dc4601b0bff98e06c90e9ca4bc2af598eb42fbdd1615d0ce3a15b73f6ef97cdf"
+        "dc4601b0bff98e06c90e9ca4bc2af598eb42fbdd1615d0ce3a15b73f6ef97cdf",
+        "422f362ffed7609eb4a9cce6105f0a7ad13c183d704dd029abfaa6a77018feaa"
       ]
     },
     "static/models/quaternius/male-rig.json": {
@@ -350,6 +352,41 @@
       "accepted_previous_sha256": [],
       "sha256": "d33975ffb4a320015f7aa8f272a122ce8ba88434bdabde1d6c433be2def9ce2a",
       "bytes": 916382
+    },
+    "static/coin-art.js": {
+      "accepted_previous_sha256": [],
+      "sha256": "fcaa7beb7f22094c19cc54314a8f3bb369877cec3d0b75ca05bb1d3bea461ea0",
+      "bytes": 1801
+    },
+    "static/coin-art.css": {
+      "accepted_previous_sha256": [],
+      "sha256": "be273464df0471f9e4e57d81ed36b5bb27f901c2240ac843b3d656e58f177044",
+      "bytes": 1133
+    },
+    "static/rewards.js": {
+      "accepted_previous_sha256": [],
+      "sha256": "686cfc40c3070d4c8248edb77608b4a0f8049f2808c4f8b3ce503f01d6668b3b",
+      "bytes": 11196
+    },
+    "static/cardio.js": {
+      "accepted_previous_sha256": [],
+      "sha256": "ad0a741ea55fff4894a8a0ce241026d0f10d0fa407d4504f1a04b97ebff8d749",
+      "bytes": 19813
+    },
+    "static/images/coins/fitness-coins.png": {
+      "accepted_previous_sha256": [],
+      "sha256": "3c9abdb9d97a349d2227e99515e8c666bcbd7a2d538ac514ffe6cd5ec0507011",
+      "bytes": 2032104
+    },
+    "static/community.js": {
+      "accepted_previous_sha256": [],
+      "sha256": "e02becd245477b95d595f140ec3b1717492c479500fc5866fd04602a0c937aa3",
+      "bytes": 14123
+    },
+    "static/challenges.js": {
+      "accepted_previous_sha256": [],
+      "sha256": "35d5ac2d4ff5929368b4d9c429ec430d4305dc2e99b74c9b4fd331cbd6bfc3c6",
+      "bytes": 4679
     }
   }
 }

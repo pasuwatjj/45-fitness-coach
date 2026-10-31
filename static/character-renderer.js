@@ -149,7 +149,7 @@ window.FitnessCharacterRenderer=class {
   if(this.renderWidth!==w||this.renderHeight!==h||this.renderRatio!==ratio){
    this.gpu.setDrawingBufferSize(w,h,ratio);this.renderWidth=w;this.renderHeight=h;this.renderRatio=ratio;
   }
-  this.camera.aspect=w/h;this.camera.updateProjectionMatrix();
+  this.camera.aspect=w/h;this.camera.zoom=live?1:(this.previewZoom||1);this.camera.updateProjectionMatrix();
   this.body.quaternion.identity();this.restPose();this.root.rotation.set(0,live?0:this.yaw,0);this.root.scale.set(this.height*(live?.mirror?-1:1),this.height,this.height);
   if(live){
    const basis=new T.Matrix4().makeBasis(new T.Vector3(...live.x),new T.Vector3(...live.y),new T.Vector3(...live.z));this.body.quaternion.setFromRotationMatrix(basis);
@@ -162,7 +162,7 @@ window.FitnessCharacterRenderer=class {
    this.camera.position.set(center.x,center.y,center.z+Math.max(3,distance));this.camera.lookAt(center);this.gpu.setClearColor(0x000000,0);
   }else{
    this.body.position.set(0,Math.sin(this.phase*1.6)*.008,0);
-   const distance=Math.max(4.5,2.3/this.camera.aspect)/(2*Math.tan(31*Math.PI/360));this.camera.position.set(0,2.08,distance);this.camera.lookAt(0,1.97,0);this.gpu.setClearColor(0x111c30,0);
+   const distance=Math.max(4.5,2.3/this.camera.aspect)/(2*Math.tan(31*Math.PI/360));const focus=1.97+Math.min(1,Math.max(0,(this.previewZoom||1)-1))*.75;this.camera.position.set(0,focus+.11,distance);this.camera.lookAt(0,focus,0);this.gpu.setClearColor(0x111c30,0);
   }
   this.gpu.render(this.scene,this.camera);this.onRotate?.(this.yaw);
  }

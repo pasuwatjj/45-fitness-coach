@@ -39,7 +39,7 @@ assert sum(max(p)>30 for p in im.getdata())>im.width*im.height*.01, 'Drag did no
 `,a,b]);assert.equal(rotated.status,0,rotated.stderr.toString());console.log(width,'visible pointer/touch rotation passed');
  const form=page.locator('.character-options form');
  for(const gender of ['female','male'])for(const clothing of ['sports','tank','tee']){
-  await form.locator('select').nth(0).selectOption(gender);await form.locator('select').nth(4).selectOption(clothing);await form.locator('input[type=range]').fill('1');
+  await form.locator('select').nth(0).selectOption(gender);await form.locator('select').nth(4).selectOption(clothing);
   await page.locator('#characterCanvas').focus();for(let i=0;i<12;i++)await page.keyboard.press('ArrowRight');await visible(page,`${width} ${gender}/${clothing}`);
  }
  for(const [i,value]of [[1,'round'],[2,'broad'],[3,'angular'],[5,'curly']])await form.locator('select').nth(i).selectOption(value);

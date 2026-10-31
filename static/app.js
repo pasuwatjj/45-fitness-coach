@@ -144,14 +144,15 @@ async function loadProfiles(selectId=null){try{const r=await fetch('/profiles',{
 async function loadRanks(){loadStreakRanks();try{const r=await fetch('/leaderboard?exercise='+encodeURIComponent($('rankExercise').value)+'&arm='+encodeURIComponent($('rankArm').value),{cache:'no-store'});if(!r.ok)throw Error();const data=await r.json();$('rankRows').replaceChildren(...data.rows.map(row=>{const tr=document.createElement('tr');if(String(row.profile_id)===$('profile').value)tr.className='rank-me';for(const value of [row.rank===1?'✦ 1':row.rank,row.name,row.total,row.best_set,row.sets]){const td=document.createElement('td');td.textContent=String(value);if(tr.children.length===1){td.className='rank-name';window.PlayerName(td,row);if(row.rank===1){const crown=document.createElement('img');crown.src='/static/images/crown.svg';crown.alt='มงกุฎอันดับหนึ่ง';crown.className='crown-icon';td.append(crown)}}tr.append(td)}return tr}));$('rankEmpty').hidden=!!data.rows.length;setText('rankEmpty',$('rankExercise').value==='exercise2'?'ท่า 2 ยังไม่เปิดเล่น':'ยังไม่มีเซตที่บันทึก มาเริ่มเซตแรกกัน ♡')}catch(e){$('rankRows').replaceChildren();$('rankEmpty').hidden=false;setText('rankEmpty','โหลดอันดับไม่ได้ ตรวจว่าโปรแกรมบนคอมยังทำงานอยู่')}}
 function setTab(page,options={}){
  page=page===true?'leader':page===false?'workout':page;
- const names=['home','workout','leader','health','calendar','profile','rewards','challenges','vip','friends','admin','cardio','character'];
+ const names=['home','workout','leader','health','calendar','profile','rewards','challenges','vip','friends','admin','cardio','character','inbox'];
  if(!names.includes(page))return;
  if(page!=='cardio')window.CardioPage?.leave();
  if(page!=='character')window.CharacterPage?.leave();
  if(page!=='profile')window.ProfileDashboard?.leave();
  for(const name of names){const panel=$(name+'Page'),tab=$(name+'Tab');if(panel)panel.hidden=name!==page;if(tab){tab.classList.add('tab');tab.classList.toggle('active',name===page);tab.setAttribute('aria-pressed',String(name===page))}}
  if(page!=='workout'){document.body.classList.remove('far-view');setText('distance','โหมดอ่านไกล')}
- const open={cardio:()=>window.CardioPage?.open(),friends:()=>window.Community?.openFriends(),admin:()=>window.Community?.openAdmin(),vip:()=>window.VIPPage?.open(),challenges:()=>window.ChallengesPage?.open(),rewards:()=>window.RewardsPage?.open(),profile:()=>window.ProfileDashboard?.open(),character:()=>window.CharacterPage?.open(options.id??null,!!options.member),calendar:()=>window.Planner?.open(),leader:()=>loadRanks(),health:()=>loadHealthHistory(healthLoadedProfile!==$('healthProfile').value)};
+ const open={inbox:()=>window.Inbox?.open(),cardio:()=>window.CardioPage?.open(),friends:()=>window.Community?.openFriends(),admin:()=>window.Community?.openAdmin(),vip:()=>window.VIPPage?.open(),challenges:()=>window.ChallengesPage?.open(),rewards:()=>window.RewardsPage?.open(),profile:()=>window.ProfileDashboard?.open(),character:()=>window.CharacterPage?.open(options.id??null,!!options.member),calendar:()=>window.Planner?.open(),leader:()=>loadRanks(),health:()=>loadHealthHistory(healthLoadedProfile!==$('healthProfile').value)};
+ document.dispatchEvent(new CustomEvent('fitness:navigate',{detail:page}));
  return open[page]?.();
 }
 $('workoutTab').onclick=()=>setTab('workout');$('leaderTab').onclick=()=>setTab('leader');$('healthTab').onclick=()=>setTab('health');$('calendarTab').onclick=()=>setTab('calendar');

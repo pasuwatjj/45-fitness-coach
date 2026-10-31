@@ -1,0 +1,40 @@
+'use strict';
+window.Inbox=(()=>{
+ const t=(th,en)=>window.I18N?.lang==='en'?en:th,$=id=>document.getElementById(id),page=$('inboxPage');
+ const el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n};
+ const button=(text,fn)=>{const b=el('button',text,'secondary');b.type='button';b.onclick=fn;return b};
+ const tab=$('inboxTab'),dots=[tab,$('homeInboxTile')].filter(Boolean).map(parent=>{const dot=el('span','','inbox-dot');dot.hidden=true;dot.setAttribute('aria-hidden','true');parent.append(dot);return dot});
+ let generation=0,polling=false,lastUnread=0,rendered='';
+ async function api(path,data){const r=await fetch('/social/inbox'+path,data===undefined?{cache:'no-store'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const d=await r.json();if(!r.ok)throw Error(d.error||t('โหลดข้อความไม่ได้','Could not load messages'));return d}
+ function badge(count){lastUnread=count;dots.forEach(n=>n.hidden=!count);tab.setAttribute('aria-label',t('กล่องข้อความ','Inbox')+(count?t(' มีข้อความยังไม่อ่าน ',' unread messages: ')+count:''))}
+ const status=el('p','','inbox-status');status.setAttribute('role','status');const threadList=el('div','','inbox-friends'),messages=el('div','','inbox-messages'),settings=el('section','','panel reminder-settings');
+ function render(data){
+  const signature=JSON.stringify([data.messages,data.friends]);if(signature===rendered)return;rendered=signature;
+  threadList.replaceChildren();for(const f of data.friends){const row=button('',()=>window.FriendChat.open(f.account_id,f.name));row.className='inbox-thread';row.append(el('span','💬','thread-avatar'),el('strong',f.name),el('small',f.last?.body||t('เริ่มคุยกันได้เลย','Start a conversation')));if(f.unread)row.append(el('span',String(f.unread),'unread-count'));threadList.append(row)}
+  if(!data.friends.length)threadList.append(el('p',t('ยังไม่มีแชตเพื่อน เพิ่มเพื่อนแล้วเริ่มคุยกันได้เลย','Add a friend to start chatting')),button(t('ไปหาเพื่อน','Find friends'),()=>setTab('friends')));
+  messages.replaceChildren();for(const m of data.messages){const card=el('article','','system-message'+(m.unread?' unread':''));card.append(el('span',t('จากระบบ · ผู้ช่วย 45','System · Coach 45'),'message-sender'),el('p',m.body.split(' / ')[window.I18N?.lang==='en'?1:0]||m.body),el('time',new Date(m.scheduled*1000).toLocaleString(window.I18N?.lang==='en'?'en-GB':'th-TH',{timeZone:m.timezone})),button(t('เปิดตารางวันนี้','Open today’s plan'),()=>setTab('calendar')));messages.append(card)}
+  if(!data.messages.length)messages.append(el('p',t('ยังไม่มีข้อความจากระบบ ตั้งเวลาเตือนด้านล่าง แล้วเจอกันตอนฝึกนะ ✨','Set your reminder below. Your coach will meet you here at training time ✨'),'inbox-empty'));
+ }
+ function reminderForm(value){
+  settings.replaceChildren(el('h3',t('เวลาฝึกของเรา','Your training rhythm')),el('p',t('เลือกเวลาแยกแต่ละวัน หรือใช้เวลาเดียวทั้งสัปดาห์ ข้อความที่ถึงกำหนดจะแสดงในกล่องนี้เมื่อเปิดเว็บ','Choose each day’s time or one time for the week. Due reminders appear in this inbox when you visit.')));
+  const form=el('form'),enabled=el('input');enabled.type='checkbox';enabled.checked=value.enabled;enabled.name='enabled';const enableLabel=el('label',t('เปิดข้อความเตือนเล่นเวท','Enable workout reminders'));enableLabel.prepend(enabled);enableLabel.className='reminder-toggle';form.append(enableLabel);
+  const zoneLabel=el('label',t('เขตเวลา','Time zone')),zone=el('input');zone.name='timezone';zone.value=value.timezone;zone.required=true;zone.maxLength=80;zone.placeholder='Asia/Bangkok';zoneLabel.append(zone);form.append(zoneLabel);
+  const all=el('input');all.type='time';all.value='18:00';all.setAttribute('aria-label',t('เวลาเดียวสำหรับทุกวัน','One time for every day'));const shared=el('div','','reminder-all'),rows=[];
+  shared.append(all,button(t('ใช้เวลานี้ทุกวัน','Apply to every day'),()=>{if(!all.value)return;enabled.checked=true;rows.forEach(r=>{r.check.checked=true;r.time.value=all.value});notice.textContent=t('ปรับทุกวันแล้ว กดบันทึกเพื่อเริ่มเตือน','All days updated. Save to activate reminders.')}));form.append(shared);
+  const days=t('จันทร์,อังคาร,พุธ,พฤหัสบดี,ศุกร์,เสาร์,อาทิตย์','Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday').split(','),grid=el('div','','reminder-days');
+  for(const setting of value.days){const row=el('div','','reminder-day'),check=el('input'),time=el('input'),label=el('label',days[setting.day]);check.type='checkbox';check.checked=setting.enabled;check.name='day-'+setting.day;label.prepend(check);time.type='time';time.required=true;time.name='time-'+setting.day;time.value=setting.time;time.setAttribute('aria-label',days[setting.day]);row.append(label,time);grid.append(row);rows.push({check,time})}form.append(grid);
+  const notice=el('p','','reminder-notice');notice.setAttribute('role','status');const save=el('button',t('บันทึกเวลาเตือน','Save reminder times'));save.type='submit';form.append(save,notice);
+  form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{await api('/reminders',{enabled:enabled.checked,timezone:zone.value.trim(),days:rows.map((r,day)=>({day,enabled:r.check.checked,time:r.time.value}))});notice.textContent=t('บันทึกแล้ว ✓ แล้วเจอกันตอนฝึกนะ','Saved ✓ See you at training time');await refresh()}catch(error){notice.textContent=error.message}finally{save.disabled=false}};settings.append(form);
+ }
+ async function markSystem(data,mine){const ids=data.messages.filter(m=>m.unread).map(m=>m.id);if(!ids.length||document.hidden||page.hidden||mine!==generation)return;await api('/read',{source:'system',through:Math.max(...ids)});if(mine===generation)badge(Math.max(0,data.unread-data.system_unread))}
+ async function refresh(){if(polling||document.hidden)return;if(window.FitnessAccount?.guest){badge(0);return}polling=true;const mine=generation;try{const d=await api('');if(mine!==generation)return;badge(d.unread);if(!page.hidden){render(d);await markSystem(d,mine)}}catch(e){if(!page.hidden&&mine===generation)status.textContent=e.message}finally{polling=false}}
+ async function open(){const mine=++generation;rendered='';messages.replaceChildren();threadList.replaceChildren();settings.replaceChildren();page.replaceChildren(el('h2',t('กล่องข้อความของเรา','Your inbox')),el('p',t('เพื่อนคุยด้วย ผู้ช่วยคอยเตือน ทุกความตั้งใจมีคนอยู่ข้าง ๆ','Friends to talk to, a coach to remind you. A little encouragement goes a long way.'),'page-intro'),status);status.textContent='';
+  if(window.FitnessAccount?.guest){page.append(el('p',t('เข้าสู่ระบบเพื่อเก็บข้อความและเวลาเตือนของคุณ','Sign in to keep your messages and reminder times')),button(t('เข้าสู่ระบบ','Sign in'),()=>window.openFitnessAccount()));badge(0);return}
+  const layout=el('div','','inbox-layout'),system=el('section','','panel'),friends=el('section','','panel');system.append(el('h3',t('ผู้ช่วย 45 ส่งถึงคุณ','From Coach 45')),messages);friends.append(el('h3',t('แชตกับเพื่อน','Friend chats')),threadList);layout.append(system,friends);page.append(layout,settings);status.textContent=t('กำลังเปิดจดหมาย…','Opening your mail…');
+  try{const d=await api('');if(mine!==generation||page.hidden)return;render(d);reminderForm(d.settings);badge(d.unread);status.textContent='';await markSystem(d,mine)}catch(e){if(mine===generation)status.textContent=e.message}
+ }
+ const readIds=new Map();
+ async function readFriend(uid,rows,me){const ids=rows.filter(m=>m.receiver===me&&m.sender===uid).map(m=>m.id);if(!ids.length||document.hidden)return;const through=Math.max(...ids),key=me+':'+uid;if((readIds.get(key)||0)>=through)return;try{await api('/read',{source:'friend',account_id:uid,through});readIds.set(key,through);await refresh()}catch{/* Retry with the next visible chat refresh. */}}
+ tab.onclick=()=>setTab('inbox');setInterval(refresh,15000);document.addEventListener('visibilitychange',refresh);setTimeout(refresh,1200);
+ return{open,refresh,readFriend,get unread(){return lastUnread}};
+})();

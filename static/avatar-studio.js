@@ -2,9 +2,10 @@
 window.AvatarStudio=(()=>{
  const t=(th,en)=>window.I18N?.lang==='en'?en:th;
  const el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;n.className=cls;return n};
- let renderer=null,serial=0,abort=null;
+ let renderer=null,serial=0,abort=null,refreshGrowth=null;
+ window.addEventListener('fitness-workout-saved',()=>refreshGrowth?.());
  const current=()=>document.getElementById('profile')?.value||window.fitnessState?.profile?.id;
- function leave(){serial++;abort?.abort();renderer?.destroy();renderer=null}
+ function leave(){refreshGrowth=null;serial++;abort?.abort();renderer?.destroy();renderer=null}
  async function open(pid=current(),demo=null){
   leave();const generation=serial,page=document.getElementById('characterPage');if(!page)return;
   page.dataset.i18nIgnore='';page.replaceChildren(el('p',t('กำลังเปิดห้องแต่งตัว…','Opening avatar studio…')));
@@ -38,6 +39,9 @@ window.AvatarStudio=(()=>{
   renderer=new FitnessImportedAvatar(canvas);
   function update(){const h=Number(dimensionInputs.height_cm.value),w=Number(dimensionInputs.weight_kg.value);if(h>=50&&h<=250&&w>=5&&w<=350){const fullness=Math.max(0,Math.min(1,(w/(h/100)**2-18.5)/18));model.visual={...model.visual,fullness,height_scale:Math.max(.88,Math.min(1.12,h/170)),has_dimensions:true}}
    model.appearance=a;renderer.set(model);if(canvas.dataset.renderer==='fallback')note.textContent=t('อุปกรณ์นี้ใช้ภาพสำรอง เพราะเปิดกราฟิก 3D ไม่ได้','This device uses fallback graphics because 3D is unavailable.');}
+  const growthPanel=el('div');growthPanel.append(window.FitnessGrowthPanel(model.growth));form.append(growthPanel);
+  let growthRequest=0;
+  refreshGrowth=async()=>{if(demo)return;const request=++growthRequest;try{const r=await fetch('/profiles/'+pid+'/character',{cache:'no-store',signal:abort.signal});if(!r.ok)return;const fresh=await r.json();if(generation!==serial||request!==growthRequest)return;model.growth=fresh.growth;growthPanel.replaceChildren(window.FitnessGrowthPanel(model.growth));update()}catch{}};
   update();renderer.start();
   form.onsubmit=async e=>{e.preventDefault();if(demo||!form.reportValidity())return;if(Boolean(dimensionInputs.height_cm.value)!==Boolean(dimensionInputs.weight_kg.value)){note.textContent=t('กรอกส่วนสูงและน้ำหนักทั้งสองช่อง','Enter both height and weight.');return}save.disabled=true;note.textContent=t('กำลังบันทึก…','Saving…');try{const r=await fetch('/profiles/'+pid+'/character',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appearance:a,dimensions:dimensionInputs.height_cm.value&&dimensionInputs.weight_kg.value?{height_cm:Number(dimensionInputs.height_cm.value),weight_kg:Number(dimensionInputs.weight_kg.value)}:null})});const data=await r.json();if(!r.ok)throw Error(data.error||'Save failed');if(generation!==serial)return;model=data;renderer.set(model);note.textContent=t('บันทึกแล้ว ✓ เปิดอีกครั้งจะใช้ตัวละครนี้','Saved ✓ Your character is ready.');window.dispatchEvent(new Event('fitness-profile-updated'))}catch(e){if(generation===serial)note.textContent=e.message}finally{if(generation===serial)save.disabled=false}};
  }

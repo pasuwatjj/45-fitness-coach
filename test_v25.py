@@ -36,9 +36,9 @@ class SlowCameraTests(unittest.TestCase):
         with patch('app.time.monotonic',return_value=now):
             return self.coach.accept_frame(self.image,self.coach.state['set_id'],True)['state']
 
-    def test_slow_network_preparation_finishes_after_three_neutral_samples(self):
-        self.assertFalse(self.frame(102.2)['calibrated'])
-        self.assertFalse(self.frame(104.4)['calibrated'])
+    def test_slow_network_reference_is_immediate_without_free_reps(self):
+        self.assertTrue(self.frame(102.2)['calibrated'])
+        self.assertTrue(self.frame(104.4)['calibrated'])
         self.assertTrue(self.frame(106.6)['calibrated'])
         self.assertEqual(self.frame(108.8)['reps'],0)
 
@@ -52,9 +52,9 @@ class SlowCameraTests(unittest.TestCase):
         self.assertNotEqual(self.coach.forms['right'].counter.phase,'raised')
         self.assertFalse(self.frame(116)['calibrated'])
 
-    def test_neutral_jitter_calibrates_without_relaxing_bad_posture(self):
+    def test_jitter_reference_does_not_grant_free_reps(self):
         from form_rules import FormCoach
-        for lean,arm,expected in [(0,0,True),(35,0,False),(0,40,False)]:
+        for lean,arm,expected in [(0,0,True),(35,0,True),(0,40,True)]:
             f=FormCoach(server.SETTINGS)
             for i in range(9):
                 out=f.update(dict(elbow=160,lean=lean+(i%2)*8,arm=arm+(i%2)*10),i*300)

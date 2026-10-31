@@ -1,4 +1,9 @@
-# Avatar model upgrade — draft for visual review, not deployment approval
+# Avatar model research and provenance
+
+The Quaternius candidate below is now approved and retained. The current RPG muscle
+progression implementation and deployment checks are documented in
+[RPG_PROGRESSION.md](RPG_PROGRESSION.md). The following is the earlier model-selection
+record; its draft/no-deployment status describes that earlier research step.
 
 ## Resumed work, 2026-10-31
 

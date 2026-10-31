@@ -17,7 +17,9 @@ class ProgressionTests(unittest.TestCase):
             with self.subTest(total=total):
                 p=character.progression(total);self.assertEqual((p['level'],p['exp'],p['next_exp']),(level,current,cost));self.assertEqual(p['remaining_exp'],cost-current)
     def save(self,key,reps,difficulty=None,exercise='curl'):
-        return self.store.save_set(key,self.p,exercise,'right',reps,0,0,reps,{},difficulty=difficulty)
+        result=self.store.save_set(key,self.p,exercise,'right',reps,0,0,reps,{},difficulty=difficulty)
+        rewards.save_quality(self.store,key,self.p,exercise,'right',reps,0,0,accepted=reps)
+        return result
     def growth(self):return character.growth(self.store,self.p)
     def test_mixed_difficulty_and_all_primary_groups(self):
         for key in ['beginner','pro','expert']:self.save(key,1,key)
@@ -47,7 +49,20 @@ class ProgressionTests(unittest.TestCase):
     def test_concurrent_retry_once(self):
         def save(_):return LeaderboardStore(self.store.path).save_set('same',self.p,'curl','right',3,0,0,3,{},difficulty='pro')
         with ThreadPoolExecutor(max_workers=6) as pool:list(pool.map(save,range(12)))
+        rewards.save_quality(self.store,'same',self.p,'curl','right',3,0,0,accepted=3)
         self.assertEqual(self.growth()['parts']['arms']['total_exp'],300)
+    def test_unverified_pending_and_mismatched_records_never_credit(self):
+        self.store.save_set('pending',self.p,'curl','right',9,0,0,9,{},difficulty='expert')
+        self.assertEqual(self.growth()['parts']['arms']['total_exp'],0)
+        rewards.save_quality(self.store,'pending',self.p,'squat','right',9,0,0,accepted=9)
+        self.assertEqual(self.growth()['parts']['arms']['total_exp'],0)
+        with self.store.connect() as db:
+            self.assertEqual(db.execute('SELECT COUNT(*) FROM workout_sets').fetchone()[0],1)
+        # A failed quality write can be retried without duplicate EXP or coins.
+        self.store.save_set('retry',self.p,'curl','right',2,0,0,2,{},difficulty='pro')
+        for _ in range(3):rewards.save_quality(self.store,'retry',self.p,'curl','right',2,4,3,accepted=2)
+        self.assertEqual(self.growth()['parts']['arms']['total_exp'],200)
+
     def test_geometry_is_level_based_bounded_and_side_specific(self):
         self.assertEqual(self.growth()['levels']['arms'],0)
         self.save('one',1);a=self.growth();self.save('two',1);b=self.growth()
@@ -66,6 +81,8 @@ class ApiTests(unittest.TestCase):
         for _ in range(2):
             r=self.a.post('/pause',json={'difficulty':'expert','exp':999999,'reps':99999},headers={'X-Set-ID':sid});self.assertEqual(r.status_code,200,r.json)
         d=self.a.get(f'/profiles/{self.pa}/character').json;self.assertEqual(d['growth']['parts']['arms']['total_exp'],200)
+        injected=self.a.post(f'/profiles/{self.pa}/character',json={'appearance':d['appearance'],'growth':{'parts':{'arms':{'total_exp':999999}}}})
+        self.assertEqual(injected.json['growth'],d['growth'])
         own=self.a.get(f'/profiles/{self.pa}/overview');self.assertEqual(own.json['growth'],d['growth'])
         self.assertEqual(self.b.get(f'/profiles/{self.pa}/overview').status_code,404)
         self.assertEqual(self.b.get(f'/social/profiles/{self.pa}/overview').status_code,403)

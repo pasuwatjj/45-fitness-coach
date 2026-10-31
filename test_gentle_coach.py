@@ -97,7 +97,7 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(self.coach.state['reps'],3)
         self.assertEqual(self.coach.forms['right'].counter.reps,3)
 
-    def test_auto_rest_only_after_count_and_no_motion(self):
+    def test_unplanned_sets_wait_for_manual_rest(self):
         self.coach.last_activity=1000
         self.coach.maybe_rest(10000)
         self.assertFalse(self.coach.state['paused'])
@@ -105,8 +105,10 @@ class SessionTests(unittest.TestCase):
         self.coach.maybe_rest(8999)
         self.assertFalse(self.coach.state['paused'])
         self.coach.maybe_rest(9000)
+        # v35 preserves a manual session through inactivity; plans rest at their target.
+        self.assertFalse(self.coach.state['paused'])
+        self.coach.pause()
         self.assertTrue(self.coach.state['paused'])
-        self.assertTrue(self.coach.state['summary']['automatic'])
 
     def test_rank_modes_separate_and_ties_share_rank(self):
         other=self.store.create_profile('Another Player')

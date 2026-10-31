@@ -29,8 +29,23 @@ window.FitnessImportedAvatar=class extends FitnessCharacterRenderer {
   this.height=v.height_scale||1;this.body=new T.Group();this.root.add(this.body);
   const bodyData=this.assetBody.find(m=>m.name.includes('Super'));
   const maxY=Math.max(...bodyData.position.filter((_,i)=>i%3===1));const unit=3.7/maxY;
+  const development=FitnessMuscleProgression.development(this.model.growth);
   const full=Math.max(0,Math.min(1,v.fullness??.25));
   const skin=this.material(a.skin_color||'#d79f7a',.78);this.tint(skin.color,'#d8aa87');skin.map=this.textures[gender+'-color.jpg'];skin.normalMap=this.textures[gender+'-normal.png'];skin.normalScale.set(.65-full*.35,.65-full*.35);
+  skin.onBeforeCompile=shader=>{
+   shader.vertexShader='attribute float muscleDevelopment; varying float vMuscleDevelopment;\n'+shader.vertexShader;
+   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n vMuscleDevelopment=muscleDevelopment;');
+   shader.fragmentShader='varying float vMuscleDevelopment;\n'+shader.fragmentShader;
+   shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#ifdef USE_MAP
+    vec4 authored=texture2D(map,vMapUv);
+    vec4 quiet=texture2D(map,vMapUv,5.0);
+    diffuseColor*=mix(quiet,authored,vMuscleDevelopment);
+   #endif`);
+   shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',`vec3 untrainedNormal=normal;
+    #include <normal_fragment_maps>
+    normal=normalize(mix(untrainedNormal,normal,vMuscleDevelopment));`);
+  };
+  skin.customProgramCacheKey=()=> 'quaternius-muscle-progression-v1';
   const hair=this.material(a.hair_color||'#302333',.85);hair.map=this.textures['hair-color.png'];hair.normalMap=this.textures['hair-normal.png'];hair.side=T.DoubleSide;hair.alphaTest=.35;
   const hair2=hair.clone();hair2.map=this.textures['hair2-color.png'];hair2.normalMap=this.textures['hair2-normal.png'];this.resources.push(hair2);
   const eyes=this.material('#ffffff',.4);eyes.map=this.textures['eyes-color.jpg'];
@@ -41,6 +56,7 @@ window.FitnessImportedAvatar=class extends FitnessCharacterRenderer {
   eyes.customProgramCacheKey=()=> 'quaternius-iris-tint-v1';
   const top=this.material(a.top_color||'#284b73',.95),shorts=this.material(a.shorts_color||'#172d4c',.95);top.side=shorts.side=T.DoubleSide;
   const deform=(x,y,z)=>{
+   [x,y,z]=FitnessMuscleProgression.deform(x,y,z,maxY,development).position;
    const h=y/maxY;const torso=Math.exp(-Math.pow((h-.60)/.15,2));const head=h>.86;
    // Profile-driven approximate fullness; weight never estimates muscle mass.
    x*=1+full*(head?.08:.15+.40*torso);z*=1+full*(head?.08:.18+.65*torso);
@@ -52,7 +68,7 @@ window.FitnessImportedAvatar=class extends FitnessCharacterRenderer {
   };
   const make=(data,mat,index=data.index,offset=0)=>{
    const vertices=[];for(let i=0;i<data.position.length;i+=3){const p=deform(...data.position.slice(i,i+3));for(let k=0;k<3;k++)vertices.push(p[k]+offset*data.normal[i+k])}
-   const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geo.setAttribute('uv',new T.Float32BufferAttribute(data.uv,2));geo.setIndex(index);if(offset)geo.setAttribute('normal',new T.Float32BufferAttribute(data.normal,3));else geo.computeVertexNormals();return this.mesh(geo,mat,this.body);
+   const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geo.setAttribute('uv',new T.Float32BufferAttribute(data.uv,2));geo.setAttribute('muscleDevelopment',new T.Float32BufferAttribute(data.position.filter((_,i)=>i%3===0).map((_,i)=>FitnessMuscleProgression.deform(...data.position.slice(i*3,i*3+3),maxY,development).detail),1));geo.setIndex(index);if(offset)geo.setAttribute('normal',new T.Float32BufferAttribute(data.normal,3));else geo.computeVertexNormals();return this.mesh(geo,mat,this.body);
   };
   for(const data of this.assetBody){make(data,data.name.includes('Super')?skin:data.name==='Eyes'?eyes:hair);
    if(data.name.includes('Super')){make(data.clothing.shorts,shorts,data.clothing.shorts.index,.018);const style=a.clothing==='tee'?'tee':a.clothing==='tank'?'tank':gender==='female'?'sports':null;if(style)make(data.clothing[style],top,data.clothing[style].index,.022)}

@@ -57,10 +57,15 @@ def growth(store,profile):
     from training_economy import schema as training_schema
     with store.lock,store.connect() as db:
         training_schema(db)
-        for r in db.execute("""SELECT w.exercise,w.reps,w.left_reps,w.right_reps,
+        # A quality row is written only after the server accepts and saves a set.
+        # Missing/failed/unverified records earn no avatar EXP; history is never deleted.
+        has_quality=db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='quality_sets'").fetchone()
+        rows=db.execute("""SELECT w.exercise,MIN(w.reps,q.reps) reps,w.left_reps,w.right_reps,
             COALESCE(t.difficulty,'beginner') difficulty FROM workout_sets w
+            JOIN quality_sets q ON q.id=w.id AND q.profile_id=w.profile_id AND q.exercise=w.exercise
             LEFT JOIN training_sets t ON t.set_id=w.id AND t.profile_id=w.profile_id
-            WHERE w.profile_id=?""",(profile,)):
+            WHERE w.profile_id=? AND q.reps>0""",(profile,)) if has_quality else []
+        for r in rows:
             group=CATALOG.get(r['exercise'],{}).get('group')
             rate=EXP_PER_REP[r['difficulty']]
             if group in reps:

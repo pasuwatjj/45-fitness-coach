@@ -24,10 +24,10 @@ with sync_playwright() as p:
   assert page.locator('.boxing-clock').is_hidden()
   page.locator('.cage-canvas').focus()
   before=page.evaluate('({x:Boxing.world.states[0].x,z:Boxing.world.states[0].z,punch:Boxing.world.actors[0].punchAt})')
-  for key in ['w','a','s','d','q','e','u','i','c','f','z','x','r','Space']:page.keyboard.down(key)
+  for key in ['w','a','s','d','q','e','u','i','c','f','z','x','r','Space','Control']:page.keyboard.down(key)
   page.wait_for_timeout(800)
   after=page.evaluate('({x:Boxing.world.states[0].x,z:Boxing.world.states[0].z,punch:Boxing.world.actors[0].punchAt})');assert before==after,(before,after)
-  for key in ['w','a','s','d','q','e','u','i','c','f','z','x','r','Space']:page.keyboard.up(key)
+  for key in ['w','a','s','d','q','e','u','i','c','f','z','x','r','Space','Control']:page.keyboard.up(key)
 
   start_x=page.evaluate('Boxing.world.states[0].x')
   page.evaluate('testPose[0].z=.055');page.wait_for_timeout(1000);assert abs(page.evaluate('Boxing.world.states[0].x')-start_x)<.03
@@ -41,12 +41,13 @@ with sync_playwright() as p:
   # One world renderer, profile mesh and actual center bag. Orbit/zoom presets are interactive.
   assert page.locator('.boxing-fighters canvas').count()==1
   assert page.evaluate('Boxing.world.bag.visible&&Boxing.world.bag.position.length()===0')
-  page.get_by_role('button',name='Overhead' if lang=='en' else 'มุมสูง',exact=True).click();assert page.evaluate('Boxing.world.mode')=='top'
-  page.get_by_role('button',name='Ringside' if lang=='en' else 'ข้างสนาม',exact=True).click()
+  assert page.locator('.boxing-views button').count()==2
+  page.locator('.boxing-camera-lock').click();assert page.evaluate('Boxing.world.cameraLocked');page.locator('.boxing-camera-lock').click();assert not page.evaluate('Boxing.world.cameraLocked')
+  page.get_by_role('button',name='Boxing camera' if lang=='en' else 'มุมเกมมวย',exact=True).click()
   rect=page.locator('.cage-canvas').bounding_box();px=rect['x']+rect['width']*.5;py=rect['y']+rect['height']*.6
   page.mouse.move(px,py);page.mouse.down();page.mouse.move(px+45,py-20);page.mouse.up();assert page.evaluate('Boxing.world.mode')=='orbit'
   before=page.evaluate('Boxing.world.distance');page.mouse.wheel(0,-150);page.wait_for_timeout(200);assert page.evaluate('Boxing.world.distance')<before
-  page.get_by_role('button',name='Ringside' if lang=='en' else 'ข้างสนาม',exact=True).click()
+  page.get_by_role('button',name='Boxing camera' if lang=='en' else 'มุมเกมมวย',exact=True).click()
   # Hide hips/legs: torso still bends and lateral hold moves around the center.
   page.evaluate('testPose[23].visibility=testPose[24].visibility=0;testPose[0].z=-.4');page.wait_for_function('Boxing.world.actors[0].spine.rotation.x+Boxing.world.actors[0].chest.rotation.x>.70');reset(page)
   page.evaluate('testPose[23].visibility=testPose[24].visibility=0;for(const i of [0,11,12,13,14,15,16])testPose[i].x-=.10')
@@ -57,6 +58,7 @@ with sync_playwright() as p:
   page.locator('.boxing-controls select').first.dispatch_event('change');page.wait_for_function("Boxing.world.actors[0]?.canvas.dataset.avatarState==='ready'&&Math.abs(Boxing.world.states[0]?.x+1.05)<.01")
   page.wait_for_function("/Ready|พร้อม/.test(document.querySelector('.boxing-status').textContent)",timeout=15000)
 
+  page.evaluate("setTab('home')");assert page.evaluate('!Boxing.world.running');page.evaluate("setTab('boxing')");page.wait_for_function("Boxing.world.running&&/Ready|พร้อม/.test(document.querySelector('.boxing-status').textContent)",timeout=15000);reset(page)
   assert page.locator('.boxing-vitals').first.evaluate('n=>getComputedStyle(n).backgroundColor')=='rgba(0, 0, 0, 0)'
   page.locator('.boxing-expand').click();page.wait_for_function("document.fullscreenElement||document.querySelector('.boxing-expanded')");assert page.locator('.boxing-arena').bounding_box()['width']>=page.viewport_size['width']-2;page.locator('.boxing-expand').click();page.wait_for_function("!document.fullscreenElement&&!document.querySelector('.boxing-expanded')")
   page.evaluate("document.querySelector('.boxing-arena').requestFullscreen=undefined");page.locator('.boxing-expand').click();page.wait_for_selector('.boxing-expanded');page.keyboard.press('Escape');page.wait_for_function("!document.querySelector('.boxing-expanded')")

@@ -36,8 +36,8 @@ def motion(m,now):
         move=p.get('move',0);scale=max(1,math.hypot(move,side))
         dash_dt=max(0,min(now,p.get('control_at',0)+.65,p.get('dash_until',0))-max(m.get('motion_at',now),p.get('dash_at',0)))
         dash_scale=max(1,math.hypot(p.get('dash_move',0),p.get('dash_side',0)))
-        travel=move*max(0,dt-dash_dt)/scale+p.get('dash_move',0)*dash_dt*2.6/dash_scale
-        circle=side*max(0,side_dt-dash_dt)/scale+p.get('dash_side',0)*dash_dt*2.6/dash_scale
+        travel=move*max(0,dt-dash_dt)/scale+p.get('dash_move',0)*dash_dt*3.0/dash_scale
+        circle=side*max(0,side_dt-dash_dt)/scale+p.get('dash_side',0)*dash_dt*3.0/dash_scale
         p['x'],p['z']=clamp(p['x']+(fx*travel+fz*circle)*SPEED,p['z']+(fz*travel-fx*circle)*SPEED)
     if len(ps)==2:
         a,b=ps
@@ -74,6 +74,30 @@ def queue(m,p,q,hand,kind,now,token):
     ensure(m['players']);fx,fz=direction(p,q)
     m.setdefault('pending_strikes',[]).append(dict(id=uuid.uuid4().hex,attacker=p['uid'],target=q['uid'],hand=hand,punch_type=kind,damage=p.get('kick_damage',1) if kind=='kick' else p['damage'][hand],time=now+(.28 if kind=='kick' else .18),fx=fx,fz=fz,token=token))
 
+def directional_rules(m):return m.get('rules',0)>=6 and m.get('control_mode')=='computer'
+
+def regenerate(m,now):
+    """One armor per five active seconds; zero stays broken until the next round."""
+    if not directional_rules(m) or m.get('status')!='active':return
+    for p in m['players']:
+        anchor=p.get('armor_regen_at',m.get('round_start',m.get('start') or now))
+        ticks=max(0,int((now-anchor)//5))
+        if ticks:
+            if p['armor']>0:p['armor']=min(10,p['armor']+ticks)
+            p['armor_regen_at']=anchor+ticks*5
+
+def defend(p,hand,damage,now):
+    guarded=p.get('guard_until',0)>now and now-p.get('control_at',0)<.65
+    side=p.get('guard_side') or 'both';matched=guarded and side==hand
+    armor_loss=0;hp_loss=damage;detail='none'
+    if matched and p['armor']>0:hp_loss=0;detail='perfect'
+    elif matched:hp_loss=round(damage*.9,2);detail='reduced'
+    elif guarded and side=='both':
+        armor_loss=min(p['armor'],damage);hp_loss=damage-armor_loss;detail='all' if armor_loss else 'broken'
+    elif guarded:detail='wrong'
+    p['armor']=max(0,p['armor']-armor_loss);p['hp']=round(max(0,p['hp']-hp_loss),2)
+    return dict(result='hit' if hp_loss else 'block',damage=hp_loss if hp_loss else damage,raw_damage=damage,hp_damage=hp_loss,armor_damage=armor_loss,guard_result=detail)
+
 def resolve(m,now,knockout):
     pending=m.get('pending_strikes',[]);m['pending_strikes']=[]
     for strike in pending:
@@ -85,10 +109,12 @@ def resolve(m,now,knockout):
         slip=q.get('slip',0) if fresh else 0
         duck=fresh and (now<q.get('dash_until',0) or q.get('bend',0)>.24 or q.get('bend',0)<-.12 or q.get('crouch',0)>.50)
         evade=(strike['hand']=='left' and slip<-.35) or (strike['hand']=='right' and slip>.35)
+        defense={}
         if distance>(1.85 if strike['punch_type']=='kick' else RANGE) or (distance>.01 and (dx*strike['fx']+dz*strike['fz'])/distance<.72):result='miss'
         elif evade or (duck and strike['punch_type']!='uppercut'):result='dodge'
+        elif directional_rules(m):defense=defend(q,strike['hand'],strike['damage'],now);result=defense['result']
         elif q['guard_until']>now and q['armor']>0:q['armor']-=1;result='block'
         else:q['hp']=max(0,q['hp']-strike['damage']);result='hit'
-        event={k:v for k,v in strike.items() if k not in ['fx','fz','token']};event.update(result=result,time=now,x=q['x'],z=q['z'])
+        event={k:v for k,v in strike.items() if k not in ['fx','fz','token']};event.update(defense);event.update(result=result,time=now,x=q['x'],z=q['z'])
         m['event']=event;m['events']=(m.get('events',[])+[event])[-12:]
         if q['hp']==0:knockout(m,p,now);m['pending_strikes']=[];break

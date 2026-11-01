@@ -88,7 +88,7 @@ class CageRoutes(unittest.TestCase):
         self.act(self.a,'leave');self.now+=6;self.create('computer');self.act(self.b,'accept');self.act(self.a,'ready');self.act(self.b,'ready');self.now+=5
         before=self.snapshot()['players'][0]['x']
         self.act(self.a,'control',1,move=-1,dash=True);self.now+=.18;m=self.snapshot();p=m['players'][0]
-        self.assertAlmostEqual(before-p['x'],cage.SPEED*.18*2.6,places=5);started=p['last_dash']
+        self.assertAlmostEqual(before-p['x'],cage.SPEED*.18*3.0,places=5);started=p['last_dash']
         self.act(self.a,'control',2,move=-1,dash=True);self.assertEqual(self.snapshot()['players'][0]['last_dash'],started)
         self.assertEqual(self.act(self.a,'control',3,dash='yes').status_code,400)
         self.act(self.a,'control',3,move=0);self.now+=.5;stopped=self.snapshot()['players'][0]['x'];self.now+=.2;self.assertEqual(self.snapshot()['players'][0]['x'],stopped)

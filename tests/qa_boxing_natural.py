@@ -35,7 +35,7 @@ with sync_playwright() as p:
  page.evaluate("window.wind={left:{upper:[.45,.1,-.8],lower:[-.1,.85,.1]},right:{upper:[-.2,-.5,.7],lower:[.1,.8,.4]}};apply({posture:{turn:.7,hipTurn:.1,tilt:.2,headYaw:-.3},arms:wind})")
  assert page.evaluate('f.chest.rotation.y>.35&&f.pelvis.rotation.y>0&&f.punchAt===-1000')
  assert page.evaluate("new THREE.Vector3(...arm().upper).distanceTo(new THREE.Vector3(...wind.left.upper).normalize().applyAxisAngle(new THREE.Vector3(0,1,0),.7*1.05))<.01")
- assert page.evaluate("['left','right'].every(s=>{const g=f.bones[s+'Arm'].glove;return g?.name==='boxing-closed-glove'&&g.getObjectByName('closed-shell')&&g.getObjectByName('wrist-cuff')&&g.getObjectByName('thumb-cover')})")
+ assert page.evaluate("['left','right'].every(s=>{const g=f.bones[s+'Arm'].glove;return g?.name==='boxing-mma-glove'&&g.getObjectByName('mma-pad')&&g.getObjectByName('wrist-cuff')&&g.getObjectByName('thumb-loop')})")
  page.evaluate('w.camera.position.set(2.6,1.65,2.5);w.camera.lookAt(0,1.05,0);w.renderer.render(w.scene,w.camera)');page.screenshot(path=str(out/'shoulder-windup.png'))
  # Head pitch/yaw/roll animate independently, without forcing a body arch.
  page.evaluate('apply({posture:{headPitch:-.6,headYaw:.5,headRoll:.4}})')
@@ -59,5 +59,5 @@ with sync_playwright() as p:
   page.evaluate("apply({});w.renderer.render(w.scene,w.camera)")
   assert page.evaluate("f.supportSmooth.confidence<.001&&feet().every((v,i)=>v.distanceTo(restFeet[i])<.008)")
  assert not errors,errors
- print('PASS male/female full reach, short-jab pose preserved during impact, coordinated hip/spine/chest/neck, planted stance, valid skin weights, progressive back extension, independent head/shoulder wind-up and two closed red gloves; no JS errors')
+ print('PASS male/female full reach, short-jab pose preserved during impact, coordinated hip/spine/chest/neck, planted stance, valid skin weights, progressive back extension, independent head/shoulder wind-up and two compact MMA gloves; no JS errors')
  b.close()

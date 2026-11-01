@@ -124,30 +124,10 @@ window.CageFighter=class extends FitnessImportedAvatar{
     index.needsUpdate=true;weight.needsUpdate=true;mesh.castShadow=true;mesh.receiveShadow=true;
    }else if(mesh.isMesh){mesh.geometry.computeBoundingBox();const bottom=mesh.geometry.boundingBox.min.y*mesh.scale.y+mesh.position.y;if(bottom>this.hip+.2){this.neck.add(mesh);mesh.position.y-=this.shoulderHeight+.12}mesh.castShadow=true}
   }
-  // Build glove attachment in the bind pose, before any animated posture is applied.
+  // Keep the approved model's complete hands and articulated fingers, without overlays.
   this.root.scale.setScalar(this.height*.5);this.body.updateMatrixWorld(true);
-  // Hide only cage hand triangles under the replacement MMA fist; profile meshes stay untouched.
-  const wrists=['left','right'].map(side=>{const b=this.bones[side+'Arm'];return{lower:this.skeleton.bones.indexOf(b.lower),fingers:new Set(this.fingers.filter(f=>f.name.endsWith(side==='left'?'_l':'_r')).map(f=>this.skeleton.bones.indexOf(f.bone))),point:b.lower.localToWorld(b.end.clone()).applyMatrix4(this.body.matrixWorld.clone().invert()),direction:b.restLower.clone()}});
-  this.coveredHandTriangles=0;
-  for(const mesh of this.body.children.filter(m=>m.isSkinnedMesh)){
-   const geometry=mesh.geometry,position=geometry.attributes.position,skin=geometry.attributes.skinIndex,weight=geometry.attributes.skinWeight,idx=geometry.index;if(!idx)continue;const covered=[];
-   for(let i=0;i<position.count;i++){const v=new T.Vector3().fromBufferAttribute(position,i);covered[i]=wrists.some(w=>{let forearm=false;for(let k=0;k<4;k++){if(weight.array[i*4+k]<.01)continue;const bone=skin.array[i*4+k];if(w.fingers.has(bone))return true;if(bone===w.lower)forearm=true}const d=v.clone().sub(w.point);return forearm&&d.length()<.46&&d.dot(w.direction)>-.025})}
-   const kept=[];for(let i=0;i<idx.count;i+=3){const a=idx.getX(i),b=idx.getX(i+1),c=idx.getX(i+2);if(covered[a]||covered[b]||covered[c])this.coveredHandTriangles++;else kept.push(a,b,c)}geometry.setIndex(kept);
-  }
-  const leather=this.material('#171d24',.58),seam=this.material('#38434d',.72),strap=this.material('#a82d3b',.65),exposed=this.material(this.model.appearance?.skin_color||'#d79f7a',.78);
   for(const side of ['left','right']){
-   const b=this.bones[side+'Arm'],grip=this.handGrips[side];if(!b||!grip)continue;
-   const center=b.lower.worldToLocal(this.body.localToWorld(grip.center.clone()));b.contactEnd=center.clone();
-   const glove=new T.Group();glove.name='boxing-mma-glove';glove.position.copy(center);b.lower.add(glove);b.glove=glove;
-   // Pronate the closed fist at the wrist without twisting the elbow skin.
-   const y=center.clone().sub(b.end).normalize(),x=grip.across.clone().addScaledVector(y,-grip.across.dot(y)).normalize(),z=new T.Vector3().crossVectors(x,y).normalize();glove.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(x,y,z)).multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.PI));
-   this.ell(0,-.015,.005,.10,.11,.065,exposed,glove).name='curled-fist';this.ell(0,.018,-.040,.115,.12,.045,leather,glove).name='mma-pad';
-   for(let i=0;i<4;i++){const x=(i-1.5)*.052;this.ell(x,.102,-.018,.029,.045,.053,leather,glove).name='knuckle-pad';this.ell(x,.13,.045,.023,.037,.029,exposed,glove).name='exposed-finger'}
-   this.ell(.108,-.026,.026,.038,.067,.045,exposed,glove).name='curled-thumb';this.ell(.101,-.055,-.009,.040,.055,.037,leather,glove).name='thumb-loop';
-   const wrist=b.end.clone().sub(center).applyQuaternion(glove.quaternion.clone().invert());
-   const cuff=this.mesh(new T.CylinderGeometry(.105,.11,.13,16),leather,glove);cuff.position.copy(wrist);cuff.name='wrist-cuff';
-   const band=this.mesh(new T.CylinderGeometry(.109,.114,.048,16),strap,glove);band.position.copy(wrist);band.name='wrist-strap';
-   const patch=this.mesh(new T.BoxGeometry(.085,.043,.012),seam,glove);patch.position.copy(wrist).add(new T.Vector3(0,0,.112));
+   const b=this.bones[side+'Arm'];b.contactEnd=b.lower.worldToLocal(this.body.localToWorld(this.handGrips[side].center.clone()));
   }
   this.root.updateMatrixWorld(true);
   for(const side of ['left','right']){const leg=this.bones[side+'Leg'];leg.footHome=this.root.worldToLocal(leg.lower.localToWorld(leg.end.clone()));leg.footHome.y=.06*this.height/this.root.scale.y;leg.footHome.x+=(side==='left'?1:-1)*.09;leg.footHome.z+=(side==='left'?1:-1)*.10}
@@ -222,8 +202,10 @@ window.CageFighter=class extends FitnessImportedAvatar{
   const support=this.supportSmooth,lowerMix=support.confidence,kneeDrop=(1-Math.cos((support.leftKnee+support.rightKnee)*.45))/.45;
   const computer=state.controlMode==='computer',elapsed=performance.now()-(this.punchAt??-1000),kicking=this.punchType==='kick';
   const motion=BoxingMotion.sample(this.punchType,this.punchHand,elapsed);motion.type=this.punchType;this.computerMotion=computer?motion:null;
+  const assisted=!computer&&motion.active&&['hook','uppercut'].includes(this.punchType),assist=assisted?BoxingMotion.smooth(elapsed/45)*(1-BoxingMotion.smooth((elapsed-205)/200)):0;
   const pose={...this.poseSmooth,crouch:this.poseSmooth.crouch*(1-lowerMix)+Math.max(support.drop,kneeDrop)*lowerMix};
-  if(computer){const dashAge=180-((state.dashVisualUntil||0)-performance.now()),duck=BoxingMotion.smooth(dashAge/35)*(1-BoxingMotion.smooth((dashAge-130)/90));pose.crouch=Math.max(.24+.48*duck,pose.crouch);if(duck>0)pose.bend=Math.max(.48*duck,pose.bend);if(this.punchType==='uppercut')pose.crouch+=.12*motion.load;pose.bend+=.18+motion.lean;pose.turn=motion.turn;pose.hipTurn=motion.hipTurn;pose.tilt+=motion.roll;pose.headYaw=-motion.turn*.48}
+  if(computer){const dashAge=180-((state.dashVisualUntil||0)-performance.now()),duck=BoxingMotion.smooth(dashAge/35)*(1-BoxingMotion.smooth((dashAge-130)/90));pose.crouch=Math.max(.24+.48*duck,pose.crouch);if(duck>0)pose.bend=Math.max(.48*duck,pose.bend);pose.crouch+=motion.duck;pose.bend+=.18+motion.lean;pose.turn=motion.turn;pose.hipTurn=motion.hipTurn;pose.tilt+=motion.roll;pose.headYaw=-motion.turn*.48}
+  if(assisted){pose.crouch=Math.max(pose.crouch,motion.duck);pose.bend+=motion.lean;pose.turn+=motion.turn;pose.hipTurn+=motion.hipTurn;pose.tilt+=motion.roll}
   const bow=Math.max(0,pose.bend),sway=Math.abs(pose.slip),envelope=computer?motion.reach:kicking?0:elapsed<0||elapsed>360?0:Math.sin(Math.PI*elapsed/360);
   this.kickAmount=computer&&kicking?motion.lift:0;this.kickExtension=computer&&kicking?motion.reach:0;
   const striking=state.arms?.[this.punchHand],alignment=striking?striking.upper.reduce((sum,v,i)=>sum+v*striking.lower[i],0):.7;
@@ -238,11 +220,13 @@ window.CageFighter=class extends FitnessImportedAvatar{
   this.body.position.set(pose.slip*.17*(1-lowerMix)+support.shiftX*.30*lowerMix+twist*.025-(computer?motion.sign*motion.lift*.23:0),-.06-.48*pose.crouch-.08*bow-.045*sway,-bow*.12-back*.12+support.shiftZ*.26*lowerMix+drive*(computer?.12:.025)-this.kickAmount*.17);
   const shoulderFrame=new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),turn);
   const inverseTorso=this.pelvis.quaternion.clone().multiply(this.spine.quaternion).multiply(this.chest.quaternion).invert();
-  const computerArms=computer?BoxingMotion.arms(motion,state.guard,state.guard_side||'both'):null;
+  const computerArms=computer?BoxingMotion.arms(motion,state.guard,state.guard_side||'both'):null,assistedArms=assisted?BoxingMotion.arms(motion):null;
   for(const side of ['left','right']){
    const b=this.bones[side+'Arm'],sign=side==='left'?1:-1,measured=computerArms?.[side]||state.arms?.[side];if(!b)continue;
    const upper=new T.Vector3(...(measured?.upper||[sign*.25,-.5,.65])).normalize(),lower=new T.Vector3(...(measured?.lower||[-sign*.15,.8,.4])).normalize();
-   // Tracked elbows/wrists own the pose, even during a scoring event. No canned extension.
+   // Camera movement owns the neutral pose. A detected strike blends only its arm
+   // into the requested hook/uppercut, then returns smoothly to measured joints.
+   if(assisted&&side===this.punchHand){upper.lerp(new T.Vector3(...assistedArms[side].upper).normalize(),assist).normalize();lower.lerp(new T.Vector3(...assistedArms[side].lower).normalize(),assist).normalize()}
    const pull=Math.max(0,-upper.z);if(!computer){upper.applyQuaternion(shoulderFrame);lower.applyQuaternion(shoulderFrame)}upper.applyQuaternion(inverseTorso);lower.applyQuaternion(inverseTorso);
    b.upper.position.copy(b.cageBindPosition);b.upper.position.z+=(this.punchHand===side?.04:-.01)*drive-pull*.10;b.upper.position.x+=sign*pull*.025;
    // Solve the forearm in its rotated parent frame. Independent world-space swings

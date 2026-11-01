@@ -16,7 +16,7 @@ with sync_playwright() as p:
  for actor in [0,1]:
   page.evaluate('f=w.actors['+str(actor)+'];f.kickObstacles=[];w.actors[1-'+str(actor)+'].root.visible=false;f.root.visible=true;w.camera.position.set(3,1.6,3);w.camera.lookAt(0,.9,.2)')
   page.evaluate("apply(f,'none');window.idleHead=f.neck.getWorldPosition(new THREE.Vector3());window.idlePelvis=f.pelvis.rotation.clone()")
-  assert page.evaluate("['left','right'].every(s=>f.bones[s+'Arm'].elbow?.isBone&&f.bones[s+'Arm'].glove.getObjectByName('mma-pad'))")
+  assert page.evaluate("['left','right'].every(s=>f.bones[s+'Arm'].elbow?.isBone&&f.bones[s+'Arm'].contactEnd&&!f.bones[s+'Arm'].glove)")
   assert page.evaluate('f.pelvis.rotation.x+f.spine.rotation.x+f.chest.rotation.x>.35&&f.bones.leftLeg.lower.rotation.x>.35')
   page.evaluate('w.renderer.render(w.scene,w.camera)');page.screenshot(path=str(out/f'stance-{actor}.png'))
   for side in ['left','right']:

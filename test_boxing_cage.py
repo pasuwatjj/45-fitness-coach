@@ -123,15 +123,24 @@ class CageRoutes(unittest.TestCase):
         self.now+=1;self.control(self.a,'left',strike_id='same');m=self.impact();self.assertEqual(len(m['events']),1);self.assertEqual(m['players'][1]['hp'],8)
         for kwargs in [{'slip':float('nan')},{'bend':2},{'slip':True},{'bend':'1'}]:self.assertEqual(self.control(self.a,**kwargs).status_code,400)
         for token in [None,{},'','a'*101]:self.assertEqual(self.control(self.a,'right',strike_id=token).status_code,400)
-    def test_server_two_second_hold_continuous_reversal_release_and_stale_stop(self):
+    def test_server_one_second_hold_continuous_reversal_release_and_stale_stop(self):
         start=self.snapshot()['players'][0]
-        for i in range(20):self.control(self.a,slip=.8);self.now+=.1
+        for i in range(10):self.control(self.a,slip=.8);self.now+=.1
         p=self.snapshot()['players'][0];self.assertAlmostEqual(p['z'],start['z'],places=5)
         for i in range(6):self.control(self.a,slip=.8);self.now+=.1
         p=self.snapshot()['players'][0];self.assertLess(p['z'],-.4);z=p['z']
         self.control(self.a,slip=-.8);self.now+=.3;self.assertGreater(self.snapshot()['players'][0]['z'],z+.1);z=self.snapshot()['players'][0]['z']
         self.control(self.a,slip=0);self.now+=.3;self.assertAlmostEqual(self.snapshot()['players'][0]['z'],z)
         self.control(self.a,move=-1);self.now+=1;p=self.snapshot()['players'][0];self.now+=2;q=self.snapshot()['players'][0];self.assertEqual((p['x'],p['z']),(q['x'],q['z']));self.assertEqual(q['armor'],10)
+    def test_server_one_second_boundary(self):
+        start=self.now
+        for i in range(10):
+            self.now=start+i*.1;self.control(self.a,slip=.8)
+        self.now=start+.999;p=self.control(self.a,slip=.8).json['match']['players'][0]
+        self.assertAlmostEqual(p['z'],0)
+        self.now=start+1.001;p=self.control(self.a,slip=.8).json['match']['players'][0]
+        self.assertLess(p['z'],0)
+
     def test_continuous_axis_switch_and_neutral_rearm(self):
         self.control(self.a,move=1);self.now+=.12
         self.control(self.a,slip=.8);self.now+=.2
@@ -141,9 +150,9 @@ class CageRoutes(unittest.TestCase):
         self.control(self.a);self.now+=.3;stopped=self.snapshot()['players'][0]['z'];self.control(self.a,slip=.8);self.now+=.2
         q=self.snapshot()['players'][0];self.assertFalse(q['travel_ready']);self.assertAlmostEqual(q['z'],stopped)
     def test_early_reversal_restarts_the_hold(self):
-        for _ in range(15):self.control(self.a,slip=.8);self.now+=.1
+        for _ in range(7):self.control(self.a,slip=.8);self.now+=.1
         before=self.snapshot()['players'][0]['z']
-        for _ in range(15):self.control(self.a,slip=-.8);self.now+=.1
+        for _ in range(7):self.control(self.a,slip=-.8);self.now+=.1
         self.assertAlmostEqual(self.snapshot()['players'][0]['z'],before)
     def test_hold_cannot_be_spoofed_by_strafe_or_missing_frames(self):
         self.control(self.a,strafe=1);self.now+=.5;self.assertEqual(self.snapshot()['players'][0]['z'],0)

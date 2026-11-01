@@ -1,4 +1,4 @@
-"""Local two-player short-jab, gentle evasion and two-second movement regression."""
+"""Local two-player short-jab, gentle evasion and one-second movement regression."""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import time
@@ -46,7 +46,7 @@ with sync_playwright() as pw:
   assert abs(c.evaluate('Boxing.state.players[1].x')-before)<.03
   assert a.evaluate('Boxing.state.players[1].hp')==10
  jab('hit');jab('hit');assert a.evaluate('Boxing.state.players[1].hp')==8
- # A held lateral lean begins server movement after the new two-second hold.
+ # A held lateral lean begins server movement after the new one-second hold.
  start=a.evaluate('Boxing.state.players[0].z');a.evaluate('testPose[0].x-=.06');a.wait_for_function('Boxing.state.players[0].side_since!=null');a.wait_for_timeout(400);assert abs(a.evaluate('Boxing.state.players[0].z')-start)<.03
  a.wait_for_function('z=>Math.abs(Boxing.state.players[0].z-z)>.15',arg=start,timeout=3500)
  z=a.evaluate('Boxing.state.players[0].z');a.evaluate('testPose[0].x=.56');a.wait_for_function('Boxing.state.players[0].side===-1');a.wait_for_function('z=>Boxing.state.players[0].z>z+.10',arg=z,timeout=1700)
@@ -66,5 +66,5 @@ with sync_playwright() as pw:
  a.evaluate('testPose[27].visibility=0')
  c.wait_for_function('Boxing.world.actors[0].supportSmooth.confidence<.01')
  assert not errors,errors
- print('PASS two-client short jabs/rearm, no hold/recoil bonus hits, gentle short duck/back sway without travel, two-second server circling, immediate reversal, neutral stop remote shoulder wind-up, four diagonal directions and synchronized lower-body tracking/fallback')
+ print('PASS two-client short jabs/rearm, no hold/recoil bonus hits, gentle short duck/back sway without travel, one-second server circling, immediate reversal, neutral stop remote shoulder wind-up, four diagonal directions and synchronized lower-body tracking/fallback')
  b.close()

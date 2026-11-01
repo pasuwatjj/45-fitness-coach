@@ -42,6 +42,13 @@ window.BoxingPose=class {
   const feet=legs?local(vector(28,27)).map(v=>v/span):null,hipRoll=hips?Math.atan2(hipLine[1],Math.hypot(hipLine[0],hipLine[2])):null;
   const dt=this.lastTime===null?33:Math.max(1,Math.min(150,now-this.lastTime));this.lastTime=now;
   const alpha=1-Math.exp(-dt/65),arms={},candidates=[];
+  // Lean changes the attack only after a real hand strike is detected. Use the current
+  // calibrated torso, not the previous smoothed frame, so a quick dip + punch works.
+  const bodyDip=this.base?Math.min(shoulderY-this.base.shoulderY,p[0].y-this.base.headY)/this.base.imageSpan:0;
+  const strikeLean=!!this.base&&(hips&&this.base.torso!==null
+   ?Math.abs(torso-this.base.torso)>.12||Math.abs(local(torsoVector)[0]/span-this.base.torsoLateral)>.14||bodyDip>.12
+   :Math.abs((neckPitch??head)-(this.base.neckPitch??this.base.head))>.18||Math.abs(this.slip)>.4||bodyDip>.12);
+
   for(const [side,s,e,h]of [['left',11,13,15],['right',12,14,16]]){
    const a=this.arms[side];
    const raw=[s,e,h].every(i=>finite(q,i))?[vector(s,e),vector(e,h)]:null;
@@ -78,14 +85,15 @@ window.BoxingPose=class {
    else if(nearHead&&forward>.24&&hand[2]>.25&&dot>.35&&moving){type='straight';score=forward}
    // A short jab can extend the forearm without a full upper-arm swing.
    else if(nearHead&&forward>.10&&hand[2]>.12&&speed>.5&&dot-old.dot>.12&&distance-Math.hypot(...old.v)>.06){type='straight';score=forward}
+   if(type){if(strikeLean)type='uppercut';else if(type==='straight')type='hook'}
    if(this.base&&a.armed&&type&&now-a.last>400)candidates.push({side,type,score,hand});
    // While relaxed, keep a recent neutral hand position rather than a stale launch point.
    if(a.armed&&!type&&speed<.25){a.home=hand}
   }
   if(!this.base){
    const hipX=good(23)&&good(24)?(p[23].x+p[24].x)/2:(p[11].x+p[12].x)/2;
-   this.samples.push({supportX:support?.[0]??null,supportZ:support?.[2]??null,supportY:support?.[1]??null,stance:feet?Math.abs(feet[0]):null,stagger:feet?.[2]??null,hipRoll,neckPitch,heading,hipHeading,roll,facePitch,faceYaw,faceRoll,torso,head,bodyLateral,torsoHeight:torsoVector?.[1]??null,headHeight:headVector[1],imageSpan,shoulderY,headY:p[0].y,centerX:p[0].x*.65+(p[11].x+p[12].x)*.175,lateral:(p[0].x-hipX)/imageSpan});
-   if(this.samples.length>=20){const median=key=>{const values=this.samples.map(v=>v[key]).filter(v=>v!==null).sort((a,b)=>a-b);return values.length?values[Math.floor(values.length/2)]:null};this.base=Object.fromEntries(['supportX','supportZ','supportY','stance','stagger','hipRoll','neckPitch','heading','hipHeading','roll','facePitch','faceYaw','faceRoll','torso','head','bodyLateral','torsoHeight','headHeight','imageSpan','shoulderY','headY','centerX','lateral'].map(k=>[k,median(k)]))}
+   this.samples.push({supportX:support?.[0]??null,supportZ:support?.[2]??null,supportY:support?.[1]??null,stance:feet?Math.abs(feet[0]):null,stagger:feet?.[2]??null,hipRoll,torsoLateral:hips?local(torsoVector)[0]/span:null,neckPitch,heading,hipHeading,roll,facePitch,faceYaw,faceRoll,torso,head,bodyLateral,torsoHeight:torsoVector?.[1]??null,headHeight:headVector[1],imageSpan,shoulderY,headY:p[0].y,centerX:p[0].x*.65+(p[11].x+p[12].x)*.175,lateral:(p[0].x-hipX)/imageSpan});
+   if(this.samples.length>=20){const median=key=>{const values=this.samples.map(v=>v[key]).filter(v=>v!==null).sort((a,b)=>a-b);return values.length?values[Math.floor(values.length/2)]:null};this.base=Object.fromEntries(['supportX','supportZ','supportY','stance','stagger','hipRoll','torsoLateral','neckPitch','heading','hipHeading','roll','facePitch','faceYaw','faceRoll','torso','head','bodyLateral','torsoHeight','headHeight','imageSpan','shoulderY','headY','centerX','lateral'].map(k=>[k,median(k)]))}
    return{...invalid(t('ยืนตรง มองกล้อง เพื่อปรับศูนย์…','Stand upright and face the camera to calibrate…')),arms};
   }
   const clamp=(v,limit=1)=>Math.max(-limit,Math.min(limit,v)),angleDelta=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
@@ -140,14 +148,14 @@ window.BoxingPose=class {
    this.neutralAt=null;
    if(!this.travelReady&&(this.travelAt===null||direction!==this.travelDirection))this.travelAt=now;
    this.travelDirection=direction;
-   if(this.travelAt!==null&&now-this.travelAt>=2000)this.travelReady=true;
+   if(this.travelAt!==null&&now-this.travelAt>=1000)this.travelReady=true;
   }
   this.side=side;this.sideAt=side?this.travelAt:null;this.walkAt=this.walk?this.travelAt:null;this.walkDirection=this.walk;
-  const seconds=this.travelReady?2:this.travelAt===null?0:Math.min(2,(now-this.travelAt)/1000);
+  const seconds=this.travelReady?1:this.travelAt===null?0:Math.min(1,(now-this.travelAt)/1000);
   const sideSeconds=side?seconds:0,walkSeconds=this.walk?seconds:0,strafe=this.travelReady?side:0,move=this.travelReady?this.walk:0;
   const raised=[['left',11,13,15],['right',12,14,16]].every(([side,s,e,h])=>good(e)&&good(h)&&finite(q,e)&&Math.abs(q[e].y-q[s].y)/span<.32);
   if(raised&&!punch)this.guardAt??=now;else this.guardAt=null;
   const held=this.guardAt===null?0:Math.min(3,(now-this.guardAt)/1000),names={straight:t('หมัดตรง','Straight'),hook:t('ฮุก','Hook'),uppercut:t('อัปเปอร์คัต','Uppercut')};
-  return{valid:true,lowerBody:{...this.lowerBody},posture:{...this.posture},arms,move,walkSeconds,crouch:this.crouch,slip:this.slip,bend:this.bend,strafe,sideSeconds,gesture:this.gesture,guard:raised&&!punch,guardSeconds:held,angle:this.lean,action:punch||'control',punchType,label:punch?`${punch==='left'?t('ซ้าย','Left'):t('ขวา','Right')} · ${names[punchType]}`:move&&strafe?`${t('เดินเฉียง','Walk diagonally')} ${move>0?t('หน้า','forward'):t('หลัง','back')} ${strafe>0?t('ซ้าย','left'):t('ขวา','right')}`:side?`${side>0?t('โยกซ้าย','Lean left'):t('โยกขวา','Lean right')} · ${sideSeconds.toFixed(1)}/2 ${t('วิ','s')}${strafe?t(' · เดินวน',' · circling'):''}`:this.walk?`${this.walk>0?t('เอนหน้า','Lean forward'):t('เอนหลัง','Lean backward')} · ${walkSeconds.toFixed(1)}/2 ${t('วิ','s')}${move?t(' · กำลังเดิน',' · walking'):''}`:raised?`${t('ยกศอกการ์ด','Guard hold')} ${held.toFixed(1)}/3 ${t('วิ','s')}`:this.crouch>.3?t('ย่อตัว','Crouching'):this.walk>0?t('เดินหน้า','Forward'):this.walk<0?t('ถอยหลัง','Backward'):t('พร้อม · แขนตามท่าจริง','Ready · arms follow your movement')};
+  return{valid:true,lowerBody:{...this.lowerBody},posture:{...this.posture},arms,move,walkSeconds,crouch:this.crouch,slip:this.slip,bend:this.bend,strafe,sideSeconds,gesture:this.gesture,guard:raised&&!punch,guardSeconds:held,angle:this.lean,action:punch||'control',punchType,label:punch?`${punch==='left'?t('ซ้าย','Left'):t('ขวา','Right')} · ${names[punchType]}`:move&&strafe?`${t('เดินเฉียง','Walk diagonally')} ${move>0?t('หน้า','forward'):t('หลัง','back')} ${strafe>0?t('ซ้าย','left'):t('ขวา','right')}`:side?`${side>0?t('โยกซ้าย','Lean left'):t('โยกขวา','Lean right')} · ${sideSeconds.toFixed(1)}/1 ${t('วิ','s')}${strafe?t(' · เดินวน',' · circling'):''}`:this.walk?`${this.walk>0?t('เอนหน้า','Lean forward'):t('เอนหลัง','Lean backward')} · ${walkSeconds.toFixed(1)}/1 ${t('วิ','s')}${move?t(' · กำลังเดิน',' · walking'):''}`:raised?`${t('ยกศอกการ์ด','Guard hold')} ${held.toFixed(1)}/3 ${t('วิ','s')}`:this.crouch>.3?t('ย่อตัว','Crouching'):this.walk>0?t('เดินหน้า','Forward'):this.walk<0?t('ถอยหลัง','Backward'):t('พร้อม · ต่อยตรงเป็นฮุก เอนแล้วต่อยเป็นอัปเปอร์คัต','Ready · straight punch → hook; lean + punch → uppercut')};
  }
 };

@@ -1,5 +1,5 @@
 'use strict';
-// Computer choreography only. Tracking continues to use measured joint directions.
+// Shared strike choreography for computer controls and camera-triggered assisted strikes.
 window.BoxingMotion=(()=>{
  const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)},ramp=(t,a,b)=>smooth((t-a)/(b-a));
  function sample(type,hand,ms){
@@ -8,7 +8,7 @@ window.BoxingMotion=(()=>{
   const lift=kick&&active?ramp(ms,0,170)*(1-ramp(ms,510,760)):0;
   const load=active?ramp(ms,0,55)*(1-ramp(ms,55,180)):0;
   const turn=kick?-sign*(.7*lift+.25*reach):-sign*(.36*reach-.10*load);
-  return {active,kick,sign,reach,load,lift,turn,hipTurn:kick?turn*.85:turn*.65,lean:kick?-.72*lift:type==='uppercut'?-.18*reach:0,roll:kick?sign*.28*lift:0};
+  return {active,kick,sign,reach,load,lift,turn,hipTurn:kick?turn*.85:turn*.65,duck:type==='uppercut'?.60*load+.10*reach:0,lean:kick?-.72*lift:type==='uppercut'?.48*load-.12*reach:0,roll:kick?sign*.28*lift:type==='uppercut'?sign*(.14*load-.10*reach):0};
  }
  function arms(m,guard=false,guardSide='both'){
   const out={};for(const [side,sign]of [['left',1],['right',-1]]){

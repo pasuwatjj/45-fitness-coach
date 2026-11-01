@@ -83,7 +83,7 @@ def regenerate(m,now):
         anchor=p.get('armor_regen_at',m.get('round_start',m.get('start') or now))
         ticks=max(0,int((now-anchor)//5))
         if ticks:
-            if p['armor']>0:p['armor']=min(10,p['armor']+ticks)
+            if p['armor']>0:p['armor']=min(p.get('max_armor',10),p['armor']+ticks)
             p['armor_regen_at']=anchor+ticks*5
 
 def defend(p,hand,damage,now):

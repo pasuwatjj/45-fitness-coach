@@ -1,7 +1,7 @@
 """Private casual boxing matches. No images/landmarks leave the browser."""
 import json,time,uuid,math
 from flask import Blueprint,g,request,jsonify
-import character,collaboration_features,boxing_cage,boxing_bot,boxing_training
+import character,collaboration_features,boxing_cage,boxing_bot,boxing_training,community,copy
 MATCH_RULES=8
 
 def clock():return time.time()
@@ -17,7 +17,27 @@ def fighter(store,uid,pid):
     model=character.overview(store,pid)
     if not model['created']:raise ValueError('Save your avatar first')
     with store.connect() as db:max_hp=boxing_training.read(db,uid,pid)['max_hp']
-    return dict(profile_id=pid,wins=0,crouch=0,position=None,move=0,control_at=0,guard_since=None,arms=None,uid=uid,name=model['profile']['name'],model={k:model[k] for k in ['appearance','growth','visual']},damage={s:model['growth']['arm_parts'][s]['level'] for s in ['left','right']},kick_damage=model['growth']['parts']['legs']['level'],hp=max_hp,max_hp=max_hp,armor=10,ready=False,seen=clock(),seq=0,last_punch=0,last_dodge=0,guard_until=0,dodge_until=0,pose='idle')
+    return dict(profile_id=pid,wins=0,crouch=0,position=None,move=0,control_at=0,guard_since=None,arms=None,uid=uid,name=model['profile']['name'],model={k:model[k] for k in ['appearance','growth','visual']},damage={s:model['growth']['arm_parts'][s]['level'] for s in ['left','right']},kick_damage=model['growth']['parts']['legs']['level'],hp=max_hp,max_hp=max_hp,armor=10,max_armor=10,ready=False,seen=clock(),seq=0,last_punch=0,last_dodge=0,guard_until=0,dodge_until=0,pose='idle')
+def room_settings(data):
+    if not isinstance(data,dict) or set(data)!={'hp','armor','level'}:
+        raise ValueError('Choose HP, armor and body level')
+    for key,low,high in [('hp',1,10000),('armor',0,1000),('level',1,100)]:
+        if type(data[key])!=int or not low<=data[key]<=high:
+            raise ValueError(f'{key} must be a whole number from {low} to {high}')
+    return dict(data)
+
+def apply_room_settings(p,settings):
+    if not settings:return
+    hp,armor,level=(settings[k] for k in ('hp','armor','level'))
+    p.update(hp=hp,max_hp=hp,armor=armor,max_armor=armor,room_level=level,
+             damage=dict(left=level,right=level),kick_damage=level)
+    # Override the match snapshot only; saved appearance, EXP and training stay intact.
+    model=p['model']=copy.deepcopy(p['model']);growth=model.setdefault('growth',{})
+    for field,keys in [('parts',character.GROUPS),('arm_parts',('left','right'))]:
+        growth[field]={k:{**growth.get(field,{}).get(k,{}),'level':level} for k in keys}
+    growth['levels']={k:round(1-1/level,6) for k in character.GROUPS}
+    growth['arm_levels']={k:round(1-1/level,6) for k in ('left','right')}
+
 def motion(m,now):
     if m.get('rules',2)>=4:return boxing_cage.motion(m,now)
     players=m['players']
@@ -40,7 +60,7 @@ def advance(m,now):
         m.update(status='active',round=m['round']+1,round_start=m['next_round_at'],motion_at=now)
         m.pop('knockdown',None)
         for i,p in enumerate(m['players']):
-            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,hp=p.get('max_hp',10),armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,posture=None,lowerBody=None,counter_until=0,parry_dash_at=None,kick_at=0,kick_until=0,dash_at=0,dash_until=0,dash_move=0,dash_side=0,last_dash=0,guard_since=None,guard_side=None,guard_until=0,armor_regen_at=m['next_round_at'],last_punch=0,last_hand=None,control_at=0)
+            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,hp=p.get('max_hp',10),armor=p.get('max_armor',10),position=.35 if i==0 else .65,move=0,crouch=0,arms=None,posture=None,lowerBody=None,counter_until=0,parry_dash_at=None,kick_at=0,kick_until=0,dash_at=0,dash_until=0,dash_move=0,dash_side=0,last_dash=0,guard_since=None,guard_side=None,guard_until=0,armor_regen_at=m['next_round_at'],last_punch=0,last_hand=None,control_at=0)
     if m.get('kind')=='bot':
         for p in m['players']:
             if p.get('bot'):p['seen']=now
@@ -74,7 +94,7 @@ def knockout(m,winner,now):
     if winner['wins']>=2 and m.get('rules',2)<5:finish(m,winner['uid'],'best_of_three',now)
 
 def award(db,m,now):
-    if m.get('kind')=='bot':return # Sparring does not add competitive belts.
+    if m.get('kind')=='bot' or m.get('custom_settings'):return # Sparring does not add competitive belts.
     if m.get('rules') not in [2,3,4,5,6,7,8] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
     winner=next((p for p in m['players'] if p['uid']==m.get('winner') and p.get('profile_id')),None)
     if winner:
@@ -164,6 +184,9 @@ def register(app,get_store):
     def guard():
         if not getattr(g,'account',None):return jsonify(error='Sign in'),401
         schema(get_store())
+    @bp.get('/social/boxing/capabilities')
+    def capabilities():
+        return jsonify(custom_rooms=community.is_admin(get_store(),g.account))
     @bp.get('/social/boxing/belts/<int:pid>')
     @bp.get('/social/boxing/trophies/<int:pid>')
     def trophies(pid):
@@ -208,6 +231,11 @@ def register(app,get_store):
         if type(guest)!=int or type(pid)!=int or guest==uid:return jsonify(error='Invalid invitation'),400
         control_mode=data.get('control_mode')
         if control_mode not in ('computer','tracking'):return jsonify(error='Choose computer or tracking controls before inviting'),400
+        settings=None
+        if 'custom_settings' in data:
+            if not community.is_admin(store,g.account):return jsonify(error='Administrators only'),403
+            try:settings=room_settings(data['custom_settings'])
+            except ValueError as e:return jsonify(error=str(e)),400
         try:p=fighter(store,uid,pid)
         except ValueError as e:return jsonify(error=str(e)),400
         with store.lock,store.connect() as db:
@@ -217,7 +245,8 @@ def register(app,get_store):
             for r in db.execute('SELECT state FROM boxing_matches WHERE (host IN (?,?) OR guest IN (?,?)) AND updated>?',(uid,guest,uid,guest,now-1800)):
                 old=json.loads(r[0]);advance(old,now)
                 if old['status'] not in ['finished','declined','expired']:return jsonify(error='Finish or leave your existing match first'),409
-            mid=uuid.uuid4().hex;m=dict(input_policy=1,control_mode=control_mode,rules=MATCH_RULES,round=1,rounds=[],elapsed=0,id=mid,host=uid,guest=guest,created=now,status='invited',players=[p],start=None,event=None)
+            apply_room_settings(p,settings)
+            mid=uuid.uuid4().hex;m=dict(custom_settings=settings,input_policy=1,control_mode=control_mode,rules=MATCH_RULES,round=1,rounds=[],elapsed=0,id=mid,host=uid,guest=guest,created=now,status='invited',players=[p],start=None,event=None)
             db.execute('INSERT INTO boxing_matches VALUES(?,?,?,?,?)',(mid,uid,guest,json.dumps(m),now))
             db.execute('INSERT INTO friend_messages(sender,receiver,body,client_id,created) VALUES(?,?,?,?,?)',(uid,guest,'🥊 ชวนเล่น Boxing / Boxing invitation\n#boxing:'+mid,'boxing:'+mid,now))
         return jsonify(m)
@@ -234,11 +263,14 @@ def register(app,get_store):
             db.execute('BEGIN IMMEDIATE');row=db.execute('SELECT * FROM boxing_matches WHERE id=? AND (host=? OR guest=?)',(mid,uid,uid)).fetchone()
             if not row:return jsonify(error='Match not found'),404
             m=json.loads(row['state']);advance(m,now)
+            if 'custom_settings' in data:return jsonify(error='Room settings are fixed when invited'),400
             if request.method=='POST':
                 if 'control_mode' in data and data['control_mode']!=m.get('control_mode','tracking'):return jsonify(error='Both players must use the room control mode'),400
                 if data.get('action') in ['accept','decline']:
                     if uid!=m['guest'] or m['status']!='invited':return jsonify(error='Invitation unavailable'),409
-                    if new:m['players'].append(new);m['status']='lobby';m['players'][0]['seen']=now
+                    if new:
+                        apply_room_settings(new,m.get('custom_settings'))
+                        m['players'].append(new);m['status']='lobby';m['players'][0]['seen']=now
                     else:m['status']='declined'
                 elif m['status'] not in ['finished','declined','expired']:
                     if not any(p['uid']==uid for p in m['players']):return jsonify(error='Accept invitation first'),409

@@ -12,8 +12,9 @@ for name in ['boxing-playback.js','boxing-training.js','boxing-lobby-stage.js','
 assert s.get(origin+'/social/boxing',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/belts/1',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/training/1',timeout=40).status_code==401
-html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=19' in html
-for asset in ['boxing-playback.js?v=1','boxing-training.js?v=1','boxing-lobby-stage.js?v=1','boxing-motion.js?v=5','boxing-lobby.css?v=3','boxing-lobby.js?v=7','boxing-computer.js?v=5','cozy-ui.js?v=3','profile.js?v=50','boxing-world.js?v=14','boxing-pose.js?v=11','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=12']:
+assert s.get(origin+'/social/boxing/capabilities',timeout=40).status_code==401
+html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=20' in html
+for asset in ['boxing-playback.js?v=2','boxing-training.js?v=1','boxing-lobby-stage.js?v=1','boxing-motion.js?v=5','boxing-lobby.css?v=3','boxing-lobby.js?v=7','boxing-computer.js?v=5','cozy-ui.js?v=3','profile.js?v=50','boxing-world.js?v=14','boxing-pose.js?v=11','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=13']:
  assert '/static/'+asset in html,asset
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']);page=b.new_page();page.set_content('<main></main>');page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
@@ -64,6 +65,9 @@ with sync_playwright() as p:
  assert page.locator('.boxing-camera-lock').get_attribute('aria-pressed')=='false'
  assert page.locator('[data-mode=bot]').is_disabled()
  assert page.locator('.boxing-arena').is_hidden()
+ assert page.locator('.boxing-custom-room').is_hidden()
+ assert page.locator('#boxingCustomRoom').count()==1
+ assert page.locator('input[aria-label="HP"]').count()==1
  assert page.evaluate('Boxing.world===null&&document.querySelector(".boxing-preview video").srcObject===null')
  # Preview a public-asset fixture without loading any account or writing production data.
  page.evaluate("window.lobbySmoke=new BoxingLobby({enter(){},profile:document.createElement('select')});document.querySelector('.boxing-menu').hidden=true;document.getElementById('boxingPage').append(lobbySmoke.root,lobbySmoke.dialog);lobbySmoke.update({created:true,profile:{name:'Live preview'},appearance:{},growth:{parts:{arms:{level:3,progress:.5,exp:50,next_exp:100}}},visual:{}});lobbySmoke.setAvailable(true)")
@@ -75,8 +79,8 @@ with sync_playwright() as p:
  Path('work/boxing-lobby-review').mkdir(parents=True,exist_ok=True)
  page.locator('.fighter-lobby').last.screenshot(path='work/boxing-lobby-review/final-room.png')
  assert page.evaluate("lobbySmoke.rows.querySelector('[data-part=arms] strong').textContent==='LV 3'")
- page.evaluate("lobbySmoke.updateTraining({max_hp:14,progress_hits:3,next_goal:40})")
- assert '14' in page.locator('.fighter-hp-level').last.inner_text()
+ page.evaluate("lobbySmoke.updateTraining({max_hp:54,progress_hits:3,next_goal:40})")
+ assert '54' in page.locator('.fighter-hp-level').last.inner_text()
  assert page.evaluate("!lobbySmoke.buttons.bot.disabled")
  page.evaluate("lobbySmoke.choose('bot')");assert page.locator('dialog[open] [data-difficulty]').count()==2
  assert page.locator('dialog[open] [data-difficulty=easy]').get_attribute('aria-checked')=='true'

@@ -42,3 +42,9 @@ for(const type of ['straight','hook','uppercut'])for(const hand of ['left','righ
  }
 }
 console.log('PASS committed punches retain full extension through guard snapshots and recover continuously');
+
+// A real-time minute at 40% speed advances 24 seconds of punch/cooldown animation.
+now+=1000;const clockStart=win.BoxingMotion.now();win.BoxingMotion.setSpeed(.4,now+60000);now+=1000;assert(Math.abs(win.BoxingMotion.now()-clockStart-400)<1e-6);now+=59000;assert(Math.abs(win.BoxingMotion.now()-clockStart-24000)<1e-6);assert.equal(win.BoxingMotion.speed,1);now+=500;assert(Math.abs(win.BoxingMotion.now()-clockStart-24500)<1e-6);
+const skillControls=new win.BoxingComputer(()=>true);key('KeyV');assert(skillControls.read(win.BoxingMotion.now()).skill);key('KeyV','keydown',true);assert(!skillControls.read(win.BoxingMotion.now()).skill);key('KeyV','keyup');skillControls.destroy();
+console.log('PASS continuous shared slow clock, exact real-time expiry and one skill per V press');
+const legacyKeys={...win.BoxingKeys.bindings};delete legacyKeys.skill;legacyKeys.punchLeft='KeyV';saved.set('45-boxing-keys-v2',JSON.stringify(legacyKeys));vm.runInNewContext(fs.readFileSync('static/boxing-computer.js','utf8'),sandbox);assert.equal(win.BoxingKeys.bindings.punchLeft,'KeyV');assert.notEqual(win.BoxingKeys.bindings.skill,'KeyV');assert.equal(new Set(Object.values(win.BoxingKeys.bindings)).size,Object.keys(win.BoxingKeys.bindings).length);console.log('PASS saved key remaps survive skill binding migration, including an existing V binding');

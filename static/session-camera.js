@@ -84,8 +84,9 @@ const BrowserCamera=(()=>{
     cost=cost*.75+(performance.now()-at)*.25;detected();localSample={payload,set,at,wallAt,completedAt:performance.now()};
     const matched=window.PersonTracking?.match(payload,window.fitnessState)||[];
     peoplePoints=state.person_count>1?matched:[];
-    const body=state.cardio?(payload.pose||[]).map(p=>[p.x,p.y,p.visibility??0]):state.person_count>1?[]:(matched[0]?.landmarks||[]);
-    showPoints(body,body.length&&(payload.poses||[]).length===1?(payload.hands||[]).map(hand=>hand.map(p=>[p.x,p.y])):[],performance.now(),Date.now(),state.cardio?(payload.world||[]).map(p=>[p.x,p.y,p.z]):matched[0]?.world||[]);
+    const freeCardio=state.cardio&&!state.tracking?.pinned?.[0];
+    const body=freeCardio?(payload.pose||[]).map(p=>[p.x,p.y,p.visibility??0]):state.person_count>1?[]:(matched[0]?.landmarks||[]);
+    showPoints(body,body.length&&(payload.poses||[]).length===1?(payload.hands||[]).map(hand=>hand.map(p=>[p.x,p.y])):[],performance.now(),Date.now(),freeCardio?(payload.world||[]).map(p=>[p.x,p.y,p.z]):matched[0]?.world||[]);
    }catch(error){if(mine===generation&&revision===rev){localSample=null;window.LocalPose?.disable()}}
   })();
   localTask=task;

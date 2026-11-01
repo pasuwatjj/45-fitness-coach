@@ -11,7 +11,8 @@ accepted friend. Both fighters receive those settings for that match. The guest
 sees the settings before accepting. HP and armor restore to the selected maximum
 between rounds; armor recovery respects its custom ceiling. Body levels affect
 match damage and muscle appearance, while saved progression remains unchanged.
-Custom matches do not award competitive belts. Standard friend invitations remain
+Custom-room winners now receive one belt per match. Earlier missing victories are
+credited idempotently when the winner opens their profile. Standard friend invitations remain
 available to everyone.
 
 The server checks the persisted admin role, validates every value, and freezes

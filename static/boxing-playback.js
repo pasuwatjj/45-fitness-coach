@@ -9,7 +9,7 @@ window.BoxingPlayback=class{
   // Combat remains authoritative; limit the preview to 19 cm and respect separation.
   if(own&&input?.enabled){const q=input.opponent,age=Math.max(0,now-last.at)/1000;
    if(!q||input.kick||now-(input.hitAt??-Infinity)<180)return{x:last.x,z:last.z};
-   const dx=q.x-last.x,dz=q.z-last.z,d=Math.hypot(dx,dz)||1,move=input.move||0,side=input.strafe||0,n=Math.max(1,Math.hypot(move,side)),ahead=Math.min(.18,age),scale=1.05*ahead/n;
+   const dx=q.x-last.x,dz=q.z-last.z,d=Math.hypot(dx,dz)||1,move=input.move||0,side=input.strafe||0,n=Math.max(1,Math.hypot(move,side)),ahead=Math.min(.18,age),scale=1.05*ahead/n*(input.timeScale??1);
    let v=this.clamp(last.x+(dx/d*move+dz/d*side)*scale,last.z+(dz/d*move-dx/d*side)*scale);
    const gap=Math.hypot(v.x-q.x,v.z-q.z);if(gap<.8){const k=Math.min(1,Math.max(0,(d-.8)/Math.max(.001,d-gap)));v={x:last.x+(v.x-last.x)*k,z:last.z+(v.z-last.z)*k}}return v;
   }

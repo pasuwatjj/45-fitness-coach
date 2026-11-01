@@ -18,6 +18,9 @@ class PersonLock:
         self.pending=[None]*count
         self.solo_search=None
         self.empty_since=None
+        self.pinned=[False]*count
+        self.velocity=[(0,0)]*count
+        self.sample_at=[None]*count
 
     @staticmethod
     def feature(pose,mode=None):
@@ -51,6 +54,26 @@ class PersonLock:
     def close(cls,a,b):
         return math.hypot(a[0]-b[0],a[1]-b[1])<max(.16,min(a[2],b[2])*.85)
 
+    def pin(self,slot,enabled,now):
+        if type(slot) is not int or not 0<=slot<self.count or type(enabled) is not bool:raise ValueError('Invalid tracking lock')
+        if enabled and (self.status[slot]!='locked' or self.sample_at[slot] is None or now-self.sample_at[slot]>2):raise ValueError('Wait until the player is detected / รอให้ตรวจพบตัวก่อน')
+        self.pinned[slot]=enabled
+        self.velocity[slot]=(0,0)
+
+    def reference(self,slot,now):
+        old=self.slots[slot]
+        if old is None or not self.pinned[slot] or self.sample_at[slot] is None:return old
+        dt=min(.35,max(0,now-self.sample_at[slot]));vx,vy=self.velocity[slot];dx,dy=vx*dt,vy*dt
+        return (old[0]+dx,old[1]+dy,old[2],tuple((i,x+dx,y+dy) for i,x,y in old[3]),old[4])
+
+    def remember(self,slot,feature,now):
+        old=self.slots[slot];at=self.sample_at[slot]
+        if old is not None and at is not None and .005<now-at<.6:
+            vx=max(-2,min(2,(feature[0]-old[0])/(now-at)));vy=max(-2,min(2,(feature[1]-old[1])/(now-at)))
+            self.velocity[slot]=(.5*self.velocity[slot][0]+.5*vx,.5*self.velocity[slot][1]+.5*vy)
+        else:self.velocity[slot]=(0,0)
+        self.slots[slot]=feature;self.sample_at[slot]=now
+
     def invalidate(self):
         for i in range(self.count):
             if self.slots[i] is not None:self.status[i]='lost'
@@ -83,8 +106,8 @@ class PersonLock:
                     candidate=self.solo_search
                     # A stable single target anywhere can restart association.
                     # Partial motion was discarded on the intervening empty frames.
-                    if candidate[2]>=4 and now-candidate[1]>=.65:
-                        self.slots[0]=f;self.status[0]='locked'
+                    if not self.pinned[0] and candidate[2]>=4 and now-candidate[1]>=.65:
+                        self.remember(0,f,now);self.status[0]='locked'
                         self.pending[0]=None;self.missing_since[0]=None
                         self.empty_since=None;self.solo_search=None
                         return [idx]
@@ -94,24 +117,26 @@ class PersonLock:
         # Only an unambiguous, exact-size initial group may auto-lock.
         if all(s=='waiting' for s in self.status) and len(self.candidates)==self.count and not any(self.close(a[1],b[1]) for j,a in enumerate(self.candidates) for b in self.candidates[j+1:]):
             for slot,(idx,f) in enumerate(sorted(self.candidates,key=lambda row:row[1][0])):
-                self.slots[slot]=f;self.status[slot]='locked';selected[slot]=idx
+                self.remember(slot,f,now);self.status[slot]='locked';selected[slot]=idx
             return selected
         proposals=[]
         for slot,old in enumerate(self.slots):
-            if self.status[slot] not in (('locked','recovering','lost') if self.count==1 else ('locked','recovering')):continue
+            if self.status[slot] not in (('locked','recovering','lost') if self.count==1 or self.pinned[slot] else ('locked','recovering')):continue
             if old is None:continue
             recovering=self.status[slot]!='locked'
+            reference=self.reference(slot,now)
             if any(self.close(a[1],b[1]) and min(self.distance(old,a[1]),self.distance(old,b[1]))<1.5 for j,a in enumerate(association_candidates) for b in association_candidates[j+1:]):
                 self.status[slot]='ambiguous';continue
-            ranked=sorted((self.distance(old,f),idx,f) for idx,_ in association_candidates if (f:=self.feature(poses[idx],old[4])) is not None and (f[4]!=old[4] or .5<f[2]/old[2]<1.8))
-            if not ranked or ranked[0][0]>(1.2 if self.count==1 else .42):
+            ranked=sorted((self.distance(reference,f),idx,f) for idx,_ in association_candidates if (f:=self.feature(poses[idx],old[4])) is not None and (f[4]!=old[4] or .5<f[2]/old[2]<1.8))
+            if not ranked or ranked[0][0]>(1.2 if self.count==1 or self.pinned[slot] else .42):
                 self.pending[slot]=None
                 self.missing_since[slot]=now if self.missing_since[slot] is None else self.missing_since[slot]
                 self.status[slot]='recovering' if self.count==1 or now-self.missing_since[slot]<.6 else 'lost';continue
             _,idx,f=ranked[0]
             if (len(ranked)>1 and ranked[1][0]-ranked[0][0]<.35) or any(self.close(f,g) for j,g in association_candidates if j!=idx):
                 self.status[slot]='ambiguous';continue
-            if self.count==1 and (recovering or ranked[0][0]>.42):
+            fast_locked=self.pinned[slot] and not recovering and self.sample_at[slot] is not None and now-self.sample_at[slot]<.25 and ranked[0][0]<.9
+            if (self.count==1 or self.pinned[slot]) and (recovering or ranked[0][0]>.42) and not fast_locked:
                 # Small dropouts can continue, but long gaps/large steps must
                 # show a spatially stable target over multiple observations.
                 short=self.missing_since[slot] is not None and now-self.missing_since[slot]<.6 and ranked[0][0]<=.42
@@ -127,9 +152,9 @@ class PersonLock:
         for slot,idx,f in proposals:
             if sum(other==idx for _,other,_ in proposals)>1:self.status[slot]='ambiguous'
             else:
-                if self.count>1 and self.missing_since[slot] is not None and now-self.missing_since[slot]>=.6:
+                if self.count>1 and not self.pinned[slot] and self.missing_since[slot] is not None and now-self.missing_since[slot]>=.6:
                     self.status[slot]='lost';continue
-                self.pending[slot]=None;self.slots[slot]=f;self.status[slot]='locked';self.missing_since[slot]=None;selected[slot]=idx
+                self.pending[slot]=None;self.remember(slot,f,now);self.status[slot]='locked';self.missing_since[slot]=None;selected[slot]=idx
                 if self.count==1:self.solo_search=None;self.empty_since=None
         return selected
 
@@ -140,8 +165,8 @@ class PersonLock:
         _,idx,f=ranked[0]
         if any(self.close(f,g) for j,g in self.candidates if j!=idx):raise ValueError('Separate people before selecting / ยืนแยกกันก่อนเลือก')
         if any(i!=slot and self.status[i]=='locked' and self.distance(old,f)<.42 for i,old in enumerate(self.slots) if old):raise ValueError('Already assigned to another player / คนนี้อยู่ช่องผู้เล่นอื่นแล้ว')
-        self.pending[slot]=None;self.slots[slot]=f;self.status[slot]='locked';self.missing_since[slot]=None
+        self.pending[slot]=None;self.remember(slot,f,now);self.status[slot]='locked';self.missing_since[slot]=None
         return idx
 
     def snapshot(self):
-        return dict(status=list(self.status),anchors=[dict(x=f[0],y=f[1],scale=f[2],mode=f[4],points=f[3]) if f is not None else None for f in self.slots],candidates=[dict(x=round(f[0],4),y=round(f[1],4),index=i) for i,f in self.candidates])
+        return dict(status=list(self.status),pinned=list(self.pinned),anchors=[dict(x=f[0],y=f[1],scale=f[2],mode=f[4],points=f[3]) if f is not None else None for f in self.slots],candidates=[dict(x=round(f[0],4),y=round(f[1],4),index=i) for i,f in self.candidates])

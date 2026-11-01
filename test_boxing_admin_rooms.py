@@ -26,7 +26,7 @@ class AdminRooms(unittest.TestCase):
         self.grant()
         for config in [{},[],{'hp':50,'armor':10},dict(hp=True,armor=10,level=1),dict(hp=0,armor=10,level=1),dict(hp=10001,armor=10,level=1),dict(hp=50,armor=-1,level=1),dict(hp=50,armor=1001,level=1),dict(hp=50,armor=10,level=101),dict(hp=50,armor=10,level=1.5)]:
             self.assertEqual(self.invite(config).status_code,400,config)
-    def test_both_fighters_round_reset_regeneration_and_no_belts(self):
+    def test_both_fighters_round_reset_regeneration_and_winner_belt(self):
         self.grant();r=self.invite(dict(hp=200,armor=30,level=8));self.assertEqual(r.status_code,200,r.json);mid=r.json['id']
         m=self.b.post('/social/boxing/'+mid,json={'action':'accept','profile':self.pb}).json['match']
         for p in m['players']:
@@ -40,7 +40,7 @@ class AdminRooms(unittest.TestCase):
         self.assertEqual([p['hp'] for p in m['players']],[200,200]);self.assertEqual([p['armor'] for p in m['players']],[30,30])
         boxing.finish(m,self.uid,'knockout',self.now+11)
         with self.store.connect() as db:
-            boxing.award(db,m,self.now+11);self.assertEqual(db.execute('SELECT COUNT(*) FROM boxing_trophies').fetchone()[0],0)
+            boxing.award(db,m,self.now+11);self.assertEqual(db.execute('SELECT COUNT(*) FROM boxing_trophies').fetchone()[0],1)
     def test_zero_armor_and_saved_growth_untouched(self):
         self.grant();self.fp.stop();self.a.post('/profiles/'+str(self.pa)+'/character',json={'appearance':{}})
         before=boxing.fighter(self.store,self.uid,self.pa)

@@ -838,7 +838,8 @@ class BrowserCoach(CameraCoach):
             # Engine handover keeps geometric association; unfinished reps reset above.
             # Loading the browser worker must not permanently disable a valid lock.
             self.last_identity_engine=engine
-            chosen=self.person_lock.update(all_poses,now) if not self.cardio else [0 if all_poses else None]
+            associated=self.person_lock.update(all_poses,now)
+            chosen=associated if not self.cardio or any(self.person_lock.pinned) else [0 if all_poses else None]
             def only(index):
                 return SimpleNamespace(pose_landmarks=[all_poses[index]] if index is not None else [],pose_world_landmarks=[all_world[index]] if index is not None and index<len(all_world) and all_world[index] else [])
             if self.person_count>1 and not self.cardio:
@@ -980,7 +981,7 @@ def banned_account_guard():
 @app.before_request
 def private_session():
     protected = request.path in ('/start','/stop','/reset','/pause','/resume','/calibrate','/frame','/pose-frame',
-        '/camera/auto-arm','/tracking/select','/tracking/reacquire','/profiles','/plans/today/start','/health/analyze','/camera/recover') or request.path.startswith(('/profiles/','/vip','/admin/','/social/','/cardio/'))
+        '/camera/auto-arm','/tracking/select','/tracking/reacquire','/tracking/lock','/profiles','/plans/today/start','/health/analyze','/camera/recover') or request.path.startswith(('/profiles/','/vip','/admin/','/social/','/cardio/'))
     token=request.headers.get('X-Coach-Session','')
     if request.path == '/status' and token:
         protected=True
@@ -1757,6 +1758,16 @@ def select_person():
         slot=data.get('slot');x=data.get('x');y=data.get('y')
         if type(x) not in (int,float) or type(y) not in (int,float) or not math.isfinite(x+y):return jsonify(error='Invalid selection'),400
         try:coach.select_person(slot,x,y)
+        except ValueError as error:return jsonify(error=str(error)),409
+        return jsonify(ok=True,state=coach.snapshot())
+
+@app.post('/tracking/lock')
+def pin_person():
+    data=request.get_json(silent=True)
+    if not isinstance(data,dict):return jsonify(error='Invalid tracking lock'),400
+    with coach.condition:
+        if request.headers.get('X-Set-ID')!=coach.state['set_id'] or not coach.state['running']:return jsonify(error='Set changed'),409
+        try:coach.person_lock.pin(data.get('slot',0),data.get('locked'),time.monotonic())
         except ValueError as error:return jsonify(error=str(error)),409
         return jsonify(ok=True,state=coach.snapshot())
 

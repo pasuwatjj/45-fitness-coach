@@ -1,7 +1,7 @@
 """Profile-owned bag-training HP, with idempotent batches and a shared pace budget."""
 import math,uuid
 from flask import g,request,jsonify
-BASE_HP=10
+BASE_HP=50
 HP_PER_LEVEL=2
 FIRST_GOAL=10
 MAX_HITS=2**52-1

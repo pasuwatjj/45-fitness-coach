@@ -17,11 +17,12 @@ practice can both use auto training. It adds game HP, not workout EXP or currenc
 
 | HP after upgrade | Punches needed for this upgrade | Cumulative punches |
 | --- | ---: | ---: |
-| 12 | 10 | 10 |
-| 14 | 20 | 30 |
-| 16 | 40 | 70 |
-| 18 | 80 | 150 |
+| 52 | 10 | 10 |
+| 54 | 20 | 30 |
+| 56 | 40 | 70 |
+| 58 | 80 | 150 |
 
+Players start at **50 HP**, plus previously earned training bonuses.
 The cost doubles at every level; each level adds two max HP. Progress belongs to the
 selected profile and persists across reloads. New matches snapshot the player's
 trained HP, and each round restores that maximum. Training does not heal or alter a
@@ -43,7 +44,7 @@ progress is shown by the bar. Connection failures offer a reconnect button.
 - Node keyboard/pose suites plus interpolation, stale snapshots, bounded prediction,
   training retries, idle renewal, final-save flush and full punch extension through
   incoming guard snapshots.
-- Chromium: actual auto punches through HP 12 and 14, reload persistence, mobile
+- Chromium: actual auto punches through HP 52 and 54, reload persistence, mobile
   progress UI, navigation stop/resume, HP in friend/bot matches and 20/50 bot values.
   Camera-mode auto also works without a camera; a pending hit survives reload.
 - Simulated 400 ms replies: local strike starts within 150 ms, local crouch updates

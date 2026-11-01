@@ -25,7 +25,7 @@ with sync_playwright() as pw:
  p.keyboard.down('d');p.keyboard.down('Control');p.wait_for_function('parryCueSeen',timeout=3000)
  p.keyboard.up('d');p.keyboard.press('q');p.keyboard.up('Control')
  p.wait_for_function("Boxing.state.events?.some(e=>e.counter)||Boxing.state.pending_strikes?.some(e=>e.counter)",timeout=3000)
- assert p.evaluate("Boxing.state.events.some(e=>e.result==='parry')&&Boxing.state.players[0].hp===10")
+ assert p.evaluate("Boxing.state.events.some(e=>e.result==='parry')&&Boxing.state.players[0].hp===50")
  p.wait_for_function("document.querySelector('.boxing-parry-frame').hidden",timeout=2000)
  # Replay only the public visual cue for a stable screenshot after real combat assertions.
  p.evaluate("const cue=document.querySelector('.boxing-parry-frame').cloneNode(true);cue.hidden=false;cue.classList.remove('active');document.querySelector('.boxing-arena').append(cue)")

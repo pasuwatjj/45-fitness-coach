@@ -32,3 +32,13 @@ now+=1000;const parrier=new win.BoxingComputer(()=>true);assert(parrier.attack('
 assert(!parrier.attack('right','straight',now));parrier.grantCounter(123,650);assert(parrier.attack('right','straight',now));assert.equal(parrier.lastDash,now-40);parrier.grantCounter(123,600);assert(!parrier.attack('left','straight',now));
 now+=1000;parrier.grantCounter(124,20);now+=21;parrier.lastStrike=now;assert(!parrier.attack('left','straight',now));parrier.destroy();
 console.log('PASS one immediate parry counter, duplicate grant protection and counter expiry');
+
+// Guard snapshots may arrive during a remote punch: preserve extension, then recover smoothly.
+for(const type of ['straight','hook','uppercut'])for(const hand of ['left','right']){
+ let old=null;for(let ms=0;ms<=480;ms++){const m=win.BoxingMotion.sample(type,hand,ms);m.type=type;const arms=win.BoxingMotion.arms(m,true,'both');
+  if(ms===180){const free=win.BoxingMotion.arms(m,false);assert.deepEqual(arms[hand],free[hand]);}
+  if(old)for(const side of ['left','right'])for(const part of ['upper','lower'])for(let i=0;i<3;i++)assert(Math.abs(arms[side][part][i]-old[side][part][i])<.05);
+  old=arms;
+ }
+}
+console.log('PASS committed punches retain full extension through guard snapshots and recover continuously');

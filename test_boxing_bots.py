@@ -13,8 +13,9 @@ class BotPolicy(unittest.TestCase):
         original=deepcopy(p)
         for difficulty in ['easy','hard']:
             b=boxing_bot.create(p,difficulty,100)
-            for key in ['damage','kick_damage','hp','armor']:self.assertEqual(p[key],b[key])
+            for key in ['damage','kick_damage','armor']:self.assertEqual(p[key],b[key])
             for key in ['growth','visual']:self.assertEqual(p['model'][key],b['model'][key])
+            self.assertEqual(b['hp'],20 if difficulty=='easy' else 50);self.assertEqual(b['max_hp'],b['hp'])
             self.assertNotEqual(b['model']['appearance'],p['model']['appearance'])
         self.assertEqual(p,original)
     def test_easy_round_one_does_not_read_habits_and_later_is_bounded(self):
@@ -43,7 +44,7 @@ class BotRoutes(unittest.TestCase):
         for i in range(60):
             self.now+=.15;m=self.post(action='heartbeat').json['match']
         self.assertIn(m['status'],['active','round_break']);self.assertTrue(any(e['attacker']==-1 for e in m['events']))
-        self.assertLess(m['players'][0]['hp'],10);self.assertEqual(m['players'][1]['hp'],10)
+        self.assertLess(m['players'][0]['hp'],10);self.assertEqual(m['players'][1]['hp'],20)
         self.assertGreater(m['players'][1]['last_punch'],0)
         self.assertNotIn('winner',m)
     def test_bot_still_obeys_human_input_mode_and_disconnect(self):
@@ -57,7 +58,7 @@ class BotRoutes(unittest.TestCase):
         m['brain']['observed']=dict(left=10,right=1,duck=8,samples=10)
         boxing.knockout(m,m['players'][0],self.now+2);boxing.advance(m,self.now+12)
         self.assertEqual(m['round'],2);self.assertEqual(m['brain']['plan']['favorite'],'left')
-        self.assertEqual([p['hp'] for p in m['players']],[10,10]);self.assertEqual(m['players'][0]['wins'],1)
+        self.assertEqual([p['hp'] for p in m['players']],[10,20]);self.assertEqual(m['players'][0]['wins'],1)
         m['players'][0]['seen']=self.now+13;boxing.knockout(m,m['players'][0],self.now+13);boxing.advance(m,self.now+23)
         self.assertEqual(m['status'],'finished');self.assertEqual(m['winner'],self.uid)
     def test_hard_reads_visible_guard_and_duck_without_bonus_damage(self):

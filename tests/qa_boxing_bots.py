@@ -20,7 +20,7 @@ with sync_playwright() as pw:
  p.wait_for_function("Boxing.state?.kind==='bot'&&Boxing.state.status==='active'",timeout=15000)
  p.wait_for_function("Boxing.world?.actors.length===2&&Boxing.world.actors.every(a=>a.body)",timeout=60000)
  assert p.evaluate("JSON.stringify(Boxing.state.players[0].damage)===JSON.stringify(Boxing.state.players[1].damage)&&JSON.stringify(Boxing.state.players[0].model.growth)===JSON.stringify(Boxing.state.players[1].model.growth)")
- assert p.evaluate("Boxing.world.states[1].controlMode==='computer'&&!Boxing.world.bag.visible&&Boxing.state.difficulty==='easy'")
+ assert p.evaluate("Boxing.world.states[1].controlMode==='computer'&&!Boxing.world.bag.visible&&Boxing.state.difficulty==='easy'&&Boxing.state.players[1].max_hp===20")
  # Both attack and knockback are authoritative, using actual keyboard play.
  p.evaluate("const draw=Boxing.world.renderer.render.bind(Boxing.world.renderer);let last=0;Boxing.world.renderer.render=(...args)=>{if(performance.now()-last>80){last=performance.now();draw(...args)}};window.hitEvidence=[];setInterval(()=>{for(const e of Boxing.state?.events||[])if(e.knockback&&!hitEvidence.some(v=>v.id===e.id))hitEvidence.push(e)},80);void 0")
  mid=p.evaluate('Boxing.state.id');p.evaluate("setTab('home')");p.wait_for_timeout(500);p.evaluate("setTab('boxing')");p.wait_for_function("Boxing.world.running&&Boxing.mode==='bot'&&Boxing.state.status==='active'");assert p.evaluate('Boxing.state.id')==mid
@@ -42,8 +42,8 @@ with sync_playwright() as pw:
  p.set_viewport_size({'width':390,'height':900});p.locator('[data-mode=bot]').click();p.locator('[data-difficulty=hard]').click();p.locator('[data-control=computer]').click();p.locator('.fighter-dialog').screenshot(path=str(out/'bot-mobile.png'));assert p.evaluate('document.documentElement.scrollWidth<=innerWidth+1');p.locator('.fighter-primary').click()
  p.wait_for_function("Boxing.state?.difficulty==='hard'&&Boxing.state.status==='active'",timeout=15000)
  p.wait_for_function('Boxing.state.players[1].last_punch>0',timeout=5000);p.wait_for_function("Boxing.world.actors.every(a=>a.body)")
- assert p.evaluate("Boxing.state.brain.plan.reaction===.14&&Boxing.state.players[0].hp<=10&&Boxing.state.players[1].armor===10")
+ assert p.evaluate("Boxing.state.brain.plan.reaction===.14&&Boxing.state.players[0].hp<=10&&Boxing.state.players[1].armor===10&&Boxing.state.players[1].max_hp===50")
  p.locator('.boxing-arena').screenshot(path=str(out/'bot-hard.png'));p.locator('.boxing-back').click();p.wait_for_function("Boxing.mode==='menu'")
  assert not errors,errors
- print('PASS real easy bot match through all rounds/results, equal saved stats, bare-hand actors, authoritative hit knockback, navigation resume, rematch, hard bot attack, mobile difficulty selection; no browser errors')
+ print('PASS real easy bot match through all rounds/results, matched damage/growth and fixed 20/50 HP, bare-hand actors, authoritative hit knockback, navigation resume, rematch, hard bot attack, mobile difficulty selection; no browser errors')
  b.close()

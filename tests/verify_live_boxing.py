@@ -7,12 +7,13 @@ def get(path):
  r=s.get(origin+path,timeout=40);r.raise_for_status();return r
 assert get('/status?release='+revision).json()['revision']==revision
 assert 'new BoxingLobby' in get('/static/boxing.js?release='+revision).text
-for name in ['boxing-lobby-stage.js','cozy-ui.js','boxing-computer.js','boxing-lobby.js','boxing-lobby.css','images/boxing/fighter-lobby.webp','boxing-motion.js','boxing-world.js','images/boxing/champion-belt.svg','images/boxing/mode-menu.png','images/boxing/arena-championship.png','inbox.js','character.js','character-renderer.js','cozy-ui.css','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
+for name in ['boxing-playback.js','boxing-training.js','boxing-lobby-stage.js','cozy-ui.js','boxing-computer.js','boxing-lobby.js','boxing-lobby.css','images/boxing/fighter-lobby.webp','boxing-motion.js','boxing-world.js','images/boxing/champion-belt.svg','images/boxing/mode-menu.png','images/boxing/arena-championship.png','inbox.js','character.js','character-renderer.js','cozy-ui.css','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
  assert get('/static/'+name+'?release='+revision).content==Path('static',name).read_bytes(),name
 assert s.get(origin+'/social/boxing',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/belts/1',timeout=40).status_code==401
-html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=18' in html
-for asset in ['boxing-lobby-stage.js?v=1','boxing-motion.js?v=4','boxing-lobby.css?v=3','boxing-lobby.js?v=6','boxing-computer.js?v=5','cozy-ui.js?v=3','profile.js?v=50','boxing-world.js?v=13','boxing-pose.js?v=11','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=11']:
+assert s.get(origin+'/social/boxing/training/1',timeout=40).status_code==401
+html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=19' in html
+for asset in ['boxing-playback.js?v=1','boxing-training.js?v=1','boxing-lobby-stage.js?v=1','boxing-motion.js?v=5','boxing-lobby.css?v=3','boxing-lobby.js?v=7','boxing-computer.js?v=5','cozy-ui.js?v=3','profile.js?v=50','boxing-world.js?v=14','boxing-pose.js?v=11','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=12']:
  assert '/static/'+asset in html,asset
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']);page=b.new_page();page.set_content('<main></main>');page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
@@ -55,7 +56,7 @@ with sync_playwright() as p:
  page.add_style_tag(content=get('/static/boxing.css?release='+revision).text)
  page.add_style_tag(content=get('/static/boxing-lobby.css?release='+revision).text)
  page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
- for asset in ['boxing-computer.js','boxing-lobby-stage.js','boxing-lobby.js','boxing.js']:page.add_script_tag(content=get('/static/'+asset+'?release='+revision).text)
+ for asset in ['boxing-playback.js','boxing-training.js','boxing-computer.js','boxing-lobby-stage.js','boxing-lobby.js','boxing.js']:page.add_script_tag(content=get('/static/'+asset+'?release='+revision).text)
  page.evaluate('Boxing.open()')
  assert page.locator('.boxing-menu').is_visible()
  assert page.locator('.boxing-mode-card').count()==4
@@ -74,9 +75,13 @@ with sync_playwright() as p:
  Path('work/boxing-lobby-review').mkdir(parents=True,exist_ok=True)
  page.locator('.fighter-lobby').last.screenshot(path='work/boxing-lobby-review/final-room.png')
  assert page.evaluate("lobbySmoke.rows.querySelector('[data-part=arms] strong').textContent==='LV 3'")
+ page.evaluate("lobbySmoke.updateTraining({max_hp:14,progress_hits:3,next_goal:40})")
+ assert '14' in page.locator('.fighter-hp-level').last.inner_text()
  assert page.evaluate("!lobbySmoke.buttons.bot.disabled")
  page.evaluate("lobbySmoke.choose('bot')");assert page.locator('dialog[open] [data-difficulty]').count()==2
  assert page.locator('dialog[open] [data-difficulty=easy]').get_attribute('aria-checked')=='true'
+ assert '20 HP' in page.locator('dialog[open] [data-difficulty=easy]').inner_text()
+ assert '50 HP' in page.locator('dialog[open] [data-difficulty=hard]').inner_text()
  page.locator('dialog[open] [data-difficulty=hard]').click();assert page.locator('dialog[open] [data-difficulty=hard]').get_attribute('aria-checked')=='true'
  page.evaluate('lobbySmoke.dialog.close()')
  page.evaluate("lobbySmoke.choose('friends')");assert page.locator('dialog[open] .fighter-primary').is_disabled();page.locator('dialog[open] [data-control=computer]').click();assert page.locator('dialog[open] .fighter-primary').is_enabled()

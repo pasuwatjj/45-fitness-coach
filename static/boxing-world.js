@@ -5,6 +5,7 @@ window.BoxingContact={
  closest(point,a,b){const d=b.clone().sub(a),t=THREE.MathUtils.clamp(point.clone().sub(a).dot(d)/Math.max(1e-9,d.lengthSq()),0,1);return a.clone().addScaledVector(d,t)},
  distance(point,c){return point.distanceTo(this.closest(point,c.a,c.b))-c.radius},
  sweep(from,to,c,radius){
+  if(this.segmentDistance(from,to,c.a,c.b)>c.radius+radius+.003)return null;
   const delta=to.clone().sub(from),steps=Math.max(2,Math.ceil(delta.length()/.025)),gap=p=>this.distance(p,c)-radius;
   // Allow withdrawal from an existing contact; never keep a glove stuck to a surface.
   let last=0,previous=gap(from);if(previous<=.003&&gap(to)>previous+.001)return null;
@@ -17,6 +18,7 @@ window.BoxingContact={
  },
  segmentDistance(a,b,c,d){
   const u=b.clone().sub(a),v=d.clone().sub(c),w=a.clone().sub(c),aa=u.dot(u),bb=u.dot(v),cc=v.dot(v),dd=u.dot(w),ee=v.dot(w),den=aa*cc-bb*bb,clamp=THREE.MathUtils.clamp;
+  if(aa<1e-10)return a.distanceTo(this.closest(a,c,d));if(cc<1e-10)return c.distanceTo(this.closest(c,a,b));
   let s=den>1e-10?clamp((bb*ee-cc*dd)/den,0,1):0,t=cc>1e-10?(bb*s+ee)/cc:0;
   if(t<0){t=0;s=aa>1e-10?clamp(-dd/aa,0,1):0}else if(t>1){t=1;s=aa>1e-10?clamp((bb-dd)/aa,0,1):0}
   return a.clone().addScaledVector(u,s).distanceTo(c.clone().addScaledVector(v,t));
@@ -329,7 +331,7 @@ window.BoxingWorld=class{
  tick(now){
   if(!this.running)return;this.frame=requestAnimationFrame(t=>this.tick(t));const dt=Math.min(.05,(now-this.last)/1000);this.last=now;if(document.hidden||this.lost)return;
   const T=THREE,rect=this.canvas.getBoundingClientRect();if(rect.width<2||rect.height<2)return;const ratio=Math.min(devicePixelRatio||1,1.5);if(this.width!==rect.width||this.height!==rect.height){this.width=rect.width;this.height=rect.height;this.renderer.setPixelRatio(ratio);this.renderer.setSize(rect.width,rect.height,false);this.camera.aspect=rect.width/rect.height;this.camera.updateProjectionMatrix()}
-  const states=this.states;for(let i=0;i<this.actors.length;i++){const state=states[i]||{},target=states[1-i]||{x:0,z:0};this.actors[i].update(state,target,dt,now/1000)}
+  const states=this.sampleStates?this.sampleStates(now,this.states):this.states;for(let i=0;i<this.actors.length;i++){const state=states[i]||{},target=states[1-i]||{x:0,z:0};this.actors[i].update(state,target,dt,now/1000)}
   const ready=this.actors.filter(a=>a.body&&a.canvas.dataset.avatarState==='ready');for(const a of ready)a.root.updateMatrixWorld(true);
   // Both fighters see constraints from the same pose snapshot, independent of player order.
   const bodies=new Map(ready.map(a=>[a,BoxingContact.shapes(a)]));

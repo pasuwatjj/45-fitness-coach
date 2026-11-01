@@ -42,3 +42,6 @@ body[data-theme] [data-theme-icon="boxing"]{--theme-icon:url("/static/images/box
 @media(prefers-reduced-motion:reduce){.boxing-parry-frame.active{animation:none}}
 
 .boxing-result .boxing-rematch{pointer-events:auto;align-self:flex-start;margin-top:8px;min-height:40px}
+
+.boxing-training{display:grid;grid-template-columns:1fr auto;gap:8px 16px;align-items:center;padding:16px 20px;margin:12px 0;border:1px solid #74bccc66;border-radius:16px;background:linear-gradient(120deg,#112b38,#182435);color:#e3f8ff}.boxing-training[hidden]{display:none}.boxing-training strong{font-size:22px}.boxing-training span{grid-column:1;font-size:14px}.boxing-training progress{grid-column:1;width:100%;height:12px;accent-color:#6cd4bc}.boxing-training button{grid-column:2;grid-row:1 / 4;min-height:48px}.boxing-training button[aria-pressed=true]{background:#a84742!important;color:white!important}.boxing-training small{grid-column:1 / -1;line-height:1.5;color:#b8d0db}.boxing-training button:last-of-type:not([hidden]){grid-row:4}.fighter-hp-level{color:#98e6d6;font-size:14px;font-weight:700}
+@media(max-width:600px){.boxing-training{grid-template-columns:1fr;padding:14px}.boxing-training button{grid-column:1;grid-row:auto}.boxing-training strong{font-size:20px}.boxing-training button:last-of-type:not([hidden]){grid-row:auto}}

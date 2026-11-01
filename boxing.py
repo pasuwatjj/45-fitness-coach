@@ -88,10 +88,13 @@ def advance_combat(m,now):
         if gone:finish(m,next((p['uid'] for p in m['players'] if p not in gone),None),'disconnect',now)
 
 def finish(m,winner,result,now):
+    if m.get('finale') and m['status']=='round_break' and result in ('leave','disconnect'):
+        winner=m['finale']['winner'];result='best_of_three'
     if m['status']=='active':m['elapsed']=m.get('elapsed',0)+max(0,now-m.get('round_start',m.get('start') or now))
     m['pending_strikes']=[]
     m.update(status='finished',winner=winner,result=result,ended_at=now)
-    if result not in ['best_of_three','knockout']:m.pop('knockdown',None)
+    if result not in ['best_of_three','knockout']:
+        m.pop('knockdown',None);m.pop('finale',None)
     for p in m['players']:p.update(move=0,crouch=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,guard_until=0)
 
 def knockout(m,winner,now):
@@ -100,6 +103,11 @@ def knockout(m,winner,now):
     winner['wins']=winner.get('wins',0)+1
     m.setdefault('rounds',[]).append(dict(number=m['round'],winner=winner['uid'],duration=duration))
     pause=10 if m.get('rules',2)>=5 else 5
+    event=m.get('event') or {}
+    if m.get('rules',0)>=9 and winner['wins']>=2 and event.get('result')=='hit' and event.get('attacker')==winner['uid']:
+        # A visual replay of the confirmed deciding strike, never an extra attack.
+        pause=6
+        m['finale']=dict(id=str(event['id']),winner=winner['uid'],target=event['target'],hand=event['hand'],punch_type=event['punch_type'],started_at=m.get('clock_wall',now),duration=pause,players=[dict(uid=p['uid'],x=p.get('x',0),z=p.get('z',0)) for p in m['players']])
     m.update(status='round_break',round_winner=winner['uid'],round_ended_at=now,next_round_at=now+pause)
     loser=next(p for p in m['players'] if p['uid']!=winner['uid'])
     m['knockdown']=dict(uid=loser['uid'],at=now,recover_at=None if winner['wins']>=2 else now+pause)

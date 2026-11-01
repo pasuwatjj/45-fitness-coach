@@ -7,14 +7,14 @@ def get(path):
  r=s.get(origin+path,timeout=40);r.raise_for_status();return r
 assert get('/status?release='+revision).json()['revision']==revision
 assert 'new BoxingLobby' in get('/static/boxing.js?release='+revision).text
-for name in ['tracking-lock.js','person-tracking.js','person-tracking.css','session-camera.js','boxing-playback.js','boxing-training.js','boxing-lobby-stage.js','cozy-ui.js','boxing-computer.js','boxing-lobby.js','boxing-lobby.css','images/boxing/fighter-lobby.webp','boxing-motion.js','boxing-world.js','images/boxing/champion-belt.svg','images/boxing/mode-menu.png','images/boxing/arena-championship.png','inbox.js','character.js','character-renderer.js','cozy-ui.css','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
+for name in ['tracking-lock.js','person-tracking.js','person-tracking.css','session-camera.js','boxing-playback.js','boxing-training.js','boxing-lobby-stage.js','cozy-ui.js','boxing-computer.js','boxing-lobby.js','boxing-lobby.css','images/boxing/fighter-lobby.webp','boxing-motion.js','boxing-finale.js','boxing-world.js','images/boxing/champion-belt.svg','images/boxing/mode-menu.png','images/boxing/arena-championship.png','inbox.js','character.js','character-renderer.js','cozy-ui.css','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
  assert get('/static/'+name+'?release='+revision).content==Path('static',name).read_bytes(),name
 assert s.get(origin+'/social/boxing',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/belts/1',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/training/1',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/capabilities',timeout=40).status_code==401
-html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=21' in html
-for asset in ['tracking-lock.js?v=1','person-tracking.js?v=43','person-tracking.css?v=40','session-camera.js?v=43','boxing-playback.js?v=3','boxing-training.js?v=1','boxing-lobby-stage.js?v=1','boxing-motion.js?v=6','boxing-lobby.css?v=3','boxing-lobby.js?v=8','boxing-computer.js?v=6','cozy-ui.js?v=3','profile.js?v=50','boxing-world.js?v=15','boxing-pose.js?v=11','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=14']:
+html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=22' in html
+for asset in ['boxing-finale.js?v=1','tracking-lock.js?v=1','person-tracking.js?v=43','person-tracking.css?v=40','session-camera.js?v=43','boxing-playback.js?v=3','boxing-training.js?v=1','boxing-lobby-stage.js?v=1','boxing-motion.js?v=6','boxing-lobby.css?v=3','boxing-lobby.js?v=8','boxing-computer.js?v=6','cozy-ui.js?v=3','profile.js?v=50','boxing-world.js?v=16','boxing-pose.js?v=11','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=15']:
  assert '/static/'+asset in html,asset
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']);page=b.new_page();page.set_content('<main></main>');page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
@@ -24,7 +24,7 @@ with sync_playwright() as p:
  page.route(origin+'/__cage_readonly_smoke__',lambda route:route.fulfill(content_type='text/html',body='<div id="arena" style="width:900px;height:600px;position:relative"></div>'))
  page.goto(origin+'/__cage_readonly_smoke__')
  errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
- for asset in ['vendor/three-r160.min.js','character-renderer.js','muscle-progression.js','imported-avatar.js','boxing-motion.js','boxing-world.js']:
+ for asset in ['vendor/three-r160.min.js','character-renderer.js','muscle-progression.js','imported-avatar.js','boxing-motion.js','boxing-finale.js','boxing-world.js']:
   page.add_script_tag(content=get('/static/'+asset+'?release='+revision).text)
  page.add_style_tag(content='.cage-canvas{width:900px;height:600px}')
  page.evaluate("window.I18N={lang:'en'};window.sceneSmoke=new BoxingWorld(document.getElementById('arena'));sceneSmoke.add({appearance:{},growth:{},visual:{}},0);sceneSmoke.set([{x:-1.05,z:0}],true)")
@@ -49,6 +49,11 @@ with sync_playwright() as p:
  page.wait_for_function("sceneSmoke.actors[0].downAmount>.9&&sceneSmoke.actors[0].canvas.dataset.presentation==='lying'&&sceneSmoke.actors[0].body.rotation.x < -1.4")
  page.evaluate("sceneSmoke.set([{x:-.7,z:0,presentation:'champion',presentationAt:performance.now()-2000},{x:.7,z:0,presentation:'down',presentationAt:performance.now()-2000,recoverAfter:null}],false)")
  page.wait_for_function('sceneSmoke.actors[0].belt?.visible&&sceneSmoke.actors[0].belt.children.some(m=>m.material?.map?.image?.complete)&&sceneSmoke.actors[1].downAmount>.9')
+ # Exercise the deployed finishing controller without a match/account write.
+ page.evaluate("sceneSmoke.serverNow=()=>1001950;sceneSmoke.finale.set({id:'readonly',winner:1,target:2,hand:'left',punch_type:'straight',started_at:1000,duration:6,players:[{uid:1,x:-.48,z:0},{uid:2,x:.48,z:0}]});sceneSmoke.set([{x:-.48,z:0,controlMode:'computer'},{x:.48,z:0,controlMode:'computer'}],false)")
+ page.wait_for_function('sceneSmoke.finale.active&&sceneSmoke.finale.effect?.visible')
+ assert page.evaluate('sceneSmoke.actors.every(a=>a.neck.parent)&&sceneSmoke.finale.drops.geometry.attributes.position.count===36')
+ page.evaluate('sceneSmoke.serverNow=()=>1007000');page.wait_for_function('!sceneSmoke.finale.active')
  page.evaluate('sceneSmoke.destroy()');assert page.locator('#arena canvas').count()==0
  assert not errors,errors
  # Render the deployed menu without accessing private APIs or requesting a camera.

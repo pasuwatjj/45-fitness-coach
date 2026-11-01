@@ -266,7 +266,7 @@ window.BoxingWorld=class{
   this.renderer=new T.WebGLRenderer({canvas:this.canvas,antialias:true,powerPreference:'high-performance'});this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.25;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=T.PCFSoftShadowMap;
   this.scene=new T.Scene();this.scene.background=new T.Color('#09121f');this.scene.fog=new T.Fog('#09121f',15,34);this.camera=new T.PerspectiveCamera(43,1,.08,65);
   this.scene.add(new T.HemisphereLight(0xe6f1ff,0x586071,2.5));const sun=new T.DirectionalLight(0xfff3e1,4);sun.position.set(3,9,5);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-7,right:7,top:7,bottom:-7,near:.1,far:25});sun.shadow.bias=-.001;this.scene.add(sun);
-  const fill=new T.DirectionalLight(0x98c9ff,2);fill.position.set(-5,5,-3);this.scene.add(fill);this.makeArena();this.bind();this.frame=requestAnimationFrame(t=>this.tick(t));
+  const fill=new T.DirectionalLight(0x98c9ff,2);fill.position.set(-5,5,-3);this.scene.add(fill);this.makeArena();this.finale=window.BoxingFinale?new BoxingFinale(this):null;this.bind();this.frame=requestAnimationFrame(t=>this.tick(t));
  }
  mat(color,extra={}){const m=new THREE.MeshStandardMaterial({color,roughness:.7,...extra});this.resources.push(m);return m}
  mesh(geometry,material,parent=this.scene){this.resources.push(geometry);const m=new THREE.Mesh(geometry,material);parent.add(m);return m}
@@ -324,7 +324,7 @@ window.BoxingWorld=class{
  }
  view(mode){this.mode=mode;this.yaw=.28;this.elevation=mode==='top'?.95:mode==='follow'?.12:.22;this.distance=mode==='top'?9:mode==='follow'?3.15:4.2}
  add(model,id){const actor=new CageFighter(this,model,id);this.actors.push(actor);return actor}
- clearActors(){for(const a of this.actors)a.destroy();this.actors=[];this.states=[];this.loading()}
+ clearActors(){this.finale?.clear();for(const a of this.actors)a.destroy();this.actors=[];this.states=[];this.loading()}
  loading(){const error=this.actors.some(a=>a.canvas.dataset.avatarState==='error'),pending=this.actors.some(a=>a.canvas.dataset.avatarState!=='ready');this.notice.textContent=error?(window.I18N?.lang==='en'?'Avatar unavailable. Leave and reopen the arena to retry.':'โหลดตัวละครไม่ได้ ออกแล้วเปิดสนามใหม่เพื่อลองอีกครั้ง'):pending?(window.I18N?.lang==='en'?'Loading your fighters…':'กำลังโหลดตัวละครของคุณ…'):''}
  set(states,practice=true){this.states=states;this.practice=practice;this.bag.visible=practice;const champion=states.findIndex(s=>s.presentation==='champion');if(champion>=0&&!this.celebrating){this.mode='champion';this.distance=3.8;this.elevation=.18}if(champion<0&&this.celebrating)this.view('follow');this.celebrating=champion>=0;this.loading()}
  hitBag(){this.bagHit=performance.now()}
@@ -332,12 +332,13 @@ window.BoxingWorld=class{
  tick(now){
   if(!this.running)return;this.frame=requestAnimationFrame(t=>this.tick(t));const dt=Math.min(.05,(now-this.last)/1000);this.last=now;if(document.hidden||this.lost)return;
   const T=THREE,rect=this.canvas.getBoundingClientRect();if(rect.width<2||rect.height<2)return;const ratio=Math.min(devicePixelRatio||1,1.5);if(this.width!==rect.width||this.height!==rect.height){this.width=rect.width;this.height=rect.height;this.renderer.setPixelRatio(ratio);this.renderer.setSize(rect.width,rect.height,false);this.camera.aspect=rect.width/rect.height;this.camera.updateProjectionMatrix()}
-  const states=this.sampleStates?this.sampleStates(now,this.states):this.states;for(let i=0;i<this.actors.length;i++){const state=states[i]||{},target=states[1-i]||{x:0,z:0};const actor=this.actors[i];actor.now();actor.motionClock.setSpeed(state.timeScale??BoxingMotion.speed,state.slowEndsAt??Infinity);actor.update(state,target,dt*(state.timeScale??BoxingMotion.speed),actor.now()/1000)}
+  let states=this.sampleStates?this.sampleStates(now,this.states):this.states;if(this.finale)states=this.finale.sample(this.serverNow?.()??Date.now(),states);for(let i=0;i<this.actors.length;i++){const state=states[i]||{},target=states[1-i]||{x:0,z:0};const actor=this.actors[i];actor.now();actor.motionClock.setSpeed(state.timeScale??BoxingMotion.speed,state.slowEndsAt??Infinity);actor.update(state,target,dt*(state.timeScale??BoxingMotion.speed),actor.now()/1000)}
   const ready=this.actors.filter(a=>a.body&&a.canvas.dataset.avatarState==='ready');for(const a of ready)a.root.updateMatrixWorld(true);
   // Both fighters see constraints from the same pose snapshot, independent of player order.
   const bodies=new Map(ready.map(a=>[a,BoxingContact.shapes(a)]));
   for(const actor of ready){const obstacles=ready.filter(a=>a!==actor).flatMap(a=>bodies.get(a));if(this.practice)obstacles.push({a:this.bag.localToWorld(new T.Vector3(0,.70,0)),b:this.bag.localToWorld(new T.Vector3(0,1.30,0)),radius:.30,kind:'bag'});actor.kickObstacles=obstacles;BoxingContact.constrain(actor,obstacles)}
-  if(!this.cameraLocked){
+  this.finale?.aim();const cinematicCamera=this.finale?.camera(dt);
+  if(!cinematicCamera&&(!this.cameraLocked||this.celebrating)){
   const down=states.some(s=>s.presentation==='down')&&!states.some(s=>s.presentation==='champion');
   let x=0,z=0;for(const s of states){x+=s.x||0;z+=s.z||0}const count=states.length||1,champion=this.mode==='champion'?this.actors[states.findIndex(s=>s.presentation==='champion')]:null;this.focus.lerp(new T.Vector3(champion?champion.position.x:states.length===1&&this.practice?x*.72:x/count,champion?1.02:down?.55:this.mode==='follow'?1.02:.9,champion?champion.position.y:states.length===1&&this.practice?z*.72:z/count),1-Math.exp(-dt*5));
   if(champion)this.yaw+=Math.atan2(Math.sin(-this.yaw),Math.cos(-this.yaw))*(1-Math.exp(-dt*3));

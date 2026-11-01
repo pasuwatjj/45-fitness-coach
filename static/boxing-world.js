@@ -146,7 +146,7 @@ window.CageFighter=class extends FitnessImportedAvatar{
   this.belt.visible=false;
  }
  presentation(state,dt){
-  const T=THREE,kind=state.presentation,age=Math.max(0,(performance.now()-(state.presentationAt??performance.now()))/1000),smooth=(a,b,v)=>T.MathUtils.smoothstep(v,a,b);
+  const T=THREE,kind=state.presentation,age=Math.max(0,(this.now()-(state.presentationAt??this.now()))/1000),smooth=(a,b,v)=>T.MathUtils.smoothstep(v,a,b);
   if(kind==='champion')this.makeBelt();if(this.belt)this.belt.visible=kind==='champion'&&age>=.7;
   this.canvas.dataset.presentation=kind||'fighting';
   if(!kind){this.downAmount=0;return;}
@@ -194,7 +194,8 @@ window.CageFighter=class extends FitnessImportedAvatar{
    b.foot.quaternion.copy(b.lower.getWorldQuaternion(new T.Quaternion()).invert().multiply(footYaw));this.root.updateMatrixWorld(true);b.contactPrevious=b.foot.getWorldPosition(new T.Vector3());
   }
  }
- punch(hand,token,type='straight',age=0){if(this.punchToken===token)return;this.punchToken=token;this.punchHand=hand;this.punchType=type;this.punchAt=performance.now()-Math.max(0,age)}
+ now(){return(this.motionClock??=BoxingMotion.makeClock()).now()}
+ punch(hand,token,type='straight',age=0){if(this.punchToken===token)return;this.punchToken=token;this.punchHand=hand;this.punchType=type;this.punchAt=this.now()-Math.max(0,age)}
  update(state,target,dt,time){
   if(!this.body)return;const T=THREE;this.state=state;this.target={x:state.x||0,z:state.z||0};const ease=1-Math.exp(-dt*15);this.position.lerp(new T.Vector2(this.target.x,this.target.z),ease);
   this.root.position.set(this.position.x,0,this.position.y);const yaw=state.presentation==='champion'?0:Math.atan2(target.x-this.position.x,target.z-this.position.y);this.yaw=(this.yaw??yaw)+Math.atan2(Math.sin(yaw-(this.yaw??yaw)),Math.cos(yaw-(this.yaw??yaw)))*ease;this.root.rotation.y=this.yaw;
@@ -202,18 +203,18 @@ window.CageFighter=class extends FitnessImportedAvatar{
   for(const key of ['turn','hipTurn','tilt','headPitch','headYaw','headRoll'])this.poseSmooth[key]+=(Number(state.posture?.[key]||0)-this.poseSmooth[key])*ease;
   for(const key of Object.keys(this.supportSmooth))this.supportSmooth[key]+=(Number(state.lowerBody?.[key]||0)-this.supportSmooth[key])*ease;
   const support=this.supportSmooth,lowerMix=support.confidence,kneeDrop=(1-Math.cos((support.leftKnee+support.rightKnee)*.45))/.45;
-  const computer=state.controlMode==='computer',elapsed=performance.now()-(this.punchAt??-1000),kicking=this.punchType==='kick';
+  const computer=state.controlMode==='computer',elapsed=this.now()-(this.punchAt??-1000),kicking=this.punchType==='kick';
   const motion=BoxingMotion.sample(this.punchType,this.punchHand,elapsed);motion.type=this.punchType;this.computerMotion=computer?motion:null;
   const assisted=!computer&&motion.active&&['hook','uppercut'].includes(this.punchType),assist=assisted?BoxingMotion.smooth(elapsed/45)*(1-BoxingMotion.smooth((elapsed-205)/200)):0;
   const pose={...this.poseSmooth,crouch:this.poseSmooth.crouch*(1-lowerMix)+Math.max(support.drop,kneeDrop)*lowerMix};
-  if(computer){const dashAge=180-((state.dashVisualUntil||0)-performance.now()),duck=BoxingMotion.smooth(dashAge/35)*(1-BoxingMotion.smooth((dashAge-130)/90));pose.crouch=Math.max(.24+.48*duck,pose.crouch);if(duck>0)pose.bend=Math.max(.48*duck,pose.bend);pose.crouch+=motion.duck;pose.bend+=.18+motion.lean;pose.turn=motion.turn;pose.hipTurn=motion.hipTurn;pose.tilt+=motion.roll;pose.headYaw=-motion.turn*.48}
+  if(computer){const dashAge=180-((state.dashVisualUntil||0)-this.now()),duck=BoxingMotion.smooth(dashAge/35)*(1-BoxingMotion.smooth((dashAge-130)/90));pose.crouch=Math.max(.24+.48*duck,pose.crouch);if(duck>0)pose.bend=Math.max(.48*duck,pose.bend);pose.crouch+=motion.duck;pose.bend+=.18+motion.lean;pose.turn=motion.turn;pose.hipTurn=motion.hipTurn;pose.tilt+=motion.roll;pose.headYaw=-motion.turn*.48}
   if(assisted){pose.crouch=Math.max(pose.crouch,motion.duck);pose.bend+=motion.lean;pose.turn+=motion.turn;pose.hipTurn+=motion.hipTurn;pose.tilt+=motion.roll}
   const bow=Math.max(0,pose.bend),sway=Math.abs(pose.slip),envelope=computer?motion.reach:kicking?0:elapsed<0||elapsed>360?0:Math.sin(Math.PI*elapsed/360);
   this.kickAmount=computer&&kicking?motion.lift:0;this.kickExtension=computer&&kicking?motion.reach:0;
   const striking=state.arms?.[this.punchHand],alignment=striking?striking.upper.reduce((sum,v,i)=>sum+v*striking.lower[i],0):.7;
   let power=.16+.84*T.MathUtils.clamp((alignment-.15)/.85,0,1);if(this.punchType==='hook')power=Math.max(power,.55);if(this.punchType==='uppercut')power=Math.max(power,.45);
   const drive=envelope*(computer?1:power)*(kicking?.25:1),twist=(this.punchHand==='left'?1:-1)*(computer?-1:1)*drive;
-  const hitAge=performance.now()-(state.hitAt||-1000),recoil=hitAge>=0&&hitAge<320?Math.sin(hitAge/320*Math.PI)*.11:0;
+  const hitAge=this.now()-(state.hitAt||-1000),recoil=hitAge>=0&&hitAge<320?Math.sin(hitAge/320*Math.PI)*.11:0;
   // Shoulder/hip rotation is continuous, including the wind-up before a strike event.
   const turn=pose.turn*1.05,hipYaw=pose.hipTurn*.82+twist*.08,remaining=turn-hipYaw,back=Math.min(0,pose.bend),pitch=pose.bend<0?pose.bend*.70:pose.bend,curve=1+Math.min(0,pose.bend)*1.1;
   this.pelvis.rotation.set(pitch*.32,hipYaw+twist*.04,-pose.slip*.16+support.hipRoll*.25*lowerMix+(computer?motion.roll*.4:0));
@@ -331,7 +332,7 @@ window.BoxingWorld=class{
  tick(now){
   if(!this.running)return;this.frame=requestAnimationFrame(t=>this.tick(t));const dt=Math.min(.05,(now-this.last)/1000);this.last=now;if(document.hidden||this.lost)return;
   const T=THREE,rect=this.canvas.getBoundingClientRect();if(rect.width<2||rect.height<2)return;const ratio=Math.min(devicePixelRatio||1,1.5);if(this.width!==rect.width||this.height!==rect.height){this.width=rect.width;this.height=rect.height;this.renderer.setPixelRatio(ratio);this.renderer.setSize(rect.width,rect.height,false);this.camera.aspect=rect.width/rect.height;this.camera.updateProjectionMatrix()}
-  const states=this.sampleStates?this.sampleStates(now,this.states):this.states;for(let i=0;i<this.actors.length;i++){const state=states[i]||{},target=states[1-i]||{x:0,z:0};this.actors[i].update(state,target,dt,now/1000)}
+  const states=this.sampleStates?this.sampleStates(now,this.states):this.states;for(let i=0;i<this.actors.length;i++){const state=states[i]||{},target=states[1-i]||{x:0,z:0};const actor=this.actors[i];actor.now();actor.motionClock.setSpeed(state.timeScale??BoxingMotion.speed,state.slowEndsAt??Infinity);actor.update(state,target,dt*(state.timeScale??BoxingMotion.speed),actor.now()/1000)}
   const ready=this.actors.filter(a=>a.body&&a.canvas.dataset.avatarState==='ready');for(const a of ready)a.root.updateMatrixWorld(true);
   // Both fighters see constraints from the same pose snapshot, independent of player order.
   const bodies=new Map(ready.map(a=>[a,BoxingContact.shapes(a)]));

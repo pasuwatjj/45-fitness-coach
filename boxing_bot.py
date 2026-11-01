@@ -43,14 +43,14 @@ def tick(m, now, act):
         brain['next_choice']=0;brain['last_seen_strike']=None
     plan=brain['plan'];observed=brain['observed']
     fresh=now-human.get('control_at',0)<.65
-    sample=dict(at=now,hand=human.get('last_hand'),punch_at=human.get('last_punch',0),
+    sample=dict(at=now,hand=human.get('last_hand'),punch_at=human.get('last_punch',0),strike_id=human.get('last_strike_id',human.get('last_punch',0)),
         kind=human.get('punch_type','straight'),guard=human.get('guard_until',0)>now,
         guard_side=human.get('guard_side'),duck=fresh and (human.get('crouch',0)>.5 or abs(human.get('bend',0))>.24))
     history=brain['history'];history.append(sample);brain['history']=history[-18:]
     visible=next((s for s in reversed(history) if s['at']<=now-plan['reaction']),None)
     if not visible:return
-    if visible['punch_at'] and visible['punch_at']!=brain.get('last_seen_strike'):
-        brain['last_seen_strike']=visible['punch_at'];hand=visible['hand']
+    if visible['punch_at'] and (visible.get('strike_id') or visible['punch_at'])!=brain.get('last_seen_strike'):
+        brain['last_seen_strike']=visible.get('strike_id') or visible['punch_at'];hand=visible['hand']
         observed[hand]=observed.get(hand,0)+1
     observed['samples']=observed.get('samples',0)+1;observed['duck']=observed.get('duck',0)+int(visible['duck'])
     hard=m['difficulty']=='hard';computer=m.get('control_mode')=='computer'

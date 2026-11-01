@@ -4,6 +4,8 @@ window.PersonTracking=(()=>{
  const reset=document.createElement('button');reset.type='button';reset.className='secondary';reset.style.cssText='position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:22;max-width:40%;font-size:13px';
  document.querySelector('.screen').append(reset);
  reset.onclick=async()=>{const s=window.fitnessState;if(!s?.running)return;reset.disabled=true;try{const r=await controlFetch('/tracking/reacquire',{method:'POST',headers:{'X-Set-ID':s.set_id}}),d=await r.json();if(!r.ok)throw Error(d.error);window.coachRevision++;BrowserCamera.adopt(d.state);BrowserCamera.clearPoints();window.LocalPose?.restart?.()}catch(e){document.getElementById('status').textContent=e.message}finally{reset.disabled=false}};
+ let pinError='';const pinBusy=[false,false];
+ const pinPanel=document.createElement('div');pinPanel.className='tracking-pin-controls';pinPanel.dataset.i18nIgnore='';const pinButtons=[0,1].map(slot=>{const b=document.createElement('button');b.type='button';b.className='secondary tracking-lock-button';b.onclick=async()=>{const s=window.fitnessState;if(!s?.running||pinBusy[slot])return;pinBusy[slot]=true;pinError='';b.disabled=true;try{const r=await controlFetch('/tracking/lock',{method:'POST',headers:{'Content-Type':'application/json','X-Set-ID':s.set_id},body:JSON.stringify({slot,locked:!s.tracking?.pinned?.[slot]})}),d=await r.json();if(!r.ok)throw Error(d.error);BrowserCamera.adopt(d.state)}catch(e){pinError=e.message}finally{pinBusy[slot]=false;update(window.fitnessState)}};pinPanel.append(b);return b});const pinNote=document.createElement('span');pinNote.className='tracking-lock-status';pinNote.setAttribute('role','status');pinPanel.append(pinNote);document.querySelector('.screen').append(pinPanel);
  const colors=['#7be9b2','#8bc8ff'];
  const text=(th,en)=>window.I18N?.lang==='en'?en:th;
  const make=(tag,label,cls)=>{const n=document.createElement(tag);if(label)n.textContent=label;if(cls)n.className=cls;return n};
@@ -13,6 +15,7 @@ window.PersonTracking=(()=>{
  box.append(label,select,note,status,choices,cards);document.querySelector('.screen').before(box);
  let signature='',pending=false;
  function update(s){
+  pinPanel.hidden=!s?.running;pinButtons.forEach((b,i)=>{const pinned=!!s?.tracking?.pinned?.[i];b.hidden=i>=(s?.person_count||1);b.disabled=pinBusy[i]||!s?.running||!pinned&&s?.tracking?.status?.[i]!=='locked';b.setAttribute('aria-pressed',String(pinned));b.textContent=(s?.person_count>1?'P'+(i+1)+' · ':'')+(pinned?text('ปลดล็อกการติดตาม','Unlock tracking'):text('ล็อกการติดตาม','Lock tracking'))});const pinned=s?.tracking?.pinned||[];pinNote.textContent=pinError||(pinned.some(Boolean)?pinned.some((v,i)=>v&&s.tracking.status[i]!=='locked')?text('ล็อกไว้ · รอผู้เล่นกลับเข้าภาพ · หยุดนับชั่วคราว','Target locked · Waiting for the player · Counting paused'):text('ล็อกคนเดิม · เคลื่อนไหวได้ตามปกติ','Target locked · Keep moving naturally'):text('ตรวจพบตัวแล้ว กดล็อกเพื่อติดตามคนเดิม','Once detected, lock to follow the same player'));
   reset.textContent=text('จับตำแหน่งใหม่','Find me again');reset.hidden=!s?.running||s.person_count>1||!!s.cardio;
   const multi=(s?.running?s.person_count:Number(select.value))>1;select.disabled=!!s?.running||!!(typeof BrowserCamera!=='undefined'&&BrowserCamera.opening)||pending;
   if(s?.running)select.value=String(s.person_count||1);
@@ -37,7 +40,7 @@ window.PersonTracking=(()=>{
   const ids=a.points?.map(p=>p[0])||(a.mode==='shoulders'?[11,12]:a.mode==='left'?[11,23]:a.mode==='right'?[12,24]:[11,12,23,24]);
   const old=new Map(a.points?.map(p=>[p[0],[p[1],p[2]]])||[]);
   const valid=rows.map((p,index)=>{const torso=[...new Set([11,12,23,24,...ids])].filter(i=>p[i]&&(p[i].visibility??0)>=.45&&p[i].y>=-.15&&p[i].y<=1.15);if(torso.length<2)return null;const common=ids.filter(i=>torso.includes(i));if(!common.length)return null;const x=torso.reduce((v,i)=>v+p[i].x,0)/torso.length,y=torso.reduce((v,i)=>v+p[i].y,0)/torso.length;const d=old.size?common.reduce((v,i)=>v+Math.hypot(p[i].x-old.get(i)[0],p[i].y-old.get(i)[1]),0)/common.length:Math.hypot(x-a.x,y-a.y);return{p,index,x,y,d}}).filter(Boolean).sort((x,y)=>x.d-y.d);
-  const v=valid[0];if(!v||v.d>.42*Math.max(.1,a.scale)||(valid[1]&&valid[1].d-v.d<.35*Math.max(.1,a.scale))||valid.some(q=>q!==v&&Math.hypot(q.x-v.x,q.y-v.y)<Math.max(.16,a.scale*.85)))return empty;
+  const v=valid[0];if(!v||v.d>(track.pinned?.[slot]?1.2:.42)*Math.max(.1,a.scale)||(valid[1]&&valid[1].d-v.d<.35*Math.max(.1,a.scale))||valid.some(q=>q!==v&&Math.hypot(q.x-v.x,q.y-v.y)<Math.max(.16,a.scale*.85)))return empty;
   return{player_id:slot+1,landmarks:v.p.map(p=>[p.x,p.y,p.visibility??0]),world:(payload.worlds?.[v.index]||[]).map(p=>[p.x,p.y,p.z])};
  })}
  select.onchange=()=>update(window.fitnessState);setInterval(()=>update(window.fitnessState),350);update();return{update,match,colors};

@@ -1,6 +1,8 @@
 'use strict';
 // Shared strike choreography for computer controls and camera-triggered assisted strikes.
 window.BoxingMotion=(()=>{
+ function makeClock(){let last=0,lost=0,rate=1,until=0;const now=()=>{const real=performance.now();if(last)lost+=Math.max(0,Math.min(real,until)-Math.min(last,until))*(1-rate);last=real;if(real>=until)rate=1;return real-lost};return{now,setSpeed(value,end=Infinity){now();rate=Number.isFinite(value)?Math.max(.1,Math.min(1,value)):1;until=end},get speed(){now();return rate}}}
+ const sharedClock=makeClock(),playerClock=makeClock(),now=sharedClock.now,setSpeed=sharedClock.setSpeed;
  const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)},ramp=(t,a,b)=>smooth((t-a)/(b-a));
  function sample(type,hand,ms){
   const kick=type==='kick',sign=hand==='left'?1:-1,active=ms>=0&&ms<(kick?760:480);
@@ -27,5 +29,5 @@ window.BoxingMotion=(()=>{
    out[side]={upper,lower};
   }return out;
  }
- return {sample,arms,smooth};
+ return {sample,arms,smooth,now,setSpeed,makeClock,playerNow:playerClock.now,setPlayerSpeed:playerClock.setSpeed,get playerSpeed(){return playerClock.speed},get speed(){return sharedClock.speed}};
 })();

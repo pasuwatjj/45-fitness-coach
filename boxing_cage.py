@@ -1,5 +1,5 @@
 """Server-authoritative planar cage movement and timed head-strike resolution."""
-import math,uuid
+import math,uuid,boxing_time
 APOTHEM=5.0
 SPEED=1.05
 RANGE=1.65
@@ -38,7 +38,8 @@ def motion(m,now):
         dash_scale=max(1,math.hypot(p.get('dash_move',0),p.get('dash_side',0)))
         travel=move*max(0,dt-dash_dt)/scale+p.get('dash_move',0)*dash_dt*3.0/dash_scale
         circle=side*max(0,side_dt-dash_dt)/scale+p.get('dash_side',0)*dash_dt*3.0/dash_scale
-        p['x'],p['z']=clamp(p['x']+(fx*travel+fz*circle)*SPEED,p['z']+(fz*travel-fx*circle)*SPEED)
+        pace=p.get('motion_scale',1)
+        p['x'],p['z']=clamp(p['x']+(fx*travel+fz*circle)*SPEED*pace,p['z']+(fz*travel-fx*circle)*SPEED*pace)
     if len(ps)==2:
         a,b=ps
         # Sweep relative movement so simultaneous dashes cannot cross through another fighter.
@@ -126,6 +127,9 @@ def resolve(m,now,knockout):
         elif directional_rules(m):defense=defend(q,strike['hand'],strike['damage'],now);result=defense['result']
         elif q['guard_until']>now and q['armor']>0:q['armor']-=1;result='block'
         else:q['hp']=max(0,q['hp']-strike['damage']);result='hit'
+        if m.get('rules',0)>=9 and result in ('dodge','parry') and strike['punch_type']!='kick':
+            boxing_time.evade(m,p,q);q['counter_until']=now+.65
+            defense.update(slow_target=p['uid'],slow_until=p['evade_slow_until'])
         if result=='hit' and m.get('rules',0)>=7:
             fx,fz=direction(p,q);push=.18 if strike['punch_type']=='uppercut' else .14
             old_x,old_z=q['x'],q['z'];q['x'],q['z']=clamp(q['x']+fx*push,q['z']+fz*push)

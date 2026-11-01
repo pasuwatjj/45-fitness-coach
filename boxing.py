@@ -1,8 +1,8 @@
 """Private casual boxing matches. No images/landmarks leave the browser."""
 import json,time,uuid,math
 from flask import Blueprint,g,request,jsonify
-import character,collaboration_features,boxing_cage
-MATCH_RULES=6
+import character,collaboration_features,boxing_cage,boxing_bot
+MATCH_RULES=7
 
 def clock():return time.time()
 def schema(store):
@@ -38,11 +38,16 @@ def advance(m,now):
         m.update(status='active',round=m['round']+1,round_start=m['next_round_at'],motion_at=now)
         m.pop('knockdown',None)
         for i,p in enumerate(m['players']):
-            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,hp=10,armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,posture=None,lowerBody=None,kick_at=0,kick_until=0,dash_at=0,dash_until=0,dash_move=0,dash_side=0,last_dash=0,guard_since=None,guard_side=None,guard_until=0,armor_regen_at=m['next_round_at'],last_punch=0,last_hand=None,control_at=0)
+            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,hp=10,armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,posture=None,lowerBody=None,counter_until=0,parry_dash_at=None,kick_at=0,kick_until=0,dash_at=0,dash_until=0,dash_move=0,dash_side=0,last_dash=0,guard_since=None,guard_side=None,guard_until=0,armor_regen_at=m['next_round_at'],last_punch=0,last_hand=None,control_at=0)
+    if m.get('kind')=='bot':
+        for p in m['players']:
+            if p.get('bot'):p['seen']=now
+        if now-m['players'][0]['seen']>20:finish(m,-1,'disconnect',now);return
     if m['status']=='active':
         motion(m,now)
         boxing_cage.regenerate(m,now)
         if m.get('rules',2)>=4:boxing_cage.resolve(m,now,knockout)
+        if m.get('kind')=='bot':boxing_bot.tick(m,now,action)
     if m['status'] in ['countdown','active','round_break']:
         gone=[p for p in m['players'] if now-p['seen']>20]
         if gone:finish(m,next((p['uid'] for p in m['players'] if p not in gone),None),'disconnect',now)
@@ -67,12 +72,13 @@ def knockout(m,winner,now):
     if winner['wins']>=2 and m.get('rules',2)<5:finish(m,winner['uid'],'best_of_three',now)
 
 def award(db,m,now):
-    if m.get('rules') not in [2,3,4,5,6] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
+    if m.get('kind')=='bot':return # Sparring does not add competitive belts.
+    if m.get('rules') not in [2,3,4,5,6,7] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
     winner=next((p for p in m['players'] if p['uid']==m.get('winner') and p.get('profile_id')),None)
     if winner:
         db.execute('INSERT OR IGNORE INTO boxing_trophies VALUES(?,?,?,?)',(m['id'],winner['uid'],winner['profile_id'],now));m['trophy_awarded']=True;m['belt_awarded']=True
 
-def action(m,uid,data,now):
+def action(m,uid,data,now,internal_bot=False):
     p=next(p for p in m['players'] if p['uid']==uid);kind=data.get('action');p['seen']=now
     if 'control_mode' in data and data['control_mode']!=m.get('control_mode','tracking'):raise ValueError('Both players must use the room control mode')
     if kind=='heartbeat':return
@@ -96,7 +102,7 @@ def action(m,uid,data,now):
     if type(move)!=int or move not in [-1,0,1] or type(guard)!=bool:raise ValueError('Invalid control')
     strafe=data.get('strafe',0)
     if type(strafe)!=int or strafe not in [-1,0,1]:raise ValueError('Invalid lateral control')
-    computer=m.get('control_mode')=='computer'
+    computer=m.get('control_mode')=='computer' or internal_bot
     guard_side=data.get('guard_side')
     if guard_side not in (None,'both','left','right') or (guard_side is not None and not guard) or (not computer and guard_side not in (None,'both')):raise ValueError('Invalid guard side')
     guard_side=(guard_side or 'both') if guard else None
@@ -127,20 +133,22 @@ def action(m,uid,data,now):
     p.update(seq=seq,pose=kind,move=move,control_at=now,arms=arms,posture=posture,lowerBody=lower_body,crouch=crouch,guard_side=guard_side)
     if guard and kind=='control':
         if p.get('guard_since') is None:p['guard_since']=now
-        p['guard_until']=now+.65 if computer or now-p['guard_since']>=3 else 0
+        p['guard_until']=now+.65 if m.get('control_mode')=='computer' or now-p['guard_since']>=3 else 0
     else:p['guard_since']=None;p['guard_until']=0
     if kind not in ['left','right']:return
     token=data.get('strike_id')
     if m.get('rules',2)>=4:
         if not isinstance(token,str) or not 1<=len(token)<=100:raise ValueError('Invalid strike ID')
         if token in p.get('strike_ids',[]):return
-    if now-p['last_punch']<(.76 if computer and p.get('punch_type')=='kick' else .4):return
+    counter=m.get('rules',0)>=7 and now<p.get('counter_until',0) and punch_type!='kick'
+    if not counter and now-p['last_punch']<(.76 if computer and p.get('punch_type')=='kick' else .4):return
     if punch_type=='kick' and now<p.get('dash_until',0):return
     if m.get('rules',2)>=4:p['strike_ids']=(p.get('strike_ids',[])+[token])[-64:]
+    if counter:p.update(counter_until=0,dash_until=now,kick_until=now)
     if punch_type=='kick':p['kick_at']=now;p['kick_until']=now+.76
     p['last_punch']=now;p['last_hand']=kind;p['punch_type']=punch_type;q=next(v for v in m['players'] if v['uid']!=uid);hit='hit'
     if m.get('rules',2)>=4:
-        boxing_cage.queue(m,p,q,kind,punch_type,now,token);return
+        boxing_cage.queue(m,p,q,kind,punch_type,now,token,counter=counter);return
     if abs(q.get('position',.65)-p.get('position',.35))>.44:hit='miss'
     elif q['guard_until']>now and q['armor']>0:q['armor']-=1;hit='block'
     else:q['hp']=max(0,q['hp']-p['damage'][kind])
@@ -171,6 +179,25 @@ def register(app,get_store):
                 m=json.loads(r['state']);advance(m,now);award(db,m,now);db.execute('UPDATE boxing_matches SET state=? WHERE id=?',(json.dumps(m),r['id']))
                 if m['status'] not in ['finished','declined','expired']:rows.append(m)
         return jsonify(matches=rows,me=uid,now=now)
+    @bp.post('/social/boxing/bot')
+    def bot_match():
+        data=request.get_json(silent=True) or {}
+        if not isinstance(data,dict) or type(data.get('profile'))!=int or data.get('difficulty') not in ('easy','hard') or data.get('control_mode') not in ('computer','tracking'):return jsonify(error='Choose a profile, difficulty and control mode'),400
+        store=get_store();uid=g.account['id'];now=clock()
+        try:p=fighter(store,uid,data['profile'])
+        except ValueError as e:return jsonify(error=str(e)),400
+        with store.lock,store.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            for row in db.execute('SELECT state FROM boxing_matches WHERE (host=? OR guest=?) AND updated>?',(uid,uid,now-1800)):
+                old=json.loads(row[0]);advance(old,now)
+                if old['status'] not in ('finished','expired','declined'):return jsonify(error='Finish or leave your existing match first'),409
+            mid=uuid.uuid4().hex
+            m=dict(id=mid,host=uid,guest=-1,kind='bot',difficulty=data['difficulty'],input_policy=1,
+                control_mode=data['control_mode'],rules=MATCH_RULES,round=1,rounds=[],elapsed=0,
+                created=now,status='lobby',start=None,event=None,players=[p,boxing_bot.create(p,data['difficulty'],now)],
+                brain=dict(seed=int(mid[:8],16)))
+            db.execute('INSERT INTO boxing_matches VALUES(?,?,?,?,?)',(mid,uid,-1,json.dumps(m),now))
+        return jsonify(match=m,me=uid,now=now)
     @bp.post('/social/boxing/invite')
     def invite():
         data=request.get_json(silent=True) or {}

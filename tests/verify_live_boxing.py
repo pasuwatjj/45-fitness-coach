@@ -11,8 +11,8 @@ for name in ['boxing-lobby-stage.js','cozy-ui.js','boxing-computer.js','boxing-l
  assert get('/static/'+name+'?release='+revision).content==Path('static',name).read_bytes(),name
 assert s.get(origin+'/social/boxing',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/belts/1',timeout=40).status_code==401
-html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=17' in html
-for asset in ['boxing-lobby-stage.js?v=1','boxing-motion.js?v=4','boxing-lobby.css?v=3','boxing-lobby.js?v=5','boxing-computer.js?v=4','cozy-ui.js?v=3','profile.js?v=50','boxing-world.js?v=12','boxing-pose.js?v=11','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=10']:
+html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=18' in html
+for asset in ['boxing-lobby-stage.js?v=1','boxing-motion.js?v=4','boxing-lobby.css?v=3','boxing-lobby.js?v=6','boxing-computer.js?v=5','cozy-ui.js?v=3','profile.js?v=50','boxing-world.js?v=13','boxing-pose.js?v=11','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=11']:
  assert '/static/'+asset in html,asset
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']);page=b.new_page();page.set_content('<main></main>');page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
@@ -74,9 +74,14 @@ with sync_playwright() as p:
  Path('work/boxing-lobby-review').mkdir(parents=True,exist_ok=True)
  page.locator('.fighter-lobby').last.screenshot(path='work/boxing-lobby-review/final-room.png')
  assert page.evaluate("lobbySmoke.rows.querySelector('[data-part=arms] strong').textContent==='LV 3'")
+ assert page.evaluate("!lobbySmoke.buttons.bot.disabled")
+ page.evaluate("lobbySmoke.choose('bot')");assert page.locator('dialog[open] [data-difficulty]').count()==2
+ assert page.locator('dialog[open] [data-difficulty=easy]').get_attribute('aria-checked')=='true'
+ page.locator('dialog[open] [data-difficulty=hard]').click();assert page.locator('dialog[open] [data-difficulty=hard]').get_attribute('aria-checked')=='true'
+ page.evaluate('lobbySmoke.dialog.close()')
  page.evaluate("lobbySmoke.choose('friends')");assert page.locator('dialog[open] .fighter-primary').is_disabled();page.locator('dialog[open] [data-control=computer]').click();assert page.locator('dialog[open] .fighter-primary').is_enabled()
  page.evaluate("lobbySmoke.dialog.close();lobbySmoke.showSettings()");assert page.locator('dialog[open] [data-binding=dash]').inner_text()=='CTRL';assert page.locator('dialog[open] [data-binding=crouch]').inner_text()=='C'
  page.evaluate("lobbySmoke.hide();lobbySmoke.root.remove();lobbySmoke.dialog.remove();window.keySmoke=new BoxingComputer(()=>true)");page.keyboard.down('w');page.keyboard.down('Control');assert page.evaluate('keySmoke.read(performance.now()).dash');page.keyboard.up('w');page.keyboard.up('Control');page.evaluate('keySmoke.destroy()')
  assert not errors,errors
  b.close()
-print('VERIFIED exact deployed Boxing assets, template, private API, pose confidence guard and shared 3D male/female scene with tracked upper-body/head rotation, original articulated bare hands, whole-body weight shift and ankle support, decorated hall, bend/slip, swept contact, close camera, lying knockdown, 45 champion belt, bag removal, animated grounded fighter lobby with reduced-motion pause, profile levels, required shared controls, language/key settings, disabled Bot, keyboard dash, kicks and cleanup',revision)
+print('VERIFIED exact deployed Boxing assets, template, private API, pose confidence guard and shared 3D male/female scene with tracked upper-body/head rotation, original articulated bare hands, whole-body weight shift and ankle support, decorated hall, bend/slip, swept contact, close camera, lying knockdown, 45 champion belt, bag removal, animated grounded fighter lobby with reduced-motion pause, profile levels, required shared controls, language/key settings, enabled two-level Bot selector, keyboard dash, kicks and cleanup',revision)

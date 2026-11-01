@@ -27,16 +27,22 @@ with sync_playwright() as pw:
   page.wait_for_function("Boxing.world?.actors.length===2&&Boxing.world.actors.every(a=>a.canvas.dataset.avatarState==='ready')")
   page.evaluate("const render=Boxing.world.renderer.render.bind(Boxing.world.renderer);let last=0;Boxing.world.renderer.render=(...args)=>{if(performance.now()-last>80){last=performance.now();render(...args)}};void 0")
  a.wait_for_function("Boxing.state.status==='active'",timeout=15000)
- def jab(result):
+ def jab(result,on_impact=None):
   old=a.evaluate('Boxing.state.event?.id||null');a.evaluate('Object.assign(testPose[15],{y:.40,z:-.22})')
   a.wait_for_function('id=>Boxing.state.event&&Boxing.state.event.id!==id',arg=old,timeout=7000)
   assert a.evaluate('Boxing.state.event.result')==result,a.evaluate('Boxing.state.event')
+  if on_impact:on_impact()
   event=a.evaluate('Boxing.state.event.id');a.wait_for_timeout(350);assert a.evaluate('Boxing.state.event.id')==event
   a.evaluate('Object.assign(testPose[15],{y:.38,z:-.17})');a.wait_for_timeout(450);assert a.evaluate('Boxing.state.event.id')==event
+ # Posture reaches the other client and the opponent rig before any punch event.
+ a.evaluate("const angle=.6;for(const i of [0,11,12,13,14,15,16]){const p=testPose[i],x=p.x-.5,z=p.z;p.x=.5+x*Math.cos(angle)+z*Math.sin(angle);p.z=-x*Math.sin(angle)+z*Math.cos(angle)}")
+ c.wait_for_function('Math.abs(Boxing.state.players[0].posture?.turn||0)>.45')
+ c.wait_for_function('Math.abs(Boxing.world.actors[0].chest.rotation.y)>.25')
+ neutral(a);c.wait_for_function('Math.abs(Boxing.world.actors[0].chest.rotation.y)<.04')
  # Brief gentle duck/back sway is evasion, not movement.
  for depth,threshold in [(-.05,'>.24'),(.03,'<-.12')]:
   before=c.evaluate('Boxing.state.players[1].x');c.evaluate('z=>testPose[0].z=z',depth)
-  a.wait_for_function('Boxing.state.players[1].bend'+threshold);jab('dodge');c.evaluate('testPose[0].z=0');a.wait_for_function('Math.abs(Boxing.state.players[1].bend)<.04')
+  a.wait_for_function('Boxing.state.players[1].bend'+threshold);jab('dodge',lambda:c.evaluate('testPose[0].z=0'));a.wait_for_function('Math.abs(Boxing.state.players[1].bend)<.04')
   assert abs(c.evaluate('Boxing.state.players[1].x')-before)<.03
   assert a.evaluate('Boxing.state.players[1].hp')==10
  jab('hit');jab('hit');assert a.evaluate('Boxing.state.players[1].hp')==8
@@ -46,5 +52,5 @@ with sync_playwright() as pw:
  z=a.evaluate('Boxing.state.players[0].z');a.evaluate('testPose[0].x=.56');a.wait_for_function('Boxing.state.players[0].side===-1');a.wait_for_function('z=>Boxing.state.players[0].z>z+.10',arg=z,timeout=1700)
  a.evaluate('testPose[0].x=.5');a.wait_for_function('Boxing.state.players[0].side===0');a.wait_for_timeout(300);stopped=a.evaluate('Boxing.state.players[0].z');a.wait_for_timeout(400);assert abs(a.evaluate('Boxing.state.players[0].z')-stopped)<.01
  assert not errors,errors
- print('PASS two-client short jabs/rearm, no hold/recoil bonus hits, gentle short duck/back sway without travel, two-second server circling, immediate reversal and neutral stop')
+ print('PASS two-client short jabs/rearm, no hold/recoil bonus hits, gentle short duck/back sway without travel, two-second server circling, immediate reversal, neutral stop and remote shoulder wind-up')
  b.close()

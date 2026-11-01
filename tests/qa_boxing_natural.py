@@ -27,6 +27,21 @@ with sync_playwright() as p:
   assert sum((a-b)**2 for a,b in zip(measured,expected))<.001,(measured,expected)
  # New torso weights stay normalized and finite; profile meshes retain their original vertex counts.
  assert page.evaluate("""f.body.children.filter(m=>m.isSkinnedMesh).every(m=>{const a=m.geometry.attributes.skinWeight;for(let i=0;i<a.count;i++){const v=[a.getX(i),a.getY(i),a.getZ(i),a.getW(i)];if(v.some(x=>!Number.isFinite(x)||x<0)||Math.abs(v.reduce((s,x)=>s+x,0)-1)>.0001)return false}return true})""")
+ # A stronger back lean must move the head behind the pelvis and turn the face upward.
+ page.evaluate('w.bag.visible=false;apply({});window.neutralHead=f.neck.getWorldPosition(new THREE.Vector3());apply({bend:-.8,posture:{headPitch:-.25}})')
+ assert page.evaluate("f.neck.getWorldPosition(new THREE.Vector3()).z<neutralHead.z-.20&&new THREE.Vector3(0,0,1).applyQuaternion(f.neck.getWorldQuaternion(new THREE.Quaternion())).y>.5")
+ page.evaluate('w.camera.position.set(3,1.4,2);w.camera.lookAt(0,.95,0);w.renderer.render(w.scene,w.camera)');page.screenshot(path=str(out/'back-extension.png'))
+ # Wind-up is tracked before a scoring event and arm vectors rotate with the shoulder frame.
+ page.evaluate("window.wind={left:{upper:[.45,.1,-.8],lower:[-.1,.85,.1]},right:{upper:[-.2,-.5,.7],lower:[.1,.8,.4]}};apply({posture:{turn:.7,hipTurn:.1,tilt:.2,headYaw:-.3},arms:wind})")
+ assert page.evaluate('f.chest.rotation.y>.35&&f.pelvis.rotation.y>0&&f.punchAt===-1000')
+ assert page.evaluate("new THREE.Vector3(...arm().upper).distanceTo(new THREE.Vector3(...wind.left.upper).normalize().applyAxisAngle(new THREE.Vector3(0,1,0),.7*1.05))<.01")
+ assert page.evaluate("['left','right'].every(s=>{const g=f.bones[s+'Arm'].glove;return g?.name==='boxing-mma-glove'&&g.children.filter(m=>m.name==='knuckle-pad').length===4&&g.getObjectByName('wrist-cuff')&&g.getObjectByName('thumb-wrap')})")
+ page.evaluate('w.camera.position.set(2.6,1.65,2.5);w.camera.lookAt(0,1.05,0);w.renderer.render(w.scene,w.camera)');page.screenshot(path=str(out/'shoulder-windup.png'))
+ # Head pitch/yaw/roll animate independently, without forcing a body arch.
+ page.evaluate('apply({posture:{headPitch:-.6,headYaw:.5,headRoll:.4}})')
+ assert page.evaluate('Math.abs(f.chest.rotation.x-.12)<.01&&f.neck.rotation.x<-.4&&f.neck.rotation.y>.35&&f.neck.rotation.z>.2')
+ page.evaluate('apply({slip:.7,posture:{headRoll:0}})');assert page.evaluate('Math.abs(new THREE.Vector3(0,1,0).applyQuaternion(f.neck.getWorldQuaternion(new THREE.Quaternion())).x)<.05')
+ page.evaluate('apply({})');assert page.evaluate('Math.abs(f.neck.rotation.y)<.01&&Math.abs(f.chest.rotation.y)<.01')
  page.evaluate('w.bag.visible=false')
  for name,state in [('guard','{arms:short}'),('duck','{bend:.9,slip:.25,crouch:.25,arms:short}'),('slip','{slip:.9,crouch:.1,arms:short}'),('full-punch','{arms:full}')]:
   page.evaluate('apply('+state+');w.camera.position.set(4.2,1.7,1.3);w.camera.lookAt(0,.9,0);w.renderer.render(w.scene,w.camera)')
@@ -34,5 +49,5 @@ with sync_playwright() as p:
  page.evaluate("w.add({appearance:{gender:'female'},growth:{},visual:{}},1)");page.wait_for_function("w.actors[1].canvas.dataset.avatarState==='ready'")
  page.evaluate('f=w.actors[1];apply({arms:full,bend:.6,slip:-.5})');female=page.evaluate('arm()');assert abs(female['reach']-female['length'])<.005
  assert not errors,errors
- print('PASS male/female full reach, short-jab pose preserved during impact, coordinated hip/spine/chest/neck, planted stance, valid skin weights; no JS errors')
+ print('PASS male/female full reach, short-jab pose preserved during impact, coordinated hip/spine/chest/neck, planted stance, valid skin weights, progressive back extension, independent head/shoulder wind-up and two fitted MMA gloves; no JS errors')
  b.close()

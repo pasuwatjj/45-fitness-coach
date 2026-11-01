@@ -38,7 +38,7 @@ def advance(m,now):
         m.update(status='active',round=m['round']+1,round_start=m['next_round_at'],motion_at=now)
         m.pop('knockdown',None)
         for i,p in enumerate(m['players']):
-            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,hp=10,armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,guard_since=None,guard_until=0,last_punch=0,last_hand=None,control_at=0)
+            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,hp=10,armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,posture=None,guard_since=None,guard_until=0,last_punch=0,last_hand=None,control_at=0)
     if m['status']=='active':
         motion(m,now)
         if m.get('rules',2)>=4:boxing_cage.resolve(m,now,knockout)
@@ -96,9 +96,13 @@ def action(m,uid,data,now):
             if not isinstance(side,dict) or set(side)!={'upper','lower'}:raise ValueError('Invalid arms')
             for v in side.values():
                 if not isinstance(v,list) or len(v)!=3 or any(type(x) not in (int,float) or not math.isfinite(x) or abs(x)>1.01 for x in v):raise ValueError('Invalid vector')
+    posture=data.get('posture')
+    if posture is not None:
+        keys={'turn','hipTurn','tilt','headPitch','headYaw','headRoll'}
+        if not isinstance(posture,dict) or set(posture)!=keys or any(type(v) not in (int,float) or not math.isfinite(v) or not -1<=v<=1 for v in posture.values()):raise ValueError('Invalid upper-body posture')
     if now-p.get('control_at',0)>.7:p['guard_since']=None
     if m.get('rules',2)>=4:boxing_cage.control(p,slip,bend,now,move)
-    p.update(seq=seq,pose=kind,move=move,control_at=now,arms=arms,crouch=crouch)
+    p.update(seq=seq,pose=kind,move=move,control_at=now,arms=arms,posture=posture,crouch=crouch)
     if guard and kind=='control':
         if p.get('guard_since') is None:p['guard_since']=now
         p['guard_until']=now+.65 if now-p['guard_since']>=3 else 0

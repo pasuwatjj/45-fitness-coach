@@ -16,7 +16,7 @@ with sync_playwright() as pw:
  a=ca.new_page();c=cb.new_page();errors=[]
  for page,lang in [(a,'en'),(c,'th')]:
   page.on('pageerror',lambda e:errors.append(str(e)));page.goto(root+'/45-fitness-coach?lang='+lang);page.evaluate("window.cameraRequests=0;navigator.mediaDevices.getUserMedia=async()=>{cameraRequests++;throw new Error('Unexpected camera request')};void 0")
-  page.locator('#homeBoxingTile').click();page.wait_for_function("document.querySelector('.fighter-lobby-avatar canvas')?.dataset.avatarState==='ready'",timeout=60000)
+  page.locator('#homeBoxingTile').click();page.wait_for_function("document.querySelector('.fighter-lobby-scene canvas')?.dataset.avatarState==='ready'",timeout=60000)
   assert page.locator('[data-mode=bot]').is_disabled();assert page.evaluate('Boxing.world===null&&cameraRequests===0');assert page.locator('.fighter-growth-row').count()==5
   model=page.request.get(root+f'/profiles/{pid if page==a else opid}/character',headers=h if page==a else oh).json()
   for key,part in model['growth']['parts'].items():
@@ -38,7 +38,7 @@ with sync_playwright() as pw:
  a.keyboard.down('c');a.wait_for_function('Boxing.world.actors[0].poseSmooth.crouch>.65');a.keyboard.up('c');a.wait_for_function('Boxing.world.actors[0].poseSmooth.crouch<.1')
  x=a.evaluate('Boxing.world.states[0].x');a.keyboard.down('s');a.keyboard.down('Control');a.wait_for_function('x=>Boxing.world.states[0].x<x-.32',arg=x,timeout=1500);a.keyboard.up('Control');a.keyboard.up('s')
  # New chord attacks and one-sided guard are actual browser inputs.
- a.wait_for_timeout(700);a.keyboard.down('Space');a.keyboard.press('a');a.keyboard.up('Space');a.wait_for_function("Boxing.world.actors[0].punchType==='hook'&&Boxing.world.actors[0].punchHand==='left'")
+ a.wait_for_timeout(700);a.keyboard.down('Space');a.keyboard.press('a');a.keyboard.up('Space');a.wait_for_function("Boxing.world.actors[0].punchType==='uppercut'&&Boxing.world.actors[0].punchHand==='left'")
  a.wait_for_timeout(500);a.keyboard.down('Space');a.keyboard.press('w');a.keyboard.up('Space');a.wait_for_function("Boxing.world.actors[0].punchType==='uppercut'")
  a.keyboard.down('f');a.keyboard.down('j');a.wait_for_function("Boxing.world.states[0].guard_side==='left'");a.keyboard.up('j');a.keyboard.up('f')
  a.wait_for_timeout(500);a.locator('.boxing-arena').screenshot(path=str(out/'mma-arena.png'))
@@ -70,5 +70,5 @@ with sync_playwright() as pw:
  assert not errors,errors
  a.locator('.boxing-back').click();a.wait_for_function("Boxing.mode==='menu'&&Boxing.world===null");assert a.evaluate('cameraRequests===0')
  c.locator('.boxing-back').click();c.wait_for_function("Boxing.mode==='menu'&&!document.querySelector('[data-mode=settings]').disabled");c.locator('[data-mode=settings]').click();c.locator('.fighter-language button').filter(has_text='English').click();c.wait_for_url('**lang=en');c.locator('#homeBoxingTile').click();c.wait_for_function("document.querySelector('.fighter-growth h3')?.textContent==='MUSCLE LEVELS'");assert c.evaluate("localStorage.getItem('45-language')")=='en';assert not errors,errors
- print('PASS directional guard/no-armor-loss and wrong-side HP damage, Space hooks/uppercut, Ctrl dash, locked camera, repeated practice and live-match navigation recovery, saved avatar/LV, desktop/mobile layout, no menu camera, disabled Bot, mandatory mode selection, key remap/duplicate/persistence, keyboard bag/room punches and kicks, immediate movement/stop, crouch, bounded one-shot dashes, inherited room mode for both clients and cleanup; no JS errors')
+ print('PASS directional guard/no-armor-loss and wrong-side HP damage, Space left/right/front uppercuts, Ctrl dash, locked camera, repeated practice and live-match navigation recovery, saved avatar/LV, desktop/mobile layout, no menu camera, disabled Bot, mandatory mode selection, key remap/duplicate/persistence, keyboard bag/room punches and kicks, immediate movement/stop, crouch, bounded one-shot dashes, inherited room mode for both clients and cleanup; no JS errors')
  b.close()

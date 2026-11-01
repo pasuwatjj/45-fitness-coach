@@ -43,7 +43,8 @@ with sync_playwright() as pw:
  # A held lateral lean begins server movement after the new two-second hold.
  start=a.evaluate('Boxing.state.players[0].z');a.evaluate('testPose[0].x-=.06');a.wait_for_function('Boxing.state.players[0].side_since!=null');a.wait_for_timeout(400);assert abs(a.evaluate('Boxing.state.players[0].z')-start)<.03
  a.wait_for_function('z=>Math.abs(Boxing.state.players[0].z-z)>.15',arg=start,timeout=3500)
+ z=a.evaluate('Boxing.state.players[0].z');a.evaluate('testPose[0].x=.56');a.wait_for_function('Boxing.state.players[0].side===-1');a.wait_for_function('z=>Boxing.state.players[0].z>z+.10',arg=z,timeout=1700)
  a.evaluate('testPose[0].x=.5');a.wait_for_function('Boxing.state.players[0].side===0');a.wait_for_timeout(300);stopped=a.evaluate('Boxing.state.players[0].z');a.wait_for_timeout(400);assert abs(a.evaluate('Boxing.state.players[0].z')-stopped)<.01
  assert not errors,errors
- print('PASS two-client short jabs/rearm, no hold/recoil bonus hits, gentle short duck/back sway without travel, two-second server circling and neutral stop')
+ print('PASS two-client short jabs/rearm, no hold/recoil bonus hits, gentle short duck/back sway without travel, two-second server circling, immediate reversal and neutral stop')
  b.close()

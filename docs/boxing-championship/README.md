@@ -1,3 +1,5 @@
+> Historical release notes. Current camera, body tracking, contact constraints and ten-second knockdown rules are documented in [boxing-cage](../boxing-cage/README.md).
+
 # Boxing championship release
 
 The camera controller accepts smaller backward lean, including head/torso disagreement and a perspective fallback when depth estimates barely change. Crouching lowers the body and bends the avatar's knees, then returns to standing with the player. Hand trajectories assist the nearest straight, hook or uppercut for either arm; retraction/cooldown prevents a held fist from repeatedly striking. Only posture/control vectors reach the other player; camera images remain local.

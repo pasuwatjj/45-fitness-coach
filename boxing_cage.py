@@ -37,11 +37,21 @@ def motion(m,now):
             a['x'],a['z']=clamp(a['x']-nx*amount,a['z']-nz*amount);b['x'],b['z']=clamp(b['x']+nx*amount,b['z']+nz*amount)
     m['motion_at']=now
 
-def control(p,slip,bend,now):
+def control(p,slip,bend,now,move=0):
     side=1 if slip>.35 else -1 if slip<-.35 else 0
-    if now-p.get('control_at',0)>.7 or side!=p.get('side',0):p['side_since']=now if side else None
-    if not side:p['side_since']=None
-    p.update(side=side,slip=slip,bend=bend)
+    fresh=now-p.get('control_at',0)<=.7
+    neutral=p.get('travel_neutral_at')
+    ready=fresh and (p.get('travel_ready',False) or (p.get('side_since') is not None and p.get('side',0) and now-p['side_since']>=MOVE_HOLD))
+    if not fresh or (neutral is not None and now-neutral>=.25):ready=False;p['side_since']=None
+    # Forward/backward move is already gated by the detector's two-second hold.
+    if move:ready=True
+    if not side and not move:
+        p['travel_neutral_at']=neutral if neutral is not None else now
+        if not ready:p['side_since']=None
+    else:
+        p['travel_neutral_at']=None
+        if side and (p.get('side_since') is None or (not ready and side!=p.get('side',0))):p['side_since']=now-MOVE_HOLD if ready else now
+    p.update(side=side,slip=slip,bend=bend,travel_ready=bool(ready))
 
 def queue(m,p,q,hand,kind,now,token):
     ensure(m['players']);fx,fz=direction(p,q)

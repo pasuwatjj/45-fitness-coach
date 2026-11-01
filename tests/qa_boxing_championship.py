@@ -30,13 +30,13 @@ with sync_playwright() as p:
   for key in ['w','a','s','d','q','e','u','i','c','f','z','x','r','Space','Control']:page.keyboard.up(key)
 
   start_x=page.evaluate('Boxing.world.states[0].x')
-  page.evaluate('testPose[0].z=.055');page.wait_for_timeout(1000);assert abs(page.evaluate('Boxing.world.states[0].x')-start_x)<.03
+  page.evaluate('testPose[0].z=.055');page.wait_for_timeout(450);assert abs(page.evaluate('Boxing.world.states[0].x')-start_x)<.03
   page.wait_for_function("Boxing.world.states[0].x < -1.35");reset(page)
   page.evaluate('testPose[0].z=-.1');page.wait_for_function("Boxing.world.states[0].x > -1.05");reset(page)
   page.evaluate('for(const i of [0,11,12,13,14,15,16,23,24])testPose[i].y+=.17');page.wait_for_function("Boxing.world.actors[0].poseSmooth.crouch>.95&&Boxing.world.actors[0].body.position.y<-.52");assert page.evaluate('Boxing.world.actors[0].bones.leftLeg.lower.rotation.x')>1
   reset(page);page.wait_for_function("Math.abs(Boxing.world.actors[0].body.position.y+.06)<.04")
   for side,kind in [('right','hook'),('left','uppercut'),('right','straight')]:
-   reset(page);n=page.evaluate('damageLog.length');punch(page,side,kind);page.wait_for_function('damageLog.length>'+str(n));assert page.evaluate('Boxing.world.actors[0].punchType')==kind
+   reset(page);n=page.evaluate('damageLog.length');punch(page,side,kind);page.wait_for_function('damageLog.length>'+str(n));assert page.evaluate('Boxing.world.actors[0].punchType')==('hook' if kind=='straight' else kind)
   assert page.locator('.boxing-bag-damage').inner_text()=='−1 HP';reset(page)
   # One world renderer, profile mesh and actual center bag. Orbit/zoom presets are interactive.
   assert page.locator('.boxing-fighters canvas').count()==1
@@ -51,7 +51,7 @@ with sync_playwright() as p:
   # Hide hips/legs: torso still bends and lateral hold moves around the center.
   page.evaluate('testPose[23].visibility=testPose[24].visibility=0;testPose[0].z=-.4');page.wait_for_function('Boxing.world.actors[0].spine.rotation.x+Boxing.world.actors[0].chest.rotation.x>.70');reset(page)
   page.evaluate('testPose[23].visibility=testPose[24].visibility=0;for(const i of [0,11,12,13,14,15,16])testPose[i].x-=.10')
-  page.wait_for_function('Boxing.world.actors[0].spine.rotation.z+Boxing.world.actors[0].chest.rotation.z<-.20');page.wait_for_timeout(1000);assert abs(page.evaluate('Boxing.world.states[0].z'))<.05
+  page.wait_for_function('Boxing.world.actors[0].spine.rotation.z+Boxing.world.actors[0].chest.rotation.z<-.20');page.wait_for_timeout(450);assert abs(page.evaluate('Boxing.world.states[0].z'))<.05
   page.wait_for_function('Math.abs(Boxing.world.states[0].z)>.25',timeout=6000);page.wait_for_function('Boxing.world.actors[0].gait>.3');page.wait_for_function('Math.abs(Boxing.world.actors[0].bones.leftLeg.upper.rotation.z-.1)>.04');reset(page)
   # Return to the practice starting point via a normal profile selection refresh.
   page.get_by_role('button',name='Disable character control camera' if lang=='en' else 'ปิดกล้องสำหรับควบคุมตัวละคร',exact=True).click()

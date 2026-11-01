@@ -35,7 +35,7 @@ with sync_playwright() as p:
  page.evaluate("window.wind={left:{upper:[.45,.1,-.8],lower:[-.1,.85,.1]},right:{upper:[-.2,-.5,.7],lower:[.1,.8,.4]}};apply({posture:{turn:.7,hipTurn:.1,tilt:.2,headYaw:-.3},arms:wind})")
  assert page.evaluate('f.chest.rotation.y>.35&&f.pelvis.rotation.y>0&&f.punchAt===-1000')
  assert page.evaluate("new THREE.Vector3(...arm().upper).distanceTo(new THREE.Vector3(...wind.left.upper).normalize().applyAxisAngle(new THREE.Vector3(0,1,0),.7*1.05))<.01")
- assert page.evaluate("['left','right'].every(s=>{const g=f.bones[s+'Arm'].glove;return g?.name==='boxing-mma-glove'&&g.getObjectByName('mma-pad')&&g.getObjectByName('wrist-cuff')&&g.getObjectByName('thumb-loop')})")
+ assert page.evaluate("!f.body.getObjectByName('boxing-mma-glove')&&f.fingers.length>20&&['left','right'].every(s=>f.bones[s+'Arm'].contactEnd.length()>f.bones[s+'Arm'].end.length())")
  page.evaluate('w.camera.position.set(2.6,1.65,2.5);w.camera.lookAt(0,1.05,0);w.renderer.render(w.scene,w.camera)');page.screenshot(path=str(out/'shoulder-windup.png'))
  # Head pitch/yaw/roll animate independently, without forcing a body arch.
  page.evaluate('apply({posture:{headPitch:-.6,headYaw:.5,headRoll:.4}})')
@@ -54,10 +54,10 @@ with sync_playwright() as p:
   page.evaluate("apply({lowerBody:{confidence:1,shiftX:.65,shiftZ:.35,drop:.25,leftKnee:.4,rightKnee:.35},bend:.3,posture:{hipTurn:.3,turn:.6},arms:full})")
   assert page.evaluate("Math.abs(f.pelvis.getWorldPosition(new THREE.Vector3()).x-restHip.x)>.15*f.root.scale.x&&feet().every((v,i)=>v.distanceTo(restFeet[i])<.008)"),page.evaluate("({hip:f.pelvis.getWorldPosition(new THREE.Vector3()).distanceTo(restHip),feet:feet().map((v,i)=>v.distanceTo(restFeet[i])),state:f.state})")
   assert page.evaluate("['left','right'].every(s=>{const b=f.bones[s+'Leg'];return new THREE.Vector3(0,1,0).applyQuaternion(b.foot.getWorldQuaternion(new THREE.Quaternion())).y>.999&&b.upper.scale.x===1&&b.lower.scale.x===1})")
-  # No indexed triangle retains a weighted finger vertex beneath either closed glove.
-  assert page.evaluate("f.coveredHandTriangles>0&&f.body.children.filter(m=>m.isSkinnedMesh).every(m=>{const fingers=new Set(f.fingers.map(v=>f.skeleton.bones.indexOf(v.bone))),g=m.geometry;return [...g.index.array].every(i=>[0,1,2,3].every(k=>g.attributes.skinWeight.array[i*4+k]<.01||!fingers.has(g.attributes.skinIndex.array[i*4+k])))})")
+  # Bare hands retain the original indexed finger surfaces; no hand mask/overlay remains.
+  assert page.evaluate("f.body.children.filter(m=>m.isSkinnedMesh).some(m=>{const fingers=new Set(f.fingers.map(v=>f.skeleton.bones.indexOf(v.bone))),g=m.geometry;return [...g.index.array].filter(i=>[0,1,2,3].some(k=>g.attributes.skinWeight.array[i*4+k]>.01&&fingers.has(g.attributes.skinIndex.array[i*4+k]))).length>100})")
   page.evaluate("apply({});w.renderer.render(w.scene,w.camera)")
   assert page.evaluate("f.supportSmooth.confidence<.001&&feet().every((v,i)=>v.distanceTo(restFeet[i])<.008)")
  assert not errors,errors
- print('PASS male/female full reach, short-jab pose preserved during impact, coordinated hip/spine/chest/neck, planted stance, valid skin weights, progressive back extension, independent head/shoulder wind-up and two compact MMA gloves; no JS errors')
+ print('PASS male/female full reach, short-jab pose preserved during impact, coordinated hip/spine/chest/neck, planted stance, valid skin weights, progressive back extension, independent head/shoulder wind-up and original articulated bare hands; no JS errors')
  b.close()

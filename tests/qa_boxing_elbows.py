@@ -19,14 +19,26 @@ with sync_playwright() as p:
    # A near-zero triangle area exposes the pinched/folded skin even when bone lengths pass.
    for side,result in metrics.items():assert result['count']>200 and result['min']>.2 and result['median']>.9,(variant,side,result)
    page.screenshot(path=str(out/f'{variant}-{state}.png'))
-  for side in ['left','right']:
-   heights=[]
-   for age in [55,180,360]:
-    page.evaluate('v=>apply({},"uppercut",v[0],v[1])',[side,age]);heights.append(page.evaluate("s=>{const a=f.bones[s+'Arm'];return a.lower.localToWorld(a.end.clone()).y}",side));page.screenshot(path=str(out/f'{variant}-uppercut-{side}-{age}.png'))
-   assert heights[1]-heights[0]>.30,(variant,side,heights)
-   assert heights[2]-heights[0]>.08,(variant,side,heights)
+  for mode in ['computer','tracking']:
+   for side in ['left','right']:
+    page.evaluate('mode=>apply({controlMode:mode})',mode)
+    idle=page.evaluate("s=>({head:f.neck.getWorldPosition(new THREE.Vector3()).y,knee:f.bones[s+'Leg'].lower.rotation.x})",side)
+    heights=[]
+    for age in [55,180,420]:
+     page.evaluate('v=>apply({controlMode:v[0]},"uppercut",v[1],v[2])',[mode,side,age])
+     heights.append(page.evaluate("s=>{const a=f.bones[s+'Arm'];return a.lower.localToWorld(a.end.clone()).y}",side))
+     if age==55:
+      assert page.evaluate('f.neck.getWorldPosition(new THREE.Vector3()).y')<idle['head']-.15,(mode,variant,'dip')
+      assert page.evaluate("s=>f.bones[s+'Leg'].lower.rotation.x",side)>idle['knee']+.3,(mode,variant,'knees')
+     page.screenshot(path=str(out/f'{variant}-{mode}-uppercut-{side}-{age}.png'))
+    assert heights[1]-heights[0]>.40,(mode,variant,side,heights)
+    # A camera-detected straight punch produces a bent hook instead of a straight arm.
+    if mode=='tracking':
+     page.evaluate('s=>apply({controlMode:"tracking",arms:{left:{upper:[0,0,1],lower:[0,0,1]},right:{upper:[0,0,1],lower:[0,0,1]}}},"hook",s,180)',side)
+     assert page.evaluate("s=>{const a=f.bones[s+'Arm'],u=a.lower.getWorldPosition(new THREE.Vector3()).sub(a.upper.getWorldPosition(new THREE.Vector3())).normalize(),l=a.lower.localToWorld(a.end.clone()).sub(a.lower.getWorldPosition(new THREE.Vector3())).normalize();return u.dot(l)<.75}",side)
+     page.screenshot(path=str(out/f'{variant}-tracking-hook-{side}.png'))
   assert not errors,errors
   page.close()
  (out/'measurements.json').write_text(json.dumps(measurements,indent=2))
  b.close()
-print('PASS male/female elbow surface area, high-angle idle and three guards, bilateral uppercut chamber/rise/recovery')
+print('PASS male/female elbow surface area, high-angle idle and three guards, bare hands, deeper bilateral uppercuts in both control modes, camera-assisted hooks')

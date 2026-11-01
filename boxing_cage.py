@@ -3,7 +3,7 @@ import math,uuid
 APOTHEM=5.0
 SPEED=1.05
 RANGE=1.65
-MOVE_HOLD=2.0
+MOVE_HOLD=1.0
 
 def clamp(x,z):
     for _ in range(2):
@@ -60,7 +60,7 @@ def control(p,slip,bend,now,move=0):
     neutral=p.get('travel_neutral_at')
     ready=fresh and (p.get('travel_ready',False) or (p.get('side_since') is not None and p.get('side',0) and now-p['side_since']>=MOVE_HOLD))
     if not fresh or (neutral is not None and now-neutral>=.25):ready=False;p['side_since']=None
-    # Forward/backward move is already gated by the detector's two-second hold.
+    # Forward/backward move is already gated by the detector's one-second hold.
     if move:ready=True
     if not side and not move:
         p['travel_neutral_at']=neutral if neutral is not None else now

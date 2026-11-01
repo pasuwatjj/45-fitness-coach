@@ -16,11 +16,13 @@ with sync_playwright() as p:
  for actor in [0,1]:
   page.evaluate('f=w.actors['+str(actor)+'];f.kickObstacles=[];w.actors[1-'+str(actor)+'].root.visible=false;f.root.visible=true;w.camera.position.set(3,1.6,3);w.camera.lookAt(0,.9,.2)')
   page.evaluate("apply(f,'none');window.idleHead=f.neck.getWorldPosition(new THREE.Vector3());window.idlePelvis=f.pelvis.rotation.clone()")
+  assert page.evaluate("['left','right'].every(s=>f.bones[s+'Arm'].elbow?.isBone&&f.bones[s+'Arm'].glove.getObjectByName('mma-pad'))")
   assert page.evaluate('f.pelvis.rotation.x+f.spine.rotation.x+f.chest.rotation.x>.35&&f.bones.leftLeg.lower.rotation.x>.35')
   page.evaluate('w.renderer.render(w.scene,w.camera)');page.screenshot(path=str(out/f'stance-{actor}.png'))
   for side in ['left','right']:
    page.evaluate("s=>{apply(f,'none',s);window.stand=foot(f,s);window.support=foot(f,s==='left'?'right':'left');apply(f,'kick',s,280)}",side)
    metrics=page.evaluate("s=>{const a=foot(f,s),b=foot(f,s==='left'?'right':'left'),leg=f.bones[s+'Leg'],hip=leg.upper.getWorldPosition(new THREE.Vector3()),length=(leg.lower.position.length()+leg.end.length())*f.root.scale.x;return{height:a.y/f.height,extension:hip.distanceTo(a)/length,supportDrift:b.distanceTo(support),hipTurn:f.pelvis.rotation.y,chestTurn:f.chest.rotation.y}}",side);measurements.append(metrics)
+   assert page.evaluate("s=>{const leg=f.bones[s+'Leg'],shin=leg.foot.getWorldPosition(new THREE.Vector3()).sub(leg.lower.getWorldPosition(new THREE.Vector3())).normalize(),toes=new THREE.Vector3(0,0,1).applyQuaternion(leg.foot.getWorldQuaternion(new THREE.Quaternion()));return shin.dot(toes)>.98}",side)
    assert metrics['height']>1.35 and metrics['extension']>.96 and metrics['supportDrift']<.01,metrics
    assert page.evaluate("['left','right'].every(s=>f.bones[s+'Leg'].upper.scale.x===1&&f.bones[s+'Leg'].lower.scale.x===1)")
    if side=='left':

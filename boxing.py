@@ -2,7 +2,7 @@
 import json,time,uuid,math
 from flask import Blueprint,g,request,jsonify
 import character,collaboration_features,boxing_cage
-MATCH_RULES=5
+MATCH_RULES=6
 
 def clock():return time.time()
 def schema(store):
@@ -38,9 +38,10 @@ def advance(m,now):
         m.update(status='active',round=m['round']+1,round_start=m['next_round_at'],motion_at=now)
         m.pop('knockdown',None)
         for i,p in enumerate(m['players']):
-            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,hp=10,armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,posture=None,lowerBody=None,kick_at=0,kick_until=0,dash_at=0,dash_until=0,dash_move=0,dash_side=0,last_dash=0,guard_since=None,guard_until=0,last_punch=0,last_hand=None,control_at=0)
+            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,hp=10,armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,posture=None,lowerBody=None,kick_at=0,kick_until=0,dash_at=0,dash_until=0,dash_move=0,dash_side=0,last_dash=0,guard_since=None,guard_side=None,guard_until=0,armor_regen_at=m['next_round_at'],last_punch=0,last_hand=None,control_at=0)
     if m['status']=='active':
         motion(m,now)
+        boxing_cage.regenerate(m,now)
         if m.get('rules',2)>=4:boxing_cage.resolve(m,now,knockout)
     if m['status'] in ['countdown','active','round_break']:
         gone=[p for p in m['players'] if now-p['seen']>20]
@@ -66,7 +67,7 @@ def knockout(m,winner,now):
     if winner['wins']>=2 and m.get('rules',2)<5:finish(m,winner['uid'],'best_of_three',now)
 
 def award(db,m,now):
-    if m.get('rules') not in [2,3,4,5] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
+    if m.get('rules') not in [2,3,4,5,6] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
     winner=next((p for p in m['players'] if p['uid']==m.get('winner') and p.get('profile_id')),None)
     if winner:
         db.execute('INSERT OR IGNORE INTO boxing_trophies VALUES(?,?,?,?)',(m['id'],winner['uid'],winner['profile_id'],now));m['trophy_awarded']=True;m['belt_awarded']=True
@@ -96,6 +97,9 @@ def action(m,uid,data,now):
     strafe=data.get('strafe',0)
     if type(strafe)!=int or strafe not in [-1,0,1]:raise ValueError('Invalid lateral control')
     computer=m.get('control_mode')=='computer'
+    guard_side=data.get('guard_side')
+    if guard_side not in (None,'both','left','right') or (guard_side is not None and not guard) or (not computer and guard_side not in (None,'both')):raise ValueError('Invalid guard side')
+    guard_side=(guard_side or 'both') if guard else None
     dash=data.get('dash',False)
     if type(dash)!=bool or (dash and not computer):raise ValueError('Dash requires computer controls')
     if punch_type=='kick' and not computer:raise ValueError('Kicks require computer controls')
@@ -120,7 +124,7 @@ def action(m,uid,data,now):
             p.update(side=strafe,side_since=now-boxing_cage.MOVE_HOLD if strafe else None,slip=slip,bend=bend,travel_ready=True,travel_neutral_at=None)
             if dash and (move or strafe) and now-p.get('last_dash',-1000)>=.65 and now>=p.get('kick_until',0) and not (kind in ['left','right'] and punch_type=='kick'):p.update(last_dash=now,dash_at=now,dash_until=now+.18,dash_move=move,dash_side=strafe)
         else:boxing_cage.control(p,slip,bend,now,move)
-    p.update(seq=seq,pose=kind,move=move,control_at=now,arms=arms,posture=posture,lowerBody=lower_body,crouch=crouch)
+    p.update(seq=seq,pose=kind,move=move,control_at=now,arms=arms,posture=posture,lowerBody=lower_body,crouch=crouch,guard_side=guard_side)
     if guard and kind=='control':
         if p.get('guard_since') is None:p['guard_since']=now
         p['guard_until']=now+.65 if computer or now-p['guard_since']>=3 else 0

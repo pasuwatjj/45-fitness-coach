@@ -36,7 +36,17 @@ with sync_playwright() as pw:
  count=a.locator('.boxing-banner').inner_text();a.wait_for_timeout(600);assert a.locator('.boxing-banner').inner_text()==count
  x=a.evaluate('Boxing.world.states[0].x');a.keyboard.down('s');a.wait_for_function('x=>Boxing.world.states[0].x<x-.1',arg=x,timeout=1800);a.keyboard.up('s')
  a.keyboard.down('c');a.wait_for_function('Boxing.world.actors[0].poseSmooth.crouch>.65');a.keyboard.up('c');a.wait_for_function('Boxing.world.actors[0].poseSmooth.crouch<.1')
- x=a.evaluate('Boxing.world.states[0].x');a.keyboard.down('s');a.keyboard.down('Space');a.wait_for_function('x=>Boxing.world.states[0].x<x-.32',arg=x,timeout=1500);a.keyboard.up('Space');a.keyboard.up('s')
+ x=a.evaluate('Boxing.world.states[0].x');a.keyboard.down('s');a.keyboard.down('Control');a.wait_for_function('x=>Boxing.world.states[0].x<x-.32',arg=x,timeout=1500);a.keyboard.up('Control');a.keyboard.up('s')
+ # New chord attacks and one-sided guard are actual browser inputs.
+ a.wait_for_timeout(700);a.keyboard.down('Space');a.keyboard.press('a');a.keyboard.up('Space');a.wait_for_function("Boxing.world.actors[0].punchType==='hook'&&Boxing.world.actors[0].punchHand==='left'")
+ a.wait_for_timeout(500);a.keyboard.down('Space');a.keyboard.press('w');a.keyboard.up('Space');a.wait_for_function("Boxing.world.actors[0].punchType==='uppercut'")
+ a.keyboard.down('f');a.keyboard.down('j');a.wait_for_function("Boxing.world.states[0].guard_side==='left'");a.keyboard.up('j');a.keyboard.up('f')
+ a.wait_for_timeout(500);a.locator('.boxing-arena').screenshot(path=str(out/'mma-arena.png'))
+ assert a.locator('.boxing-views button').count()==2
+ a.locator('.boxing-camera-lock').click();assert a.locator('.boxing-camera-lock').get_attribute('aria-pressed')=='true';locked=a.evaluate('Boxing.world.camera.position.toArray()');canvas=a.locator('.cage-canvas').bounding_box();a.mouse.move(canvas['x']+canvas['width']*.5,canvas['y']+canvas['height']*.5);a.mouse.down();a.mouse.move(canvas['x']+canvas['width']*.7,canvas['y']+canvas['height']*.6);a.mouse.up();a.mouse.wheel(0,300);a.wait_for_timeout(300);assert a.evaluate('Boxing.world.camera.position.toArray()')==locked
+ for _ in range(2):
+  a.evaluate("setTab('home')");assert a.evaluate("Boxing.world&&!Boxing.world.running");a.evaluate("setTab('boxing')");a.wait_for_function("Boxing.mode==='practice'&&Boxing.world.running");a.wait_for_timeout(800);before=a.evaluate('Boxing.world.actors[0].punchAt');a.keyboard.press('j');a.wait_for_function('t=>Boxing.world.actors[0].punchAt>t',arg=before);assert a.locator('.boxing-camera-lock').get_attribute('aria-pressed')=='true'
+ a.locator('.boxing-camera-lock').click();assert a.locator('.boxing-camera-lock').get_attribute('aria-pressed')=='false'
  a.locator('.boxing-back').click();a.wait_for_function("Boxing.mode==='menu'&&Boxing.world===null")
  a.locator('[data-mode=friends]').click();assert a.locator('.fighter-primary').is_disabled();a.locator('.fighter-dialog').screenshot(path=str(out/'control-selection.png'));a.locator('[data-control=computer]').click();a.locator('.fighter-primary').click()
  a.get_by_role('button',name='Invite friend',exact=True).click();a.wait_for_function("Boxing.state?.status==='invited'");assert a.evaluate('Boxing.state.control_mode')=='computer'
@@ -49,13 +59,16 @@ with sync_playwright() as pw:
  a.keyboard.press('j');a.wait_for_function('Boxing.state.players[1].hp===9',timeout=7000);c.wait_for_function('Boxing.state.players[1].hp===9')
  a.wait_for_timeout(500);a.keyboard.press('i');a.wait_for_function('Boxing.state.players[1].hp===8',timeout=7000);c.wait_for_function("Boxing.state.event?.punch_type==='kick'")
  a.wait_for_timeout(800);c.keyboard.down('f');a.wait_for_function('Boxing.state.players[1].guard_until*1000>Date.now()');a.keyboard.press('j');a.wait_for_function("Boxing.state.event?.result==='block'");assert a.evaluate('Boxing.state.players[1].hp')==8;c.keyboard.up('f')
+ a.wait_for_timeout(500);c.keyboard.down('f');c.keyboard.down('q');a.wait_for_function("Boxing.state.players[1].guard_side==='left'");armor=a.evaluate('Boxing.state.players[1].armor');a.keyboard.press('j');a.wait_for_function("Boxing.state.event?.guard_result==='perfect'");assert a.evaluate('Boxing.state.players[1].hp')==8;assert a.evaluate('Boxing.state.players[1].armor')>=armor
+ a.wait_for_timeout(500);a.keyboard.press('e');a.wait_for_function("Boxing.state.event?.guard_result==='wrong'");assert a.evaluate('Boxing.state.players[1].hp')==7;c.keyboard.up('q');c.keyboard.up('f')
+ mid=a.evaluate('Boxing.state.id');a.evaluate("setTab('home')");a.wait_for_timeout(700);a.evaluate("setTab('boxing')");a.wait_for_function("Boxing.world.running&&Boxing.state.status==='active'");assert a.evaluate('Boxing.state.id')==mid
  start=a.evaluate('Boxing.state.players[0].z');a.keyboard.down('a');a.wait_for_function('z=>Math.abs(Boxing.state.players[0].z-z)>.1',arg=start,timeout=1800);a.keyboard.up('a')
  a.wait_for_timeout(300);stopped=a.evaluate('Boxing.state.players[0].z');a.wait_for_timeout(350);assert abs(a.evaluate('Boxing.state.players[0].z')-stopped)<.03
- before=a.evaluate('({x:Boxing.state.players[0].x,z:Boxing.state.players[0].z})');a.keyboard.down('s');a.keyboard.down('Space')
+ before=a.evaluate('({x:Boxing.state.players[0].x,z:Boxing.state.players[0].z})');a.keyboard.down('s');a.keyboard.down('Control')
  a.wait_for_function('p=>Math.hypot(Boxing.state.players[0].x-p.x,Boxing.state.players[0].z-p.z)>.32',arg=before,timeout=1800)
- stamp=a.evaluate('Boxing.state.players[0].last_dash');c.wait_for_function('v=>Boxing.state.players[0].last_dash===v',arg=stamp);a.keyboard.up('s');a.wait_for_timeout(800);assert a.evaluate('Boxing.state.players[0].last_dash')==stamp;a.keyboard.up('Space')
+ stamp=a.evaluate('Boxing.state.players[0].last_dash');c.wait_for_function('v=>Boxing.state.players[0].last_dash===v',arg=stamp);a.keyboard.up('s');a.wait_for_timeout(800);assert a.evaluate('Boxing.state.players[0].last_dash')==stamp;a.keyboard.up('Control')
  assert not errors,errors
  a.locator('.boxing-back').click();a.wait_for_function("Boxing.mode==='menu'&&Boxing.world===null");assert a.evaluate('cameraRequests===0')
  c.locator('.boxing-back').click();c.wait_for_function("Boxing.mode==='menu'&&!document.querySelector('[data-mode=settings]').disabled");c.locator('[data-mode=settings]').click();c.locator('.fighter-language button').filter(has_text='English').click();c.wait_for_url('**lang=en');c.locator('#homeBoxingTile').click();c.wait_for_function("document.querySelector('.fighter-growth h3')?.textContent==='MUSCLE LEVELS'");assert c.evaluate("localStorage.getItem('45-language')")=='en';assert not errors,errors
- print('PASS saved avatar/LV, desktop/mobile layout, no menu camera, disabled Bot, mandatory mode selection, key remap/duplicate/persistence, keyboard bag/room punches and kicks, immediate movement/stop, crouch, bounded one-shot dashes, inherited room mode for both clients and cleanup; no JS errors')
+ print('PASS directional guard/no-armor-loss and wrong-side HP damage, Space hooks/uppercut, Ctrl dash, locked camera, repeated practice and live-match navigation recovery, saved avatar/LV, desktop/mobile layout, no menu camera, disabled Bot, mandatory mode selection, key remap/duplicate/persistence, keyboard bag/room punches and kicks, immediate movement/stop, crouch, bounded one-shot dashes, inherited room mode for both clients and cleanup; no JS errors')
  b.close()

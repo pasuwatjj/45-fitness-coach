@@ -11,8 +11,8 @@ for name in ['cozy-ui.js','boxing-computer.js','boxing-lobby.js','boxing-lobby.c
  assert get('/static/'+name+'?release='+revision).content==Path('static',name).read_bytes(),name
 assert s.get(origin+'/social/boxing',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/belts/1',timeout=40).status_code==401
-html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=15' in html
-for asset in ['boxing-motion.js?v=1','boxing-lobby.css?v=2','boxing-lobby.js?v=2','boxing-computer.js?v=2','cozy-ui.js?v=3','profile.js?v=50','boxing-world.js?v=9','boxing-pose.js?v=10','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=10']:
+html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=16' in html
+for asset in ['boxing-motion.js?v=2','boxing-lobby.css?v=2','boxing-lobby.js?v=3','boxing-computer.js?v=3','cozy-ui.js?v=3','profile.js?v=50','boxing-world.js?v=10','boxing-pose.js?v=10','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=10']:
  assert '/static/'+asset in html,asset
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']);page=b.new_page();page.set_content('<main></main>');page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
@@ -32,10 +32,10 @@ with sync_playwright() as p:
  assert page.evaluate("BoxingContact.sweep(new THREE.Vector3(0,1,-1),new THREE.Vector3(0,1,1),{a:new THREE.Vector3(0,.7,0),b:new THREE.Vector3(0,1.3,0),radius:.3},.095).z<-.39")
  page.evaluate("sceneSmoke.set([{x:-1,z:0,bend:-.8,posture:{turn:.7,hipTurn:.1,headPitch:-.3}}],true)")
  page.wait_for_function('sceneSmoke.actors[0].chest.rotation.x<-.18&&sceneSmoke.actors[0].spine.rotation.x+sceneSmoke.actors[0].chest.rotation.x<-.4&&sceneSmoke.actors[0].chest.rotation.y>.35&&sceneSmoke.actors[0].neck.rotation.x<-.2')
- assert page.evaluate("sceneSmoke.hallWalls.length===8&&['left','right'].every(s=>sceneSmoke.actors[0].bones[s+'Arm'].glove?.getObjectByName('closed-shell'))")
+ assert page.evaluate("sceneSmoke.hallWalls.length===8&&['left','right'].every(s=>sceneSmoke.actors[0].bones[s+'Arm'].glove?.getObjectByName('mma-pad'))")
  page.evaluate("sceneSmoke.set([{x:-1,z:0,lowerBody:{confidence:1,shiftX:.7,drop:.3}}],true)")
  page.wait_for_function('sceneSmoke.actors[0].supportSmooth.shiftX>.6&&sceneSmoke.actors[0].body.position.x>.15')
- assert page.evaluate("sceneSmoke.actors[0].coveredHandTriangles>0&&sceneSmoke.actors[0].bones.leftLeg.foot.isBone")
+ assert page.evaluate("sceneSmoke.actors[0].bones.leftArm.elbow.isBone&&sceneSmoke.actors[0].coveredHandTriangles>0&&sceneSmoke.actors[0].bones.leftLeg.foot.isBone")
  page.evaluate('sceneSmoke.set([{x:-1,z:0,bend:.9,slip:-.8,crouch:.7}],true)')
  page.wait_for_function('sceneSmoke.actors[0].spine.rotation.x+sceneSmoke.actors[0].chest.rotation.x>.7&&sceneSmoke.actors[0].spine.rotation.z+sceneSmoke.actors[0].chest.rotation.z>.2')
  page.evaluate("sceneSmoke.add({appearance:{gender:'female'},growth:{},visual:{}},1);sceneSmoke.set([{x:-.7,z:0},{x:.7,z:0}],false);sceneSmoke.view('top')")
@@ -59,6 +59,8 @@ with sync_playwright() as p:
  page.evaluate('Boxing.open()')
  assert page.locator('.boxing-menu').is_visible()
  assert page.locator('.boxing-mode-card').count()==4
+ assert page.locator('.boxing-views button').count()==2
+ assert page.locator('.boxing-camera-lock').get_attribute('aria-pressed')=='false'
  assert page.locator('[data-mode=bot]').is_disabled()
  assert page.locator('.boxing-arena').is_hidden()
  assert page.evaluate('Boxing.world===null&&document.querySelector(".boxing-preview video").srcObject===null')
@@ -66,13 +68,13 @@ with sync_playwright() as p:
  page.evaluate("window.lobbySmoke=new BoxingLobby({enter(){},profile:document.createElement('select')});document.querySelector('.boxing-menu').hidden=true;document.getElementById('boxingPage').append(lobbySmoke.root,lobbySmoke.dialog);lobbySmoke.update({created:true,profile:{name:'Live preview'},appearance:{},growth:{parts:{arms:{level:3,progress:.5,exp:50,next_exp:100}}},visual:{}});lobbySmoke.setAvailable(true)")
  page.wait_for_function("lobbySmoke.preview.querySelector('canvas')?.dataset.avatarState==='ready'",timeout=60000)
  before=page.evaluate('lobbySmoke.renderer.info.render.frame');page.wait_for_timeout(1100);after=page.evaluate('lobbySmoke.renderer.info.render.frame');assert 1<after-before<=28,(before,after)
- assert page.evaluate("lobbySmoke.previewResources.length===3&&lobbySmoke.actor.state.controlMode==='computer'")
+ assert page.evaluate("lobbySmoke.previewResources.length>3&&lobbySmoke.previewBag?.name==='lobby-heavy-bag'&&lobbySmoke.actor.state.controlMode==='computer'&&lobbySmoke.actor.yaw>1.4")
  page.wait_for_function("lobbySmoke.actor.punchToken?.startsWith('lobby:')",timeout=12000)
  page.emulate_media(reduced_motion='reduce');page.wait_for_timeout(200);frozen=page.evaluate('lobbySmoke.renderer.info.render.frame');page.wait_for_timeout(300);assert page.evaluate('lobbySmoke.renderer.info.render.frame')==frozen;page.emulate_media(reduced_motion='no-preference')
  assert page.evaluate("lobbySmoke.rows.querySelector('[data-part=arms] strong').textContent==='LV 3'")
  page.evaluate("lobbySmoke.choose('friends')");assert page.locator('dialog[open] .fighter-primary').is_disabled();page.locator('dialog[open] [data-control=computer]').click();assert page.locator('dialog[open] .fighter-primary').is_enabled()
- page.evaluate("lobbySmoke.dialog.close();lobbySmoke.showSettings()");assert page.locator('dialog[open] [data-binding=dash]').inner_text()=='SPACE';assert page.locator('dialog[open] [data-binding=crouch]').inner_text()=='C'
- page.evaluate("lobbySmoke.hide();lobbySmoke.root.remove();lobbySmoke.dialog.remove();window.keySmoke=new BoxingComputer(()=>true)");page.keyboard.down('w');page.keyboard.down('Space');assert page.evaluate('keySmoke.read(performance.now()).dash');page.keyboard.up('w');page.keyboard.up('Space');page.evaluate('keySmoke.destroy()')
+ page.evaluate("lobbySmoke.dialog.close();lobbySmoke.showSettings()");assert page.locator('dialog[open] [data-binding=dash]').inner_text()=='CTRL';assert page.locator('dialog[open] [data-binding=crouch]').inner_text()=='C'
+ page.evaluate("lobbySmoke.hide();lobbySmoke.root.remove();lobbySmoke.dialog.remove();window.keySmoke=new BoxingComputer(()=>true)");page.keyboard.down('w');page.keyboard.down('Control');assert page.evaluate('keySmoke.read(performance.now()).dash');page.keyboard.up('w');page.keyboard.up('Control');page.evaluate('keySmoke.destroy()')
  assert not errors,errors
  b.close()
-print('VERIFIED exact deployed Boxing assets, template, private API, pose confidence guard and shared 3D male/female scene with tracked upper-body/head rotation, closed red gloves, whole-body weight shift and ankle support, decorated hall, bend/slip, swept contact, close camera, lying knockdown, 45 champion belt, bag removal, animated grounded fighter lobby with reduced-motion pause, profile levels, required shared controls, language/key settings, disabled Bot, keyboard dash, kicks and cleanup',revision)
+print('VERIFIED exact deployed Boxing assets, template, private API, pose confidence guard and shared 3D male/female scene with tracked upper-body/head rotation, compact MMA gloves, whole-body weight shift and ankle support, decorated hall, bend/slip, swept contact, close camera, lying knockdown, 45 champion belt, bag removal, animated grounded fighter lobby with reduced-motion pause, profile levels, required shared controls, language/key settings, disabled Bot, keyboard dash, kicks and cleanup',revision)

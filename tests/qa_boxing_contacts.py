@@ -8,7 +8,7 @@ with sync_playwright() as p:
  page=b.new_page(viewport={'width':1100,'height':750});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  page.route(root+'/__contacts__',lambda r:r.fulfill(content_type='text/html',body='<div id="arena" style="width:1100px;height:750px"></div>'))
  page.goto(root+'/__contacts__');page.add_style_tag(content='body{margin:0}.cage-canvas{width:1100px;height:750px}')
- for asset in ['vendor/three-r160.min.js','character-renderer.js','muscle-progression.js','imported-avatar.js','boxing-pose.js','boxing-world.js']:page.add_script_tag(url=root+'/static/'+asset)
+ for asset in ['vendor/three-r160.min.js','character-renderer.js','muscle-progression.js','imported-avatar.js','boxing-pose.js','boxing-motion.js','boxing-world.js']:page.add_script_tag(url=root+'/static/'+asset)
  page.evaluate("window.I18N={lang:'en'};window.w=new BoxingWorld(document.getElementById('arena'));w.add({appearance:{},growth:{},visual:{}},0);w.set([{x:0,z:-.65}],true)")
  page.wait_for_function("w.actors[0].canvas.dataset.avatarState==='ready'");page.evaluate('w.running=false;cancelAnimationFrame(w.frame)')
  page.evaluate("""window.f=w.actors[0];window.full={left:{upper:[0,0,1],lower:[0,0,1]},right:{upper:[0,0,1],lower:[0,0,1]}};

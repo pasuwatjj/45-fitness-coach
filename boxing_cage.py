@@ -28,6 +28,11 @@ def motion(m,now):
         q=before[1-i] if len(ps)>1 else dict(x=0,z=0);fx,fz=direction(before[i],q)
         side=p.get('side',0) if p.get('side_since') is not None and now-p['side_since']>=MOVE_HOLD else 0
         side_dt=max(0,min(now,p.get('control_at',0)+.65)-max(m.get('motion_at',now),p.get('side_since',now)+MOVE_HOLD)) if side else 0
+        # Do not slide the planted support foot during a committed kick.
+        kick_start=p.get('kick_at',0);kick_end=p.get('kick_until',0)
+        stop=max(0,min(now,p.get('control_at',0)+.65,kick_end)-max(m.get('motion_at',now),m.get('round_start',m.get('start') or now),kick_start))
+        side_stop=max(0,min(now,p.get('control_at',0)+.65,kick_end)-max(m.get('motion_at',now),p.get('side_since') or now,kick_start)) if side else 0
+        dt=max(0,dt-stop);side_dt=max(0,side_dt-side_stop)
         move=p.get('move',0);scale=max(1,math.hypot(move,side))
         dash_dt=max(0,min(now,p.get('control_at',0)+.65,p.get('dash_until',0))-max(m.get('motion_at',now),p.get('dash_at',0)))
         dash_scale=max(1,math.hypot(p.get('dash_move',0),p.get('dash_side',0)))
@@ -78,10 +83,10 @@ def resolve(m,now,knockout):
         dx,dz=q['x']-p['x'],q['z']-p['z'];distance=math.hypot(dx,dz)
         fresh=now-q.get('control_at',0)<.65
         slip=q.get('slip',0) if fresh else 0
-        duck=fresh and (q.get('bend',0)>.24 or q.get('bend',0)<-.12 or q.get('crouch',0)>.50)
+        duck=fresh and (now<q.get('dash_until',0) or q.get('bend',0)>.24 or q.get('bend',0)<-.12 or q.get('crouch',0)>.50)
         evade=(strike['hand']=='left' and slip<-.35) or (strike['hand']=='right' and slip>.35)
         if distance>(1.85 if strike['punch_type']=='kick' else RANGE) or (distance>.01 and (dx*strike['fx']+dz*strike['fz'])/distance<.72):result='miss'
-        elif evade or (duck and strike['punch_type'] not in ['uppercut','kick']):result='dodge'
+        elif evade or (duck and strike['punch_type']!='uppercut'):result='dodge'
         elif q['guard_until']>now and q['armor']>0:q['armor']-=1;result='block'
         else:q['hp']=max(0,q['hp']-strike['damage']);result='hit'
         event={k:v for k,v in strike.items() if k not in ['fx','fz','token']};event.update(result=result,time=now,x=q['x'],z=q['z'])

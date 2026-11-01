@@ -18,6 +18,42 @@ class CageRoutes(unittest.TestCase):
     def strike(self,hand='left',kind='straight'):
         return self.control(self.a,hand,punch_type=kind,strike_id='strike:'+str(self.seq[id(self.a)]+1))
     def impact(self):self.now+=.2;return self.snapshot()
+    def computer_room(self):
+        self.act(self.a,'leave');self.now+=6;self.create('computer');self.act(self.b,'accept');self.act(self.a,'ready');self.act(self.b,'ready');self.now+=5
+    def test_input_source_and_tracking_only_controls(self):
+        for source in [None,'keyboard','bot',True]:
+            self.assertEqual(self.control(self.a,input_source=source).status_code,400)
+        self.assertEqual(self.control(self.a,strafe=1).status_code,400)
+        self.assertEqual(self.control(self.a,input_source='camera').status_code,200)
+        self.computer_room()
+        self.assertEqual(self.control(self.a,input_source='camera').status_code,400)
+        self.assertEqual(self.control(self.a,input_source='keyboard').status_code,200)
+    def test_computer_guard_is_immediate_and_release_restores_damage(self):
+        self.computer_room();self.control(self.b,guard=True);self.strike()
+        m=self.impact();self.assertEqual(m['event']['result'],'block');self.assertEqual(m['players'][1]['armor'],9)
+        self.now+=.3;self.control(self.b,guard=False);self.strike('right');self.assertEqual(self.impact()['event']['result'],'hit')
+    def test_dash_ducks_head_strikes_but_not_uppercuts(self):
+        self.computer_room()
+        for kind in ['straight','uppercut']:
+            self.now+=1;self.strike(kind=kind);self.now+=.10
+            self.control(self.b,move=1,dash=True);self.now+=.09
+            self.assertEqual(self.snapshot()['event']['result'],'hit' if kind=='uppercut' else 'dodge')
+        self.now+=1;self.strike();self.now+=.19
+        self.assertEqual(self.snapshot()['event']['result'],'hit')
+    def test_high_kick_duck_and_replant_cooldown(self):
+        self.computer_room();self.control(self.b,crouch=.75);self.strike(kind='kick');self.now+=.3
+        self.assertEqual(self.snapshot()['event']['result'],'dodge')
+        self.now+=.2;self.strike('right');self.now+=.2
+        self.assertEqual(len(self.snapshot()['events']),1)
+        self.now+=.1;self.control(self.b,crouch=0);self.strike('right');self.assertEqual(self.impact()['event']['result'],'hit')
+    def test_kick_keeps_support_position_until_replant(self):
+        self.computer_room();self.control(self.a,move=-1,strafe=1);self.strike(kind='kick')
+        before=self.snapshot()['players'][0]
+        self.now+=.3;self.control(self.a,move=-1,strafe=1,dash=True);self.now+=.3
+        after=self.snapshot()['players'][0];self.assertEqual((before['x'],before['z']),(after['x'],after['z']));self.assertEqual(after.get('dash_until',0),0)
+        self.control(self.a,move=-1);self.now+=.36;after=self.snapshot()['players'][0]
+        self.assertAlmostEqual(math.hypot(after['x']-before['x'],after['z']-before['z']),.2*cage.SPEED,places=5)
+
     def test_room_control_mode_is_required_and_shared(self):
         for mode in [None,'bot','mixed',[],True]:
             r=self.a.post('/social/boxing/invite',json={'friend':self.other,'profile':1,'control_mode':mode})

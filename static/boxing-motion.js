@@ -17,8 +17,12 @@ window.BoxingMotion=(()=>{
    const lower=[-sign*(.22*(1-p)+(hook?.95:.18)*p),.94*(1-p),.34+.66*p];
    // Chamber beside the ribs, then drive upward with a bent elbow and recover.
    if(uppercut&&m.active&&sign===m.sign){const load=m.load;upper[0]=sign*(.13-.07*p);upper[1]=-.72-.12*load+.82*p;upper[2]=.68-.15*load+.24*p;lower[0]=-sign*(.22-.14*p);lower[1]=.94-.70*load+.04*p;lower[2]=.34+.50*load-.16*p}
-   if(guard&&(guardSide==='both'||guardSide===side)){upper[0]*=.55;upper[1]=-.48;upper[2]=.86;lower[1]=.99;lower[2]=.12}
-   if(guard&&guardSide!=='both'&&guardSide!==side){upper[1]=-.94;upper[2]=.35;lower[1]=.55;lower[2]=.75}
+   // A newly received guard must not cut a committed punch off mid-extension.
+   // Recover into guard as the fist returns; the other arm can guard throughout.
+   if(guard){const weight=m.active&&!m.kick&&sign===m.sign?1-Math.max(m.reach,m.load||0):1,cover=guardSide==='both'||guardSide===side;
+    const gu=cover?[upper[0]*.55,-.48,.86]:[upper[0],-.94,.35],gl=cover?[lower[0],.99,.12]:[lower[0],.55,.75];
+    for(let i=0;i<3;i++){upper[i]+=(gu[i]-upper[i])*weight;lower[i]+=(gl[i]-lower[i])*weight}
+   }
    if(m.kick&&m.active&&sign===m.sign){upper[0]+=sign*.4*m.lift;upper[1]-=.1*m.lift;lower[1]-=.4*m.lift}
    out[side]={upper,lower};
   }return out;

@@ -17,7 +17,7 @@ with sync_playwright() as pw:
  for page,lang in [(a,'en'),(c,'th')]:
   page.on('pageerror',lambda e:errors.append(str(e)));page.goto(root+'/45-fitness-coach?lang='+lang);page.evaluate("window.cameraRequests=0;navigator.mediaDevices.getUserMedia=async()=>{cameraRequests++;throw new Error('Unexpected camera request')};void 0")
   page.locator('#homeBoxingTile').click();page.wait_for_function("document.querySelector('.fighter-lobby-scene canvas')?.dataset.avatarState==='ready'",timeout=60000)
-  assert page.locator('[data-mode=bot]').is_enabled();assert page.evaluate('Boxing.world===null&&cameraRequests===0');assert page.locator('.fighter-growth-row').count()==5
+  page.wait_for_function("!document.querySelector('[data-mode=bot]').disabled");assert page.locator('[data-mode=bot]').is_enabled();assert page.evaluate('Boxing.world===null&&cameraRequests===0');assert page.locator('.fighter-growth-row').count()==5
   model=page.request.get(root+f'/profiles/{pid if page==a else opid}/character',headers=h if page==a else oh).json()
   for key,part in model['growth']['parts'].items():
    row=page.locator(f'.fighter-growth-row[data-part={key}]');assert row.locator('strong').inner_text()=='LV '+str(part['level']);assert abs(row.locator('progress').evaluate('(e)=>e.value')-part['progress'])<.0001

@@ -6,8 +6,8 @@ import boxing_cage as cage
 
 def create(player, difficulty, now):
     bot = deepcopy(player)
-    bot.update(uid=-1, profile_id=None, name='NOVA · '+difficulty.upper(), bot=True, ready=True, seen=now)
-    # Appearance changes only. Growth, body dimensions and damage stay identical.
+    bot.update(hp=20 if difficulty=='easy' else 50,max_hp=20 if difficulty=='easy' else 50,uid=-1, profile_id=None, name='NOVA · '+difficulty.upper(), bot=True, ready=True, seen=now)
+    # Appearance changes only. Growth, body dimensions and damage stay matched; difficulty sets fixed HP.
     bot['model'].setdefault('appearance', {}).update(hair='short', hair_color='#dce5ec',
         top_color='#258eaa' if difficulty=='easy' else '#b13a55', shorts_color='#182635')
     return bot

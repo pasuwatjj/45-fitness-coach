@@ -22,6 +22,8 @@ with sync_playwright() as p:
  page.screenshot(path=str(out/'bag-contact.png'))
  # The sweep catches a target crossed in one frame, even when the final point is beyond it.
  assert page.evaluate("BoxingContact.sweep(new THREE.Vector3(0,1,-1),new THREE.Vector3(0,1,1),bag[0],.095).z<-.39")
+ assert page.evaluate("BoxingContact.segmentDistance(new THREE.Vector3(0,0,0),new THREE.Vector3(2,0,0),new THREE.Vector3(1,0,0),new THREE.Vector3(1,0,0))<1e-6")
+ assert page.evaluate("BoxingContact.sweep(new THREE.Vector3(0,0,-1),new THREE.Vector3(0,0,1),{a:new THREE.Vector3(),b:new THREE.Vector3(),radius:.1},.095).z<-.19")
  # Retraction leaves the contact immediately, rather than sticking to it.
  page.evaluate("apply({arms:{left:{upper:[.3,-.8,.3],lower:[0,.8,.5]},right:{upper:[-.3,-.8,.3],lower:[0,.8,.5]}}});BoxingContact.constrain(f,bag)")
  assert page.evaluate("Object.keys(f.contacts).length===0")

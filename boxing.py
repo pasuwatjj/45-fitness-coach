@@ -1,13 +1,14 @@
 """Private casual boxing matches. No images/landmarks leave the browser."""
 import json,time,uuid,math
 from flask import Blueprint,g,request,jsonify
-import character,collaboration_features,boxing_cage,boxing_bot
-MATCH_RULES=7
+import character,collaboration_features,boxing_cage,boxing_bot,boxing_training
+MATCH_RULES=8
 
 def clock():return time.time()
 def schema(store):
     collaboration_features.schema(store)
     with store.lock,store.connect() as db:
+        boxing_training.schema(db)
         db.execute('CREATE TABLE IF NOT EXISTS boxing_trophies(match_id TEXT PRIMARY KEY,account_id INTEGER NOT NULL,profile_id INTEGER NOT NULL,created REAL NOT NULL)')
         db.execute('CREATE TABLE IF NOT EXISTS boxing_matches(id TEXT PRIMARY KEY,host INTEGER NOT NULL,guest INTEGER NOT NULL,state TEXT NOT NULL,updated REAL NOT NULL)')
 def fighter(store,uid,pid):
@@ -15,7 +16,8 @@ def fighter(store,uid,pid):
         if not db.execute('SELECT 1 FROM profile_owners WHERE owner=? AND profile_id=?',('account:'+str(uid),pid)).fetchone():raise ValueError('Choose your own profile')
     model=character.overview(store,pid)
     if not model['created']:raise ValueError('Save your avatar first')
-    return dict(profile_id=pid,wins=0,crouch=0,position=None,move=0,control_at=0,guard_since=None,arms=None,uid=uid,name=model['profile']['name'],model={k:model[k] for k in ['appearance','growth','visual']},damage={s:model['growth']['arm_parts'][s]['level'] for s in ['left','right']},kick_damage=model['growth']['parts']['legs']['level'],hp=10,armor=10,ready=False,seen=clock(),seq=0,last_punch=0,last_dodge=0,guard_until=0,dodge_until=0,pose='idle')
+    with store.connect() as db:max_hp=boxing_training.read(db,uid,pid)['max_hp']
+    return dict(profile_id=pid,wins=0,crouch=0,position=None,move=0,control_at=0,guard_since=None,arms=None,uid=uid,name=model['profile']['name'],model={k:model[k] for k in ['appearance','growth','visual']},damage={s:model['growth']['arm_parts'][s]['level'] for s in ['left','right']},kick_damage=model['growth']['parts']['legs']['level'],hp=max_hp,max_hp=max_hp,armor=10,ready=False,seen=clock(),seq=0,last_punch=0,last_dodge=0,guard_until=0,dodge_until=0,pose='idle')
 def motion(m,now):
     if m.get('rules',2)>=4:return boxing_cage.motion(m,now)
     players=m['players']
@@ -38,7 +40,7 @@ def advance(m,now):
         m.update(status='active',round=m['round']+1,round_start=m['next_round_at'],motion_at=now)
         m.pop('knockdown',None)
         for i,p in enumerate(m['players']):
-            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,hp=10,armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,posture=None,lowerBody=None,counter_until=0,parry_dash_at=None,kick_at=0,kick_until=0,dash_at=0,dash_until=0,dash_move=0,dash_side=0,last_dash=0,guard_since=None,guard_side=None,guard_until=0,armor_regen_at=m['next_round_at'],last_punch=0,last_hand=None,control_at=0)
+            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,hp=p.get('max_hp',10),armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,posture=None,lowerBody=None,counter_until=0,parry_dash_at=None,kick_at=0,kick_until=0,dash_at=0,dash_until=0,dash_move=0,dash_side=0,last_dash=0,guard_since=None,guard_side=None,guard_until=0,armor_regen_at=m['next_round_at'],last_punch=0,last_hand=None,control_at=0)
     if m.get('kind')=='bot':
         for p in m['players']:
             if p.get('bot'):p['seen']=now
@@ -73,7 +75,7 @@ def knockout(m,winner,now):
 
 def award(db,m,now):
     if m.get('kind')=='bot':return # Sparring does not add competitive belts.
-    if m.get('rules') not in [2,3,4,5,6,7] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
+    if m.get('rules') not in [2,3,4,5,6,7,8] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
     winner=next((p for p in m['players'] if p['uid']==m.get('winner') and p.get('profile_id')),None)
     if winner:
         db.execute('INSERT OR IGNORE INTO boxing_trophies VALUES(?,?,?,?)',(m['id'],winner['uid'],winner['profile_id'],now));m['trophy_awarded']=True;m['belt_awarded']=True
@@ -245,4 +247,5 @@ def register(app,get_store):
             award(db,m,now)
             db.execute('UPDATE boxing_matches SET state=?,updated=? WHERE id=?',(json.dumps(m),now,mid))
         return jsonify(match=m,me=uid,now=now)
+    boxing_training.register(bp,get_store,lambda:clock())
     app.register_blueprint(bp)

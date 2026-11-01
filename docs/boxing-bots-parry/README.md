@@ -4,8 +4,10 @@ The Bot tile now opens a complete private best-of-three match against NOVA. Choo
 Easy or Hard and keyboard or camera controls. Matches support countdown, ten-second
 knockdowns, round recovery, results, rematch, leaving and returning after navigation.
 
-NOVA copies the selected fighter's left/right arm damage, leg damage, HP, armor,
-growth levels and body dimensions. Only its appearance and decisions differ.
+NOVA copies the selected fighter's left/right arm damage, leg damage, armor,
+growth levels and body dimensions. Easy now has 20 HP and Hard 50 HP; player HP
+can grow through bag training. See [the newer training update](../boxing-flow-training/README.md).
+The screenshots below document the original bot release.
 Easy starts with relaxed attacks and learns hand preference and ducking from the
 previous round. Adaptation stays capped. Hard uses delayed visible observations,
 spacing, anticipation, guard selection, evasions and recovery openings immediately.

@@ -18,6 +18,49 @@ class CageRoutes(unittest.TestCase):
     def strike(self,hand='left',kind='straight'):
         return self.control(self.a,hand,punch_type=kind,strike_id='strike:'+str(self.seq[id(self.a)]+1))
     def impact(self):self.now+=.2;return self.snapshot()
+    def test_room_control_mode_is_required_and_shared(self):
+        for mode in [None,'bot','mixed',[],True]:
+            r=self.a.post('/social/boxing/invite',json={'friend':self.other,'profile':1,'control_mode':mode})
+            self.assertEqual(r.status_code,400)
+        self.act(self.a,'leave');self.now+=6;m=self.create('computer');self.assertEqual(m['control_mode'],'computer')
+        self.assertEqual(self.act(self.b,'accept',control_mode='tracking').status_code,400)
+        self.assertEqual(self.act(self.b,'accept').json['match']['control_mode'],'computer')
+        self.assertEqual(self.act(self.b,'ready',control_mode='tracking').status_code,400)
+        self.assertEqual(self.act(self.b,'ready',control_mode='computer').status_code,200)
+        self.assertEqual(self.b.get('/social/boxing/'+self.mid).json['match']['control_mode'],'computer')
+
+    def test_keyboard_motion_and_leg_strike(self):
+        self.act(self.a,'leave');self.now+=6;self.create('computer');self.act(self.b,'accept');self.act(self.a,'ready');self.act(self.b,'ready');self.now+=5
+        self.assertEqual(self.act(self.a,'control',1,strafe=1).status_code,200)
+        self.now+=.2;m=self.act(self.a,'heartbeat').json['match'];self.assertLess(m['players'][0]['z'],-.1)
+        self.assertEqual(self.act(self.a,'control',2,strafe=True).status_code,400)
+        self.act(self.a,'control',2,strafe=0);self.now+=.2
+        self.assertEqual(self.act(self.a,'left',3,punch_type='kick',strike_id='kick-one').status_code,200)
+        self.now+=.3;m=self.act(self.a,'heartbeat').json['match'];self.assertEqual(m['event']['punch_type'],'kick');self.assertEqual(m['event']['damage'],1);self.assertEqual(m['players'][1]['hp'],9)
+        self.now+=.5;self.act(self.a,'left',4,punch_type='kick',strike_id='kick-one');self.now+=.4
+        self.assertEqual(self.act(self.a,'heartbeat').json['match']['players'][1]['hp'],9)
+
+    def test_simultaneous_dash_cannot_cross_opponent_or_cage(self):
+        ps=[dict(x=x,z=0,control_at=10,move=1,side=0,side_since=None,dash_at=10,dash_until=10.18,dash_move=1,dash_side=0) for x in [-.41,.41]]
+        m=dict(players=ps,motion_at=10,start=10);cage.motion(m,10.18)
+        self.assertLess(ps[0]['x'],ps[1]['x']);self.assertAlmostEqual(ps[1]['x']-ps[0]['x'],.8)
+        p=dict(x=4.9,z=0,control_at=10,move=-1,side=0,side_since=None,dash_at=10,dash_until=10.18,dash_move=-1,dash_side=0)
+        cage.motion(dict(players=[p],motion_at=10,start=10),10.18);self.assertLessEqual(p['x'],5.0)
+
+    def test_dash_timing_cooldown_and_mode_validation(self):
+        self.assertEqual(self.act(self.a,'control',1,move=1,dash=True).status_code,400)
+        self.act(self.a,'leave');self.now+=6;self.create('computer');self.act(self.b,'accept');self.act(self.a,'ready');self.act(self.b,'ready');self.now+=5
+        before=self.snapshot()['players'][0]['x']
+        self.act(self.a,'control',1,move=-1,dash=True);self.now+=.18;m=self.snapshot();p=m['players'][0]
+        self.assertAlmostEqual(before-p['x'],cage.SPEED*.18*2.6,places=5);started=p['last_dash']
+        self.act(self.a,'control',2,move=-1,dash=True);self.assertEqual(self.snapshot()['players'][0]['last_dash'],started)
+        self.assertEqual(self.act(self.a,'control',3,dash='yes').status_code,400)
+        self.act(self.a,'control',3,move=0);self.now+=.5;stopped=self.snapshot()['players'][0]['x'];self.now+=.2;self.assertEqual(self.snapshot()['players'][0]['x'],stopped)
+        self.act(self.a,'control',4,strafe=1,dash=True);self.assertGreater(self.snapshot()['players'][0]['last_dash'],started)
+
+    def test_tracking_room_rejects_keyboard_kicks(self):
+        r=self.act(self.a,'left',1,punch_type='kick',strike_id='not-tracked');self.assertEqual(r.status_code,400)
+
     def test_windup_allows_directional_reaction_and_no_armor_cost(self):
         self.assertEqual(self.strike().json['match']['players'][1]['hp'],10)
         self.now+=.10;self.control(self.b,slip=-.8)

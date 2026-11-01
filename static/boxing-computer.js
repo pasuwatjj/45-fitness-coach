@@ -1,0 +1,25 @@
+'use strict';
+window.BoxingKeys=(()=>{
+ const defaults={left:'KeyA',right:'KeyD',forward:'KeyW',back:'KeyS',punchLeft:'KeyQ',punchRight:'KeyE',kickLeft:'KeyU',kickRight:'KeyI',dash:'Space',guard:'KeyF',crouch:'KeyC',slipLeft:'KeyZ',slipRight:'KeyX',leanBack:'KeyR'};
+ const labels={left:['เดินซ้าย','Move left'],right:['เดินขวา','Move right'],forward:['เดินหน้า','Move forward'],back:['ถอยหลัง','Move back'],punchLeft:['ต่อยซ้าย','Left punch'],punchRight:['ต่อยขวา','Right punch'],kickLeft:['เตะซ้าย','Left kick'],kickRight:['เตะขวา','Right kick'],dash:['แดชพร้อมปุ่มเดิน','Dash + movement'],guard:['การ์ดค้าง 3 วินาที','Guard · hold 3 seconds'],crouch:['ย่อตัว','Crouch'],slipLeft:['หลบซ้าย','Slip left'],slipRight:['หลบขวา','Slip right'],leanBack:['เอนหลัง','Lean back']};
+ const valid=code=>/^(Key[A-Z]|Digit[0-9]|Space|ShiftLeft|ShiftRight)$/.test(code);
+ let bindings={...defaults};try{const saved=JSON.parse(localStorage.getItem('45-boxing-keys-v1'));if(saved&&Object.keys(saved).length===Object.keys(defaults).length&&Object.keys(defaults).every(k=>valid(saved[k]))&&new Set(Object.values(saved)).size===Object.keys(defaults).length)bindings=saved}catch{}
+ const save=()=>{try{localStorage.setItem('45-boxing-keys-v1',JSON.stringify(bindings))}catch{}};
+ const hint=()=>{const name=code=>code==='Space'?'SPACE':code.replace('Key','').replace('Digit','');const group=keys=>keys.map(k=>name(bindings[k])).join('/');return group(['forward','left','back','right'])+(window.I18N?.lang==='en'?' move · ':' เดิน · ')+group(['punchLeft','punchRight'])+(window.I18N?.lang==='en'?' punch · ':' ต่อย · ')+group(['kickLeft','kickRight'])+(window.I18N?.lang==='en'?' kick · ':' เตะ · ')+name(bindings.dash)+(window.I18N?.lang==='en'?' dash':' แดช')};
+ return{defaults,labels,valid,hint,get bindings(){return{...bindings}},name:code=>code==='Space'?'SPACE':code.replace('Key','').replace('Digit','').replace('ShiftLeft','L SHIFT').replace('ShiftRight','R SHIFT'),set(action,code){if(!(action in defaults)||!valid(code))return'invalid';if(Object.entries(bindings).some(([k,v])=>k!==action&&v===code))return'duplicate';bindings[action]=code;save();return null},reset(){bindings={...defaults};save()}};
+})();
+window.BoxingComputer=class{
+ constructor(enabled){this.enabled=enabled;this.keys=new Set();this.lastStrike=-1000;this.lastDash=-1000;this.dashUsed=false;this.strike=null;this.pending=null;this.events=new AbortController();const signal=this.events.signal;
+  document.addEventListener('keydown',e=>{if(!this.enabled()||e.ctrlKey||e.altKey||e.metaKey||e.target.closest('input,select,textarea,[contenteditable=true]'))return;const action=Object.keys(BoxingKeys.bindings).find(k=>BoxingKeys.bindings[k]===e.code);if(!action)return;e.preventDefault();if(e.repeat||this.keys.has(e.code))return;this.keys.add(e.code);if(/^(punch|kick)/.test(action)){const now=performance.now();if(now-this.lastStrike<420)return;this.lastStrike=now;this.strike={hand:action.endsWith('Left')?'left':'right',type:action.startsWith('kick')?'kick':'straight',at:now};this.pending=this.strike}},{signal});
+  document.addEventListener('keyup',e=>{this.keys.delete(e.code);if(e.code===BoxingKeys.bindings.dash)this.dashUsed=false},{signal});window.addEventListener('blur',()=>this.reset(),{signal});document.addEventListener('visibilitychange',()=>{if(document.hidden)this.reset()},{signal});
+ }
+ reset(){this.keys.clear();this.strike=null;this.pending=null;this.dashUsed=false}
+ read(now){const bindings=BoxingKeys.bindings,on=k=>this.keys.has(bindings[k]);if(!this.enabled()){this.reset();return{valid:false,action:'idle',label:''}}
+  const arms={},strike=this.strike,sign=strike?.hand==='left'?1:-1,progress=strike?(now-strike.at)/420:2,reach=progress<1?Math.sin(Math.PI*Math.min(1,progress)):0,norm=v=>{const n=Math.hypot(...v);return v.map(x=>x/n)};
+  const turn=sign*.3*Math.max(0,reach),hipTurn=turn*.55,angle=-turn*1.05,bodyFrame=v=>norm([v[0]*Math.cos(angle)+v[2]*Math.sin(angle),v[1],-v[0]*Math.sin(angle)+v[2]*Math.cos(angle)]);
+  for(const [hand,sign]of [['left',1],['right',-1]]){const p=strike?.hand===hand&&strike.type!=='kick'?Math.max(0,reach):0;arms[hand]={upper:bodyFrame([sign*(.22*(1-p)-.25*p),-.5*(1-p),.8+.2*p]),lower:bodyFrame([-sign*(.12*(1-p)+.25*p),.8*(1-p),.6+.4*p])}}
+  const pending=this.pending;this.pending=null;const move=Number(on('forward'))-Number(on('back')),strafe=Number(on('left'))-Number(on('right'));let dash=false;if(!on('dash'))this.dashUsed=false;else if((move||strafe)&&!this.dashUsed){this.dashUsed=true;if(now-this.lastDash>=650){dash=true;this.lastDash=now}}
+  return{valid:true,action:pending?.hand||'control',punchType:pending?.type||'straight',arms,posture:{turn,hipTurn,tilt:0,headPitch:0,headYaw:-turn*.5,headRoll:0},move,strafe,dash,guard:on('guard'),crouch:on('crouch')?.75:0,slip:(Number(on('slipLeft'))-Number(on('slipRight')))*.8,bend:on('leanBack')?-.45:on('crouch')?.5:0,label:window.I18N?.lang==='en'?'Ready · Computer controls':'พร้อม · ควบคุมด้วยคอม'};
+ }
+ destroy(){this.reset();this.events.abort()}
+};

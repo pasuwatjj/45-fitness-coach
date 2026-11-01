@@ -15,7 +15,7 @@ def fighter(store,uid,pid):
         if not db.execute('SELECT 1 FROM profile_owners WHERE owner=? AND profile_id=?',('account:'+str(uid),pid)).fetchone():raise ValueError('Choose your own profile')
     model=character.overview(store,pid)
     if not model['created']:raise ValueError('Save your avatar first')
-    return dict(profile_id=pid,wins=0,crouch=0,position=None,move=0,control_at=0,guard_since=None,arms=None,uid=uid,name=model['profile']['name'],model={k:model[k] for k in ['appearance','growth','visual']},damage={s:model['growth']['arm_parts'][s]['level'] for s in ['left','right']},hp=10,armor=10,ready=False,seen=clock(),seq=0,last_punch=0,last_dodge=0,guard_until=0,dodge_until=0,pose='idle')
+    return dict(profile_id=pid,wins=0,crouch=0,position=None,move=0,control_at=0,guard_since=None,arms=None,uid=uid,name=model['profile']['name'],model={k:model[k] for k in ['appearance','growth','visual']},damage={s:model['growth']['arm_parts'][s]['level'] for s in ['left','right']},kick_damage=model['growth']['parts']['legs']['level'],hp=10,armor=10,ready=False,seen=clock(),seq=0,last_punch=0,last_dodge=0,guard_until=0,dodge_until=0,pose='idle')
 def motion(m,now):
     if m.get('rules',2)>=4:return boxing_cage.motion(m,now)
     players=m['players']
@@ -38,7 +38,7 @@ def advance(m,now):
         m.update(status='active',round=m['round']+1,round_start=m['next_round_at'],motion_at=now)
         m.pop('knockdown',None)
         for i,p in enumerate(m['players']):
-            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,hp=10,armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,posture=None,lowerBody=None,guard_since=None,guard_until=0,last_punch=0,last_hand=None,control_at=0)
+            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,hp=10,armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,posture=None,lowerBody=None,dash_at=0,dash_until=0,dash_move=0,dash_side=0,last_dash=0,guard_since=None,guard_until=0,last_punch=0,last_hand=None,control_at=0)
     if m['status']=='active':
         motion(m,now)
         if m.get('rules',2)>=4:boxing_cage.resolve(m,now,knockout)
@@ -73,6 +73,7 @@ def award(db,m,now):
 
 def action(m,uid,data,now):
     p=next(p for p in m['players'] if p['uid']==uid);kind=data.get('action');p['seen']=now
+    if 'control_mode' in data and data['control_mode']!=m.get('control_mode','tracking'):raise ValueError('Both players must use the room control mode')
     if kind=='heartbeat':return
     if kind=='leave':finish(m,next((v['uid'] for v in m['players'] if v['uid']!=uid),None),'leave',now);return
     if kind=='ready':
@@ -88,8 +89,14 @@ def action(m,uid,data,now):
     slip=data.get('slip',0);bend=data.get('bend',0)
     if any(type(v) not in (int,float) or not math.isfinite(v) or not -1<=v<=1 for v in [slip,bend]):raise ValueError('Invalid body control')
     move=data.get('move',0);guard=data.get('guard',False);arms=data.get('arms');crouch=data.get('crouch',0);punch_type=data.get('punch_type','straight')
-    if type(crouch) not in (int,float) or not math.isfinite(crouch) or not 0<=crouch<=1 or punch_type not in ['straight','hook','uppercut']:raise ValueError('Invalid posture')
+    if type(crouch) not in (int,float) or not math.isfinite(crouch) or not 0<=crouch<=1 or punch_type not in ['straight','hook','uppercut','kick']:raise ValueError('Invalid posture')
     if type(move)!=int or move not in [-1,0,1] or type(guard)!=bool:raise ValueError('Invalid control')
+    strafe=data.get('strafe',0)
+    if type(strafe)!=int or strafe not in [-1,0,1]:raise ValueError('Invalid lateral control')
+    computer=m.get('control_mode')=='computer'
+    dash=data.get('dash',False)
+    if type(dash)!=bool or (dash and not computer):raise ValueError('Dash requires computer controls')
+    if punch_type=='kick' and not computer:raise ValueError('Kicks require computer controls')
     if arms is not None:
         if not isinstance(arms,dict) or set(arms)!={'left','right'}:raise ValueError('Invalid arms')
         for side in arms.values():
@@ -105,7 +112,11 @@ def action(m,uid,data,now):
         keys={'confidence','shiftX','shiftZ','drop','hipRoll','leftKnee','rightKnee','stance','stagger'}
         if not isinstance(lower_body,dict) or set(lower_body)!=keys or any(type(v) not in (int,float) or not math.isfinite(v) or not -1<=v<=1 for v in lower_body.values()) or any(lower_body[k]<0 for k in ['confidence','drop','leftKnee','rightKnee']):raise ValueError('Invalid lower-body posture')
     if now-p.get('control_at',0)>.7:p['guard_since']=None
-    if m.get('rules',2)>=4:boxing_cage.control(p,slip,bend,now,move)
+    if m.get('rules',2)>=4:
+        if computer:
+            p.update(side=strafe,side_since=now-boxing_cage.MOVE_HOLD if strafe else None,slip=slip,bend=bend,travel_ready=True,travel_neutral_at=None)
+            if dash and (move or strafe) and now-p.get('last_dash',-1000)>=.65:p.update(last_dash=now,dash_at=now,dash_until=now+.18,dash_move=move,dash_side=strafe)
+        else:boxing_cage.control(p,slip,bend,now,move)
     p.update(seq=seq,pose=kind,move=move,control_at=now,arms=arms,posture=posture,lowerBody=lower_body,crouch=crouch)
     if guard and kind=='control':
         if p.get('guard_since') is None:p['guard_since']=now
@@ -157,6 +168,8 @@ def register(app,get_store):
         if not isinstance(data,dict):return jsonify(error='Invalid invitation'),400
         store=get_store();uid=g.account['id'];guest=data.get('friend');pid=data.get('profile');now=clock()
         if type(guest)!=int or type(pid)!=int or guest==uid:return jsonify(error='Invalid invitation'),400
+        control_mode=data.get('control_mode')
+        if control_mode not in ('computer','tracking'):return jsonify(error='Choose computer or tracking controls before inviting'),400
         try:p=fighter(store,uid,pid)
         except ValueError as e:return jsonify(error=str(e)),400
         with store.lock,store.connect() as db:
@@ -166,7 +179,7 @@ def register(app,get_store):
             for r in db.execute('SELECT state FROM boxing_matches WHERE (host IN (?,?) OR guest IN (?,?)) AND updated>?',(uid,guest,uid,guest,now-1800)):
                 old=json.loads(r[0]);advance(old,now)
                 if old['status'] not in ['finished','declined','expired']:return jsonify(error='Finish or leave your existing match first'),409
-            mid=uuid.uuid4().hex;m=dict(rules=MATCH_RULES,round=1,rounds=[],elapsed=0,id=mid,host=uid,guest=guest,created=now,status='invited',players=[p],start=None,event=None)
+            mid=uuid.uuid4().hex;m=dict(control_mode=control_mode,rules=MATCH_RULES,round=1,rounds=[],elapsed=0,id=mid,host=uid,guest=guest,created=now,status='invited',players=[p],start=None,event=None)
             db.execute('INSERT INTO boxing_matches VALUES(?,?,?,?,?)',(mid,uid,guest,json.dumps(m),now))
             db.execute('INSERT INTO friend_messages(sender,receiver,body,client_id,created) VALUES(?,?,?,?,?)',(uid,guest,'🥊 ชวนเล่น Boxing / Boxing invitation\n#boxing:'+mid,'boxing:'+mid,now))
         return jsonify(m)
@@ -184,6 +197,7 @@ def register(app,get_store):
             if not row:return jsonify(error='Match not found'),404
             m=json.loads(row['state']);advance(m,now)
             if request.method=='POST':
+                if 'control_mode' in data and data['control_mode']!=m.get('control_mode','tracking'):return jsonify(error='Both players must use the room control mode'),400
                 if data.get('action') in ['accept','decline']:
                     if uid!=m['guest'] or m['status']!='invited':return jsonify(error='Invitation unavailable'),409
                     if new:m['players'].append(new);m['status']='lobby';m['players'][0]['seen']=now

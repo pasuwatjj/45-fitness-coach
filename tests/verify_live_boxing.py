@@ -31,7 +31,7 @@ with sync_playwright() as p:
  assert page.evaluate("sceneSmoke.bag.visible&&sceneSmoke.actors[0].spine.isBone&&sceneSmoke.mode==='follow'&&sceneSmoke.distance<3.5")
  assert page.evaluate("BoxingContact.sweep(new THREE.Vector3(0,1,-1),new THREE.Vector3(0,1,1),{a:new THREE.Vector3(0,.7,0),b:new THREE.Vector3(0,1.3,0),radius:.3},.095).z<-.39")
  page.evaluate("sceneSmoke.set([{x:-1,z:0,bend:-.8,posture:{turn:.7,hipTurn:.1,headPitch:-.3}}],true)")
- page.wait_for_function('sceneSmoke.actors[0].chest.rotation.x<-.2&&sceneSmoke.actors[0].chest.rotation.y>.35&&sceneSmoke.actors[0].neck.rotation.x<-.2')
+ page.wait_for_function('sceneSmoke.actors[0].chest.rotation.x<-.18&&sceneSmoke.actors[0].spine.rotation.x+sceneSmoke.actors[0].chest.rotation.x<-.4&&sceneSmoke.actors[0].chest.rotation.y>.35&&sceneSmoke.actors[0].neck.rotation.x<-.2')
  assert page.evaluate("sceneSmoke.hallWalls.length===8&&['left','right'].every(s=>sceneSmoke.actors[0].bones[s+'Arm'].glove?.getObjectByName('closed-shell'))")
  page.evaluate("sceneSmoke.set([{x:-1,z:0,lowerBody:{confidence:1,shiftX:.7,drop:.3}}],true)")
  page.wait_for_function('sceneSmoke.actors[0].supportSmooth.shiftX>.6&&sceneSmoke.actors[0].body.position.x>.15')

@@ -23,12 +23,12 @@ with sync_playwright() as pw:
  for page,lang in [(a,'en'),(c,'th')]:
   page.on('pageerror',lambda e:errors.append(str(e)))
   page.goto(root+'/45-fitness-coach?lang='+lang);page.locator('#homeBoxingTile').click();page.wait_for_function("!document.querySelector('[data-mode=practice]').disabled")
-  assert page.locator('.boxing-menu').is_visible();assert page.locator('.boxing-mode-card').count()==2
+  assert page.locator('.boxing-menu').is_visible();assert page.locator('.boxing-mode-card').count()==4
   assert page.locator('.boxing-arena').is_hidden();assert page.evaluate('Boxing.world===null&&document.querySelector(".boxing-preview video").srcObject===null')
   page.wait_for_timeout(1000);page.locator('.boxing-menu').screenshot(path=str(out/f'menu-{page.viewport_size["width"]}.png'))
   assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
   page.evaluate(pose)
-  page.locator('[data-mode=practice]').click();page.wait_for_function("Boxing.world?.actors[0]?.canvas.dataset.avatarState==='ready'")
+  page.locator('[data-mode=practice]').click();page.locator('[data-control=tracking]').click();page.locator('.fighter-primary').click();page.wait_for_function("Boxing.world?.actors[0]?.canvas.dataset.avatarState==='ready'")
   # Cap only software rasterization, preserving production rig and camera cadence.
   page.evaluate("const draw=BoxingWorld.prototype.tick;const render=Boxing.world.renderer.render.bind(Boxing.world.renderer);let last=0;Boxing.world.renderer.render=(...args)=>{if(performance.now()-last>80){last=performance.now();render(...args)}};void 0")
   page.wait_for_function("/Ready|พร้อม/.test(document.querySelector('.boxing-status').textContent)")
@@ -36,7 +36,7 @@ with sync_playwright() as pw:
   punch(page);page.wait_for_function('document.querySelector(".boxing-bag-damage").textContent.includes("1")');neutral(page)
   page.locator('.boxing-back').click();page.wait_for_function("Boxing.mode==='menu'&&Boxing.world===null")
   assert page.evaluate('document.querySelector(".boxing-preview video").srcObject===null')
-  page.wait_for_function("!document.querySelector('[data-mode=friends]').disabled");page.locator('[data-mode=friends]').click()
+  page.wait_for_function("!document.querySelector('[data-mode=friends]').disabled");page.locator('[data-mode=friends]').click();page.locator('[data-control=tracking]').click();page.locator('.fighter-primary').click()
   page.wait_for_function("/Ready|พร้อม/.test(document.querySelector('.boxing-status').textContent)")
   assert page.locator('.boxing-lobby').is_visible();assert page.locator('.boxing-arena').is_hidden();assert page.evaluate('Boxing.world===null')
   print(lang,'PASS menu, practice entry/hit, camera cleanup, friend lobby; no early arena',flush=True)
@@ -64,10 +64,10 @@ with sync_playwright() as pw:
  cd=b.new_context(viewport={'width':390,'height':950});account(cd,'Solo');d=cd.new_page();d.on('pageerror',lambda e:errors.append(str(e)))
  d.goto(root+'/45-fitness-coach?lang=en');d.locator('#homeBoxingTile').click();d.wait_for_function("!document.querySelector('[data-mode=practice]').disabled")
  d.evaluate("navigator.mediaDevices.getUserMedia=async()=>{throw new DOMException('Camera permission denied','NotAllowedError')};void 0")
- d.locator('[data-mode=practice]').click();d.wait_for_function("document.querySelector('.boxing-status').textContent.includes('denied')")
+ d.locator('[data-mode=practice]').click();d.locator('[data-control=tracking]').click();d.locator('.fighter-primary').click();d.wait_for_function("document.querySelector('.boxing-status').textContent.includes('denied')")
  assert d.locator('.boxing-arena').is_visible();assert d.get_by_role('button',name='Enable character control camera',exact=True).is_visible()
  d.locator('.boxing-back').click();d.wait_for_function("Boxing.mode==='menu'&&!document.querySelector('[data-mode=friends]').disabled")
- d.locator('[data-mode=friends]').click();d.wait_for_function("document.querySelector('.boxing-status').textContent.includes('denied')")
+ d.locator('[data-mode=friends]').click();d.locator('[data-control=tracking]').click();d.locator('.fighter-primary').click();d.wait_for_function("document.querySelector('.boxing-status').textContent.includes('denied')")
  assert d.get_by_role('button',name='Open friends',exact=True).is_visible();assert d.get_by_role('button',name='Invite friend',exact=True).is_disabled()
  d.locator('.boxing-back').click();d.wait_for_function("Boxing.mode==='menu'&&Boxing.world===null")
  assert not errors,errors

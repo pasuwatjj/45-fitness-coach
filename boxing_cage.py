@@ -22,16 +22,28 @@ def direction(p,q):
     return (dx/length,dz/length) if length>.001 else (1,0)
 
 def motion(m,now):
-    ps=m['players'];ensure(ps)
+    ps=m['players'];ensure(ps);before=[dict(x=p['x'],z=p['z']) for p in ps]
     for i,p in enumerate(ps):
         dt=max(0,min(now,p.get('control_at',0)+.65)-max(m.get('motion_at',now),m.get('round_start',m.get('start') or now)))
-        q=ps[1-i] if len(ps)>1 else dict(x=0,z=0);fx,fz=direction(p,q)
+        q=before[1-i] if len(ps)>1 else dict(x=0,z=0);fx,fz=direction(before[i],q)
         side=p.get('side',0) if p.get('side_since') is not None and now-p['side_since']>=MOVE_HOLD else 0
         side_dt=max(0,min(now,p.get('control_at',0)+.65)-max(m.get('motion_at',now),p.get('side_since',now)+MOVE_HOLD)) if side else 0
         move=p.get('move',0);scale=max(1,math.hypot(move,side))
-        p['x'],p['z']=clamp(p['x']+(fx*move*dt+fz*side*side_dt)*SPEED/scale,p['z']+(fz*move*dt-fx*side*side_dt)*SPEED/scale)
+        dash_dt=max(0,min(now,p.get('control_at',0)+.65,p.get('dash_until',0))-max(m.get('motion_at',now),p.get('dash_at',0)))
+        dash_scale=max(1,math.hypot(p.get('dash_move',0),p.get('dash_side',0)))
+        travel=move*max(0,dt-dash_dt)/scale+p.get('dash_move',0)*dash_dt*2.6/dash_scale
+        circle=side*max(0,side_dt-dash_dt)/scale+p.get('dash_side',0)*dash_dt*2.6/dash_scale
+        p['x'],p['z']=clamp(p['x']+(fx*travel+fz*circle)*SPEED,p['z']+(fz*travel-fx*circle)*SPEED)
     if len(ps)==2:
-        a,b=ps;dx,dz=b['x']-a['x'],b['z']-a['z'];distance=math.hypot(dx,dz)
+        a,b=ps
+        # Sweep relative movement so simultaneous dashes cannot cross through another fighter.
+        rx,rz=before[1]['x']-before[0]['x'],before[1]['z']-before[0]['z'];vx,vz=(b['x']-a['x'])-rx,(b['z']-a['z'])-rz
+        aa=vx*vx+vz*vz;bb=2*(rx*vx+rz*vz);cc=rx*rx+rz*rz-.8*.8;disc=bb*bb-4*aa*cc
+        if aa>1e-10 and bb<0 and cc>=-1e-8 and disc>=0:
+            hit=(-bb-math.sqrt(disc))/(2*aa)
+            if -1e-8<=hit<1:
+                for j,p in enumerate(ps):p['x']=before[j]['x']+(p['x']-before[j]['x'])*max(0,hit);p['z']=before[j]['z']+(p['z']-before[j]['z'])*max(0,hit)
+        dx,dz=b['x']-a['x'],b['z']-a['z'];distance=math.hypot(dx,dz)
         if distance<.8:
             nx,nz=(dx/distance,dz/distance) if distance>.001 else (1,0);amount=(.8-distance)/2
             a['x'],a['z']=clamp(a['x']-nx*amount,a['z']-nz*amount);b['x'],b['z']=clamp(b['x']+nx*amount,b['z']+nz*amount)
@@ -55,7 +67,7 @@ def control(p,slip,bend,now,move=0):
 
 def queue(m,p,q,hand,kind,now,token):
     ensure(m['players']);fx,fz=direction(p,q)
-    m.setdefault('pending_strikes',[]).append(dict(id=uuid.uuid4().hex,attacker=p['uid'],target=q['uid'],hand=hand,punch_type=kind,damage=p['damage'][hand],time=now+.18,fx=fx,fz=fz,token=token))
+    m.setdefault('pending_strikes',[]).append(dict(id=uuid.uuid4().hex,attacker=p['uid'],target=q['uid'],hand=hand,punch_type=kind,damage=p.get('kick_damage',1) if kind=='kick' else p['damage'][hand],time=now+(.28 if kind=='kick' else .18),fx=fx,fz=fz,token=token))
 
 def resolve(m,now,knockout):
     pending=m.get('pending_strikes',[]);m['pending_strikes']=[]
@@ -68,8 +80,8 @@ def resolve(m,now,knockout):
         slip=q.get('slip',0) if fresh else 0
         duck=fresh and (q.get('bend',0)>.24 or q.get('bend',0)<-.12 or q.get('crouch',0)>.50)
         evade=(strike['hand']=='left' and slip<-.35) or (strike['hand']=='right' and slip>.35)
-        if distance>RANGE or (distance>.01 and (dx*strike['fx']+dz*strike['fz'])/distance<.72):result='miss'
-        elif evade or (duck and strike['punch_type']!='uppercut'):result='dodge'
+        if distance>(1.85 if strike['punch_type']=='kick' else RANGE) or (distance>.01 and (dx*strike['fx']+dz*strike['fz'])/distance<.72):result='miss'
+        elif evade or (duck and strike['punch_type'] not in ['uppercut','kick']):result='dodge'
         elif q['guard_until']>now and q['armor']>0:q['armor']-=1;result='block'
         else:q['hp']=max(0,q['hp']-strike['damage']);result='hit'
         event={k:v for k,v in strike.items() if k not in ['fx','fz','token']};event.update(result=result,time=now,x=q['x'],z=q['z'])

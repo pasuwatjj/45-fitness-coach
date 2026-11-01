@@ -21,7 +21,7 @@ with sync_playwright() as pw:
  for page in [a,c]:
   page.on('pageerror',lambda e:errors.append(str(e)));page.goto(root+'/45-fitness-coach?lang=en');page.locator('#homeBoxingTile').click();page.wait_for_function("!document.querySelector('[data-mode=friends]').disabled");page.evaluate(pose)
   page.evaluate("Object.assign(testPose[13],{x:.34,y:.46,z:-.10});Object.assign(testPose[15],{x:.35,y:.38,z:-.17});neutralPose=structuredClone(testPose)")
-  page.locator('[data-mode=friends]').click();page.wait_for_function("document.querySelector('.boxing-status').textContent.includes('Ready')")
+  page.locator('[data-mode=friends]').click();page.locator('[data-control=tracking]').click();page.locator('.fighter-primary').click();page.wait_for_function("document.querySelector('.boxing-status').textContent.includes('Ready')")
  a.get_by_role('button',name='Invite friend',exact=True).click();a.wait_for_function('Boxing.state?.id');c.get_by_role('button',name='Accept invitation',exact=True).click()
  for page in [a,c]:
   page.wait_for_function("Boxing.world?.actors.length===2&&Boxing.world.actors.every(a=>a.canvas.dataset.avatarState==='ready')")

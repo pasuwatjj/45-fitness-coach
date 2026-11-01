@@ -13,8 +13,8 @@ class BoxingTests(unittest.TestCase):
         def fighter(store,uid,pid):
             return dict(profile_id=pid,uid=uid,name='Test',model={},damage={'left':2,'right':4},hp=10,armor=10,ready=False,seen=self.now,seq=0,last_punch=0,last_dodge=0,guard_until=0,dodge_until=0,pose='idle')
         self.fp=patch('boxing.fighter',side_effect=fighter);self.fp.start();self.addCleanup(self.fp.stop)
-    def create(self):
-        r=self.a.post('/social/boxing/invite',json={'friend':self.other,'profile':1});self.assertEqual(r.status_code,200,r.json);self.mid=r.json['id'];return r.json
+    def create(self,control_mode="tracking"):
+        r=self.a.post('/social/boxing/invite',json={'friend':self.other,'profile':1,'control_mode':control_mode});self.assertEqual(r.status_code,200,r.json);self.mid=r.json['id'];return r.json
     def act(self,client,action,seq=1,**controls):return client.post('/social/boxing/'+self.mid,json={'action':action,'seq':seq,'profile':1,**controls})
     def start(self):
         self.create();self.assertEqual(self.act(self.b,'accept').status_code,200);self.act(self.a,'ready');r=self.act(self.b,'ready');self.assertEqual(r.json['match']['start'],1005);self.now+=5
@@ -72,10 +72,10 @@ class BoxingTests(unittest.TestCase):
         self.start();m=self.act(self.b,'leave').json['match'];self.assertEqual(m['winner'],self.uid)
     def test_real_avatar_and_profile_ownership(self):
         self.fp.stop()
-        self.assertEqual(self.a.post('/social/boxing/invite',json={'friend':self.other,'profile':self.pb}).status_code,400)
-        self.assertEqual(self.a.post('/social/boxing/invite',json={'friend':self.other,'profile':self.pa}).status_code,400)
+        self.assertEqual(self.a.post('/social/boxing/invite',json={'friend':self.other,'profile':self.pb,'control_mode':'tracking'}).status_code,400)
+        self.assertEqual(self.a.post('/social/boxing/invite',json={'friend':self.other,'profile':self.pa,'control_mode':'tracking'}).status_code,400)
         self.assertEqual(self.a.post(f'/profiles/{self.pa}/character',json={'appearance':{'hair_color':'#112233'}}).status_code,200)
-        r=self.a.post('/social/boxing/invite',json={'friend':self.other,'profile':self.pa});self.assertEqual(r.status_code,200,r.json);self.assertEqual(r.json['players'][0]['model']['appearance']['hair_color'],'#112233');self.assertEqual(r.json['players'][0]['damage'],{'left':1,'right':1})
+        r=self.a.post('/social/boxing/invite',json={'friend':self.other,'profile':self.pa,'control_mode':'tracking'});self.assertEqual(r.status_code,200,r.json);self.assertEqual(r.json['players'][0]['model']['appearance']['hair_color'],'#112233');self.assertEqual(r.json['players'][0]['damage'],{'left':1,'right':1})
         self.assertNotIn('dimensions',r.json['players'][0]['model'])
     def test_rematch_after_finished_room_heartbeat(self):
         self.start();self.act(self.b,'leave');self.now+=1;self.act(self.a,'heartbeat');self.create()

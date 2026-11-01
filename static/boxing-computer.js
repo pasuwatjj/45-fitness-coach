@@ -13,7 +13,7 @@ window.BoxingComputer=class{
  constructor(enabled){this.enabled=enabled;this.keys=new Set();this.lastStrike=-1000;this.lastDash=-1000;this.dashUsed=false;this.specialUsed=false;this.strike=null;this.pending=null;this.combo=0;this.comboHand=null;this.events=new AbortController();const signal=this.events.signal;
   document.addEventListener('keydown',e=>{if(!this.enabled()||e.altKey||e.metaKey||e.target.closest('input,select,textarea,[contenteditable=true]'))return;const bindings=BoxingKeys.bindings,action=Object.keys(bindings).find(k=>bindings[k]===e.code);if(!action)return;
    // Ctrl is gameplay only for its bound modifier and directional dash chords.
-   if(e.ctrlKey&&!e.code.startsWith('Control')&&!(this.on('dash')&&['left','right','forward','back'].includes(action)))return;
+   if(e.ctrlKey&&!e.code.startsWith('Control')&&!(this.on('dash')&&(['left','right','forward','back'].includes(action)||(performance.now()<(this.counterUntil||0)&&(action.startsWith('punch')||action==='special')))))return;
    e.preventDefault();if(e.repeat||this.keys.has(e.code))return;this.keys.add(e.code);const now=performance.now();
    if(action==='guard'){this.combo=0;this.comboHand=null;this.pending=null}
    if(this.on('guard'))return;
@@ -22,17 +22,18 @@ window.BoxingComputer=class{
   },{signal});
   document.addEventListener('keyup',e=>{this.keys.delete(e.code);if(e.code===BoxingKeys.bindings.dash)this.dashUsed=false;if(e.code===BoxingKeys.bindings.special||!['left','right','forward'].some(k=>this.on(k)))this.specialUsed=false},{signal});window.addEventListener('blur',()=>this.reset(),{signal});document.addEventListener('visibilitychange',()=>{if(document.hidden)this.reset()},{signal});
  }
+ grantCounter(id,remaining){if(id!==this.counterGrant){this.counterGrant=id;this.counterUntil=performance.now()+Math.max(0,remaining)}}
  on(action){return this.keys.has(BoxingKeys.bindings[action])}
- attack(hand,type,now,chain=false){if(now-this.lastStrike<(this.lastStrikeType==='kick'?760:420)||now-this.lastDash<180||this.on('guard'))return false;
+ attack(hand,type,now,chain=false){const counter=type!=='kick'&&now<(this.counterUntil||0);if((!counter&&(now-this.lastStrike<(this.lastStrikeType==='kick'?760:420)||now-this.lastDash<180))||this.on('guard'))return false;if(counter){this.counterUntil=0;this.dashCancelled=true;}
   this.combo=chain&&now-this.lastStrike<720&&hand!==this.comboHand?this.combo+1:1;if(chain&&this.combo===3)type='hook';this.comboHand=chain?hand:null;if(!chain||this.combo===3)this.combo=0;
   this.lastStrike=now;this.lastStrikeType=type;this.strike={hand,type,at:now};this.pending=this.strike;return true;
  }
- specialStrike(now){if(this.specialUsed||this.on('guard')||this.on('dash'))return;const directions=['left','right','forward'].filter(k=>this.on(k));if(directions.length!==1)return;this.specialUsed=true;const d=directions[0];this.attack(d==='left'?'left':'right','uppercut',now)}
- reset(){this.keys.clear();this.strike=null;this.pending=null;this.dashUsed=false;this.specialUsed=false;this.combo=0;this.comboHand=null}
+ specialStrike(now){if(this.specialUsed||this.on('guard')||(this.on('dash')&&now>=(this.counterUntil||0)))return;const directions=['left','right','forward'].filter(k=>this.on(k));if(directions.length!==1)return;this.specialUsed=true;const d=directions[0];this.attack(d==='left'?'left':'right','uppercut',now)}
+ reset(){this.counterUntil=0;this.keys.clear();this.strike=null;this.pending=null;this.dashUsed=false;this.specialUsed=false;this.combo=0;this.comboHand=null}
  read(now){if(!this.enabled()){this.reset();return{valid:false,action:'idle',label:''}}const on=k=>this.on(k),guard=on('guard'),left=on('punchLeft'),right=on('punchRight'),guardSide=guard?(left!==right?(left?'left':'right'):'both'):null;
   const strike=this.strike,m=BoxingMotion.sample(strike?.type,strike?.hand,strike?now-strike.at:1000);m.type=strike?.type;const arms=BoxingMotion.arms(m,guard,guardSide);for(const arm of Object.values(arms))for(const key of ['upper','lower']){const n=Math.hypot(...arm[key]);arm[key]=arm[key].map(v=>v/n)}
-  const pending=guard?null:this.pending;this.pending=null;const locked=m.active&&m.kick,special=on('special'),move=locked||special?0:Number(on('forward'))-Number(on('back')),strafe=locked||special?0:Number(on('left'))-Number(on('right'));let dash=false;if(!on('dash'))this.dashUsed=false;else if((move||strafe)&&!this.dashUsed){this.dashUsed=true;if(now-this.lastDash>=650){dash=true;this.lastDash=now}}
-  return{valid:true,action:pending?.hand||'control',punchType:pending?.type||'straight',arms,posture:{turn:m.turn,hipTurn:m.hipTurn,tilt:0,headPitch:0,headYaw:-m.turn*.5,headRoll:0},move,strafe,dash,guard,guardSide,dashVisualUntil:this.lastDash+180,crouch:on('crouch')?.75:0,slip:(Number(on('slipLeft'))-Number(on('slipRight')))*.8,bend:on('leanBack')?-.45:on('crouch')?.5:0,label:guard?(window.I18N?.lang==='en'?'Guard · '+guardSide:'การ์ด · '+({left:'ซ้าย',right:'ขวา',both:'สองแขน'}[guardSide])):window.I18N?.lang==='en'?'Ready · Computer controls':'พร้อม · ควบคุมด้วยคอม'};
+  const pending=guard?null:this.pending;this.pending=null;const locked=m.active&&m.kick,special=on('special'),move=locked||special?0:Number(on('forward'))-Number(on('back')),strafe=locked||special?0:Number(on('left'))-Number(on('right'));let dash=false;if(!on('dash'))this.dashUsed=false;else if((move||strafe)&&!this.dashUsed){this.dashUsed=true;if(now-this.lastDash>=650){dash=true;this.lastDash=now;this.dashCancelled=false}}
+  return{valid:true,action:pending?.hand||'control',punchType:pending?.type||'straight',arms,posture:{turn:m.turn,hipTurn:m.hipTurn,tilt:0,headPitch:0,headYaw:-m.turn*.5,headRoll:0},move,strafe,dash,guard,guardSide,dashVisualUntil:this.dashCancelled?0:this.lastDash+180,crouch:on('crouch')?.75:0,slip:(Number(on('slipLeft'))-Number(on('slipRight')))*.8,bend:on('leanBack')?-.45:on('crouch')?.5:0,label:guard?(window.I18N?.lang==='en'?'Guard · '+guardSide:'การ์ด · '+({left:'ซ้าย',right:'ขวา',both:'สองแขน'}[guardSide])):window.I18N?.lang==='en'?'Ready · Computer controls':'พร้อม · ควบคุมด้วยคอม'};
  }
  destroy(){this.reset();this.events.abort()}
 };

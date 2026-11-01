@@ -17,7 +17,7 @@ with sync_playwright() as pw:
  for page,lang in [(a,'en'),(c,'th')]:
   page.on('pageerror',lambda e:errors.append(str(e)));page.goto(root+'/45-fitness-coach?lang='+lang);page.evaluate("window.cameraRequests=0;navigator.mediaDevices.getUserMedia=async()=>{cameraRequests++;throw new Error('Unexpected camera request')};void 0")
   page.locator('#homeBoxingTile').click();page.wait_for_function("document.querySelector('.fighter-lobby-scene canvas')?.dataset.avatarState==='ready'",timeout=60000)
-  assert page.locator('[data-mode=bot]').is_disabled();assert page.evaluate('Boxing.world===null&&cameraRequests===0');assert page.locator('.fighter-growth-row').count()==5
+  assert page.locator('[data-mode=bot]').is_enabled();assert page.evaluate('Boxing.world===null&&cameraRequests===0');assert page.locator('.fighter-growth-row').count()==5
   model=page.request.get(root+f'/profiles/{pid if page==a else opid}/character',headers=h if page==a else oh).json()
   for key,part in model['growth']['parts'].items():
    row=page.locator(f'.fighter-growth-row[data-part={key}]');assert row.locator('strong').inner_text()=='LV '+str(part['level']);assert abs(row.locator('progress').evaluate('(e)=>e.value')-part['progress'])<.0001
@@ -58,7 +58,7 @@ with sync_playwright() as pw:
   p.evaluate("const render=Boxing.world.renderer.render.bind(Boxing.world.renderer);let last=0;Boxing.world.renderer.render=(...args)=>{if(performance.now()-last>80){last=performance.now();render(...args)}};void 0")
  a.keyboard.press('j');a.wait_for_function('Boxing.state.players[1].hp===9',timeout=7000);c.wait_for_function('Boxing.state.players[1].hp===9')
  a.wait_for_timeout(500);a.keyboard.press('i');a.wait_for_function('Boxing.state.players[1].hp===8',timeout=7000);c.wait_for_function("Boxing.state.event?.punch_type==='kick'")
- a.wait_for_timeout(800);c.keyboard.down('f');a.wait_for_function('Boxing.state.players[1].guard_until*1000>Date.now()');a.keyboard.press('j');a.wait_for_function("Boxing.state.event?.result==='block'");assert a.evaluate('Boxing.state.players[1].hp')==8;c.keyboard.up('f')
+ a.wait_for_timeout(800);a.keyboard.down('w');a.wait_for_timeout(220);a.keyboard.up('w');a.wait_for_timeout(200);c.keyboard.down('f');a.wait_for_function('Boxing.state.players[1].guard_until*1000>Date.now()');a.keyboard.press('j');a.wait_for_function("Boxing.state.event?.result==='block'");assert a.evaluate('Boxing.state.players[1].hp')==8;c.keyboard.up('f')
  a.wait_for_timeout(500);c.keyboard.down('f');c.keyboard.down('q');a.wait_for_function("Boxing.state.players[1].guard_side==='left'");armor=a.evaluate('Boxing.state.players[1].armor');a.keyboard.press('j');a.wait_for_function("Boxing.state.event?.guard_result==='perfect'");assert a.evaluate('Boxing.state.players[1].hp')==8;assert a.evaluate('Boxing.state.players[1].armor')>=armor
  a.wait_for_timeout(500);a.keyboard.press('e');a.wait_for_function("Boxing.state.event?.guard_result==='wrong'");assert a.evaluate('Boxing.state.players[1].hp')==7;c.keyboard.up('q');c.keyboard.up('f')
  mid=a.evaluate('Boxing.state.id');a.evaluate("setTab('home')");a.wait_for_timeout(700);a.evaluate("setTab('boxing')");a.wait_for_function("Boxing.world.running&&Boxing.state.status==='active'");assert a.evaluate('Boxing.state.id')==mid
@@ -70,5 +70,5 @@ with sync_playwright() as pw:
  assert not errors,errors
  a.locator('.boxing-back').click();a.wait_for_function("Boxing.mode==='menu'&&Boxing.world===null");assert a.evaluate('cameraRequests===0')
  c.locator('.boxing-back').click();c.wait_for_function("Boxing.mode==='menu'&&!document.querySelector('[data-mode=settings]').disabled");c.locator('[data-mode=settings]').click();c.locator('.fighter-language button').filter(has_text='English').click();c.wait_for_url('**lang=en');c.locator('#homeBoxingTile').click();c.wait_for_function("document.querySelector('.fighter-growth h3')?.textContent==='MUSCLE LEVELS'");assert c.evaluate("localStorage.getItem('45-language')")=='en';assert not errors,errors
- print('PASS directional guard/no-armor-loss and wrong-side HP damage, Space left/right/front uppercuts, Ctrl dash, locked camera, repeated practice and live-match navigation recovery, saved avatar/LV, desktop/mobile layout, no menu camera, disabled Bot, mandatory mode selection, key remap/duplicate/persistence, keyboard bag/room punches and kicks, immediate movement/stop, crouch, bounded one-shot dashes, inherited room mode for both clients and cleanup; no JS errors')
+ print('PASS directional guard/no-armor-loss and wrong-side HP damage, Space left/right/front uppercuts, Ctrl dash, locked camera, repeated practice and live-match navigation recovery, saved avatar/LV, desktop/mobile layout, no menu camera, enabled Bot, mandatory mode selection, key remap/duplicate/persistence, keyboard bag/room punches and kicks, immediate movement/stop, crouch, bounded one-shot dashes, inherited room mode for both clients and cleanup; no JS errors')
  b.close()

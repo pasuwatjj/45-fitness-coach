@@ -70,9 +70,9 @@ def control(p,slip,bend,now,move=0):
         if side and (p.get('side_since') is None or (not ready and side!=p.get('side',0))):p['side_since']=now-MOVE_HOLD if ready else now
     p.update(side=side,slip=slip,bend=bend,travel_ready=bool(ready))
 
-def queue(m,p,q,hand,kind,now,token):
+def queue(m,p,q,hand,kind,now,token,counter=False):
     ensure(m['players']);fx,fz=direction(p,q)
-    m.setdefault('pending_strikes',[]).append(dict(id=uuid.uuid4().hex,attacker=p['uid'],target=q['uid'],hand=hand,punch_type=kind,damage=p.get('kick_damage',1) if kind=='kick' else p['damage'][hand],time=now+(.28 if kind=='kick' else .18),fx=fx,fz=fz,token=token))
+    m.setdefault('pending_strikes',[]).append(dict(id=uuid.uuid4().hex,attacker=p['uid'],target=q['uid'],hand=hand,punch_type=kind,damage=p.get('kick_damage',1) if kind=='kick' else p['damage'][hand],counter=counter,time=now+(.10 if counter else .28 if kind=='kick' else .18),fx=fx,fz=fz,token=token))
 
 def directional_rules(m):return m.get('rules',0)>=6 and m.get('control_mode')=='computer'
 
@@ -98,6 +98,15 @@ def defend(p,hand,damage,now):
     p['armor']=max(0,p['armor']-armor_loss);p['hp']=round(max(0,p['hp']-hp_loss),2)
     return dict(result='hit' if hp_loss else 'block',damage=hp_loss if hp_loss else damage,raw_damage=damage,hp_damage=hp_loss,armor_damage=armor_loss,guard_result=detail)
 
+def parry(m,q,strike,now):
+    """One opposite-side dash at contact earns one short counter window."""
+    at=q.get('dash_at',0)
+    return (m.get('rules',0)>=7 and strike['punch_type'] in ('straight','hook')
+        and at>0 and at<=strike['time']<=q.get('dash_until',0)+.035
+        and now-strike['time']<.65 and q.get('parry_dash_at')!=at
+        and q.get('dash_side',0)==(-1 if strike['hand']=='left' else 1))
+
+
 def resolve(m,now,knockout):
     pending=m.get('pending_strikes',[]);m['pending_strikes']=[]
     for strike in pending:
@@ -109,12 +118,18 @@ def resolve(m,now,knockout):
         slip=q.get('slip',0) if fresh else 0
         duck=fresh and (now<q.get('dash_until',0) or q.get('bend',0)>.24 or q.get('bend',0)<-.12 or q.get('crouch',0)>.50)
         evade=(strike['hand']=='left' and slip<-.35) or (strike['hand']=='right' and slip>.35)
-        defense={}
-        if distance>(1.85 if strike['punch_type']=='kick' else RANGE) or (distance>.01 and (dx*strike['fx']+dz*strike['fz'])/distance<.72):result='miss'
+        defense={};parried=parry(m,q,strike,now)
+        if distance>(1.85 if strike['punch_type']=='kick' else RANGE+(.35 if parried else 0)) or (distance>.01 and (dx*strike['fx']+dz*strike['fz'])/distance<.72):result='miss'
+        elif parried:
+            result='parry';q.update(counter_until=now+.65,parry_dash_at=q['dash_at'])
         elif evade or (duck and strike['punch_type']!='uppercut'):result='dodge'
         elif directional_rules(m):defense=defend(q,strike['hand'],strike['damage'],now);result=defense['result']
         elif q['guard_until']>now and q['armor']>0:q['armor']-=1;result='block'
         else:q['hp']=max(0,q['hp']-strike['damage']);result='hit'
+        if result=='hit' and m.get('rules',0)>=7:
+            fx,fz=direction(p,q);push=.18 if strike['punch_type']=='uppercut' else .14
+            old_x,old_z=q['x'],q['z'];q['x'],q['z']=clamp(q['x']+fx*push,q['z']+fz*push)
+            defense['knockback']=dict(x=q['x']-old_x,z=q['z']-old_z);q['hit_at']=now
         event={k:v for k,v in strike.items() if k not in ['fx','fz','token']};event.update(defense);event.update(result=result,time=now,x=q['x'],z=q['z'])
         m['event']=event;m['events']=(m.get('events',[])+[event])[-12:]
         if q['hp']==0:knockout(m,p,now);m['pending_strikes']=[];break

@@ -32,7 +32,7 @@ with sync_playwright() as pw:
  a.locator('[data-mode=practice]').click();assert a.locator('.fighter-primary').is_disabled();assert a.evaluate('Boxing.world===null&&cameraRequests===0');a.locator('[data-control=computer]').click();a.locator('.fighter-primary').click()
  a.wait_for_function("Boxing.world?.actors[0]?.canvas.dataset.avatarState==='ready'",timeout=60000)
  a.keyboard.press('j');a.wait_for_function("document.querySelector('.boxing-bag-damage').textContent.includes('1')")
- old=a.locator('.boxing-banner').inner_text();a.keyboard.down('u');a.wait_for_function("Boxing.world.actors[0].punchType==='kick'");a.wait_for_timeout(650);a.keyboard.up('u');assert a.locator('.boxing-banner').inner_text()!=old
+ a.wait_for_timeout(450);old=a.locator('.boxing-banner').inner_text();a.keyboard.down('u');a.wait_for_function("Boxing.world.actors[0].punchType==='kick'");a.wait_for_timeout(650);a.keyboard.up('u');assert a.locator('.boxing-banner').inner_text()!=old
  count=a.locator('.boxing-banner').inner_text();a.wait_for_timeout(600);assert a.locator('.boxing-banner').inner_text()==count
  x=a.evaluate('Boxing.world.states[0].x');a.keyboard.down('s');a.wait_for_function('x=>Boxing.world.states[0].x<x-.1',arg=x,timeout=1800);a.keyboard.up('s')
  a.keyboard.down('c');a.wait_for_function('Boxing.world.actors[0].poseSmooth.crouch>.65');a.keyboard.up('c');a.wait_for_function('Boxing.world.actors[0].poseSmooth.crouch<.1')
@@ -48,6 +48,7 @@ with sync_playwright() as pw:
   p.evaluate("const render=Boxing.world.renderer.render.bind(Boxing.world.renderer);let last=0;Boxing.world.renderer.render=(...args)=>{if(performance.now()-last>80){last=performance.now();render(...args)}};void 0")
  a.keyboard.press('j');a.wait_for_function('Boxing.state.players[1].hp===9',timeout=7000);c.wait_for_function('Boxing.state.players[1].hp===9')
  a.wait_for_timeout(500);a.keyboard.press('i');a.wait_for_function('Boxing.state.players[1].hp===8',timeout=7000);c.wait_for_function("Boxing.state.event?.punch_type==='kick'")
+ a.wait_for_timeout(800);c.keyboard.down('f');a.wait_for_function('Boxing.state.players[1].guard_until*1000>Date.now()');a.keyboard.press('j');a.wait_for_function("Boxing.state.event?.result==='block'");assert a.evaluate('Boxing.state.players[1].hp')==8;c.keyboard.up('f')
  start=a.evaluate('Boxing.state.players[0].z');a.keyboard.down('a');a.wait_for_function('z=>Math.abs(Boxing.state.players[0].z-z)>.1',arg=start,timeout=1800);a.keyboard.up('a')
  a.wait_for_timeout(300);stopped=a.evaluate('Boxing.state.players[0].z');a.wait_for_timeout(350);assert abs(a.evaluate('Boxing.state.players[0].z')-stopped)<.03
  before=a.evaluate('({x:Boxing.state.players[0].x,z:Boxing.state.players[0].z})');a.keyboard.down('s');a.keyboard.down('Space')

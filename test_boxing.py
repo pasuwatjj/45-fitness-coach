@@ -14,8 +14,8 @@ class BoxingTests(unittest.TestCase):
             return dict(profile_id=pid,uid=uid,name='Test',model={},damage={'left':2,'right':4},hp=10,armor=10,ready=False,seen=self.now,seq=0,last_punch=0,last_dodge=0,guard_until=0,dodge_until=0,pose='idle')
         self.fp=patch('boxing.fighter',side_effect=fighter);self.fp.start();self.addCleanup(self.fp.stop)
     def create(self,control_mode="tracking"):
-        r=self.a.post('/social/boxing/invite',json={'friend':self.other,'profile':1,'control_mode':control_mode});self.assertEqual(r.status_code,200,r.json);self.mid=r.json['id'];return r.json
-    def act(self,client,action,seq=1,**controls):return client.post('/social/boxing/'+self.mid,json={'action':action,'seq':seq,'profile':1,**controls})
+        r=self.a.post('/social/boxing/invite',json={'friend':self.other,'profile':1,'control_mode':control_mode});self.assertEqual(r.status_code,200,r.json);self.mid=r.json['id'];self.input_source="keyboard" if control_mode=="computer" else "camera";return r.json
+    def act(self,client,action,seq=1,**controls):return client.post('/social/boxing/'+self.mid,json={'action':action,'seq':seq,'profile':1,'input_source':self.input_source,**controls})
     def start(self):
         self.create();self.assertEqual(self.act(self.b,'accept').status_code,200);self.act(self.a,'ready');r=self.act(self.b,'ready');self.assertEqual(r.json['match']['start'],1005);self.now+=5
     def test_private_invitation_and_chat(self):

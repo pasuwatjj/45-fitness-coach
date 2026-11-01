@@ -8,7 +8,7 @@ with sync_playwright() as p:
  page=b.new_page(viewport={'width':1000,'height':800});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  page.route(root+'/__belts__',lambda r:r.fulfill(content_type='text/html',body='<div id="arena" style="width:1000px;height:800px"></div>'))
  page.goto(root+'/__belts__');page.add_style_tag(content='body{margin:0}.cage-canvas{width:1000px;height:800px}')
- for asset in ['vendor/three-r160.min.js','character-renderer.js','muscle-progression.js','imported-avatar.js','boxing-world.js']:page.add_script_tag(url=root+'/static/'+asset)
+ for asset in ['vendor/three-r160.min.js','character-renderer.js','muscle-progression.js','imported-avatar.js','boxing-motion.js','boxing-world.js']:page.add_script_tag(url=root+'/static/'+asset)
  page.evaluate("window.I18N={lang:'en'};window.w=new BoxingWorld(document.getElementById('arena'));w.add({appearance:{},growth:{},visual:{}},0);w.set([{x:0,z:0}],false)")
  page.wait_for_function("w.actors[0].canvas.dataset.avatarState==='ready'");page.evaluate('w.running=false;cancelAnimationFrame(w.frame)')
  page.evaluate("""window.f=w.actors[0];window.pose=(kind,age,recover=10)=>{const state={x:0,z:0,presentation:kind,presentationAt:performance.now()-age*1000,recoverAfter:recover};for(let i=0;i<60;i++)f.update(state,{x:0,z:3},.016,i*.016);f.root.updateMatrixWorld(true)};

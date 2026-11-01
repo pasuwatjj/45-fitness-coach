@@ -22,6 +22,13 @@ with sync_playwright() as p:
  for page,lang in [(a,'en'),(c,'th')]:
   page.on('pageerror',lambda e:errors.append(str(e)));page.goto(root+'/45-fitness-coach?lang='+lang);page.wait_for_timeout(1000);page.locator('#homeBoxingTile').click();page.wait_for_function("!document.querySelector('[data-mode=practice]').disabled");page.evaluate(pose);page.locator('[data-mode=practice]').click();page.locator('[data-control=tracking]').click();page.locator('.fighter-primary').click();page.wait_for_function("Boxing.world?.actors[0]?.canvas.dataset.avatarState==='ready'");page.evaluate(pose);page.evaluate("const render=Boxing.world.renderer.render.bind(Boxing.world.renderer);let lastDraw=0;Boxing.world.renderer.render=(...args)=>{const now=performance.now();if(now-lastDraw>80){lastDraw=now;render(...args)}};void 0");page.wait_for_function("/Ready|พร้อม/.test(document.querySelector('.boxing-status').textContent)",timeout=15000)
   assert page.locator('.boxing-clock').is_hidden()
+  page.locator('.cage-canvas').focus()
+  before=page.evaluate('({x:Boxing.world.states[0].x,z:Boxing.world.states[0].z,punch:Boxing.world.actors[0].punchAt})')
+  for key in ['w','a','s','d','q','e','u','i','c','f','z','x','r','Space']:page.keyboard.down(key)
+  page.wait_for_timeout(800)
+  after=page.evaluate('({x:Boxing.world.states[0].x,z:Boxing.world.states[0].z,punch:Boxing.world.actors[0].punchAt})');assert before==after,(before,after)
+  for key in ['w','a','s','d','q','e','u','i','c','f','z','x','r','Space']:page.keyboard.up(key)
+
   start_x=page.evaluate('Boxing.world.states[0].x')
   page.evaluate('testPose[0].z=.055');page.wait_for_timeout(1000);assert abs(page.evaluate('Boxing.world.states[0].x')-start_x)<.03
   page.wait_for_function("Boxing.world.states[0].x < -1.35");reset(page)
@@ -53,10 +60,10 @@ with sync_playwright() as p:
   assert page.locator('.boxing-vitals').first.evaluate('n=>getComputedStyle(n).backgroundColor')=='rgba(0, 0, 0, 0)'
   page.locator('.boxing-expand').click();page.wait_for_function("document.fullscreenElement||document.querySelector('.boxing-expanded')");assert page.locator('.boxing-arena').bounding_box()['width']>=page.viewport_size['width']-2;page.locator('.boxing-expand').click();page.wait_for_function("!document.fullscreenElement&&!document.querySelector('.boxing-expanded')")
   page.evaluate("document.querySelector('.boxing-arena').requestFullscreen=undefined");page.locator('.boxing-expand').click();page.wait_for_selector('.boxing-expanded');page.keyboard.press('Escape');page.wait_for_function("!document.querySelector('.boxing-expanded')")
-  page.evaluate("document.body.dataset.effects='on'");before=page.evaluate('Boxing.world.beams[0].rotation.z');page.wait_for_timeout(350);assert page.evaluate('Boxing.world.beams[0].rotation.z')!=before
+  page.evaluate("document.body.dataset.effects='on'");before=page.evaluate('Boxing.world.beams[0].rotation.z');page.wait_for_function('before=>Boxing.world.beams[0].rotation.z!==before',arg=before,timeout=5000)
   page.emulate_media(reduced_motion='reduce');page.wait_for_function('Boxing.world.beams[0].rotation.z===0');page.emulate_media(reduced_motion='no-preference')
   if lang=='en':assert not __import__('re').search('[ก-๙]',page.locator('#boxingPage').inner_text()),page.locator('#boxingPage').inner_text()
-  print(lang,'PASS gentle backward/forward, crouch/stand rig, assisted types, bag damage, native/fallback fullscreen, transparent HUD and moving/reduced-motion arena',flush=True)
+  print(lang,'PASS camera-only gameplay keys, gentle backward/forward, crouch/stand rig, assisted types, bag damage, native/fallback fullscreen, transparent HUD and moving/reduced-motion arena',flush=True)
  for page in [a,c]:
   page.locator('.boxing-back').click();page.wait_for_function("!document.querySelector('[data-mode=friends]').disabled");page.locator('[data-mode=friends]').click();page.locator('[data-control=tracking]').click();page.locator('.fighter-primary').click();page.wait_for_function("/Ready|พร้อม/.test(document.querySelector('.boxing-status').textContent)")
  a.get_by_role('button',name='Invite friend',exact=True).click();a.wait_for_function('Boxing.state?.id');c.wait_for_selector('.boxing-rooms button');c.get_by_role('button',name='รับคำชวน',exact=True).click()

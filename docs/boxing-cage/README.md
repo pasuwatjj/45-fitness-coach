@@ -68,6 +68,13 @@ The profile now shows a belt collection. The existing unique-per-match reward le
 
 ## Upper-body follow-up and training hall
 
-The default shoulder camera now sits another 15° around the fighter to reveal the side of the torso. Compact black MMA gloves attach to both hands, with separate palm, four knuckle pads, thumb cover, wrist cuff and blue/red strap. These are original procedural geometry; no reference branding or assets are copied. The hall replaces placeholder spectators with lit architectural panels, original 45 signage and a redesigned green/ivory canvas with red/blue corners. Cage bounds and damage rules are unchanged.
+The default shoulder camera now sits another 15° around the fighter to reveal the side of the torso. Closed red boxing gloves now cover both hands, with rounded shells, thumb covers and white wrist bands; cage-only hand triangles beneath them are hidden to prevent protruding fingers. These are original procedural geometry; no reference branding or assets are copied. The hall replaces placeholder spectators with lit architectural panels, original 45 signage and a redesigned green/ivory canvas with red/blue corners. Cage bounds and damage rules are unchanged.
 
 `tests/qa_boxing_natural.py` checks independent head motion, visible back extension, shoulder wind-up without a strike event, rotated arm directions and both fitted gloves, as well as male/female rigs. `tests/qa_boxing_natural_controls.py` verifies that the second browser receives the shoulder pose and animates the remote rig. Server tests reject malformed/out-of-range posture values and clear them on idle. Detector fixtures separate head looks from body lean even when hips are cropped. These synthetic checks do not establish motion-capture accuracy on the user's physical webcam; lighting, framing and hand/face occlusion still matter.
+
+
+## Whole-body support and camera-facing punches
+
+See [current motion review](../boxing-full-body/README.md). Visible hips, knees and ankles now provide confidence-gated weight shift, crouch depth, hip roll, stance and stagger. A fixed-length leg solve plants the feet while the pelvis follows the upper body; cage-only ankle bones keep feet level. Cropped or hidden legs fade back to upper-body control. This does not enable kicks or knee attacks.
+
+Camera-facing punches with both arm segments visibly foreshortened use previously observed segment lengths to recover depth. Visible joints and forward depth are required; ordinary bent jabs keep their measured pose. The arm bones never stretch, and existing swept-contact constraints still apply. Forward walking also accepts a held nod or deeper bow. The initial two-second hold is shared by all four diagonal directions; once moving, direction changes are continuous and returning upright stops/rearms walking. Pure vertical crouching does not request forward movement.

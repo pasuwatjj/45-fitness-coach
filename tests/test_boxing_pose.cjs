@@ -30,7 +30,7 @@ for(const side of ['left','right']){
 }
 // Upper-body-only lateral movement: immediate slip, two-second hold, neutral/reversal reset.
 {const {p,read,settle}=fixture();p[23].visibility=p[24].visibility=0;for(const i of [0,11,12,13,14,15,16])p[i].x-=.10;let r=settle(5);assert(r.slip>.5);assert.equal(r.strafe,0);r=settle(18);assert.equal(r.strafe,0);r=settle(12);assert.equal(r.strafe,1);for(const i of [0,11,12,13,14,15,16])p[i].x+=.20;r=settle(8);assert(r.slip<-.5);assert.equal(r.strafe,-1);for(const i of [0,11,12,13,14,15,16])p[i].x-=.10;r=settle(10);assert.equal(r.strafe,0);assert.equal(r.sideSeconds,0)}
-// Deep bow changes the torso and suppresses forward travel; missing hands do not strike on recovery.
+// A brief deep bow changes the torso before forward travel arms; missing hands do not strike on recovery.
 {const {p,settle}=fixture();p[23].visibility=p[24].visibility=0;p[0].z=-.4;let r=settle(15);assert(r.bend>.8);assert.equal(r.move,0);p[0].z=0;r=settle(15);assert(Math.abs(r.bend)<.05);p[15].visibility=0;settle();p[15].visibility=1;assert.equal(settle(3).action,'control')}
 console.log('PASS no recoil/hold/jitter bonus punches, deliberate rearm, upper-body 2-second circling, continuous reversal / neutral reset, deep bend and occlusion recovery');
 {const {p,d}=fixture();assert.equal(d.read(p,p,10000).valid,false);assert.equal(d.sideAt,null);assert.equal(d.walk,0)}
@@ -138,3 +138,29 @@ console.log('PASS continuous wind-up, cropped hip fallback, independent head pit
 // With hips cropped, a face look-up still does not move the body: ear/neck position owns lean.
 {const {p,d,settle}=fixture();Object.assign(p[7],{x:.43,y:.20,z:.08});Object.assign(p[8],{x:.57,y:.20,z:.08});p[23].visibility=p[24].visibility=0;d.reset();settle(24);p[0].y=.15;p[0].z=.02;const r=settle(45);assert(r.posture.headPitch<-.7);assert(Math.abs(r.bend)<.03);assert.equal(r.move,0)}
 console.log('PASS cropped-hip head look-up stays independent of body lean and movement');
+// Camera-pointing punches recover foreshortened depth from calibrated lengths, not bone scaling.
+for(const side of ['left','right']){
+ const {p,settle,read}=fixture(),s=side==='left'?11:12;
+ Object.assign(p[s+2],{x:p[s].x+.004,y:.405,z:-.035});Object.assign(p[s+4],{x:p[s].x+.008,y:.4,z:-.070});
+ const first=read();assert.equal(first.action,side);const r=settle(15),a=r.arms[side];assert(a.upper[2]>.99&&a.lower[2]>.99);assert.equal(r.action,'control');
+}
+// All four diagonals share the initial hold, normalize speed on the server, and reverse without rearming.
+for(const front of [true,false])for(const left of [true,false]){
+ const {p,settle}=fixture();p[0].x+=left?-.07:.07;p[0].z=front?-.04:.055;
+ const before=settle(8);assert.equal(before.move,0);assert.equal(before.strafe,0);
+ const r=settle(35);assert.equal(r.move,front?1:-1);assert.equal(r.strafe,left?1:-1);assert(r.label.includes('diagonally'));
+ p[0].x=left?.57:.43;p[0].z=front?.055:-.04;const reverse=settle(8);assert.equal(reverse.move,front?-1:1);assert.equal(reverse.strafe,left?-1:1);
+}
+// A nod or deep bow can request forward travel; a brief bow remains only evasion.
+{const {p,settle}=fixture();p[0].y+=.06;assert.equal(settle(8).move,0);assert.equal(settle(35).move,1)}
+{const {p,settle}=fixture();p[0].z=-.4;assert.equal(settle(10).move,0);assert.equal(settle(35).move,1)}
+// Full-body references: visible hips/knees/ankles drive support, squat and stance; cropping fades them.
+{
+ const {p,d,settle}=fixture();for(const v of p)v.y=v.y*.65+.02;
+ for(const [i,x,y]of [[25,.4,.75],[26,.6,.75],[27,.4,.95],[28,.6,.95]])Object.assign(p[i],{x,y,z:0});d.reset();settle(24);
+ assert(settle().lowerBody.confidence>.99);
+ p[23].x+=.06;p[24].x+=.06;p[23].y+=.06;p[24].y+=.06;p[25].z=p[26].z=-.06;p[27].x-=.06;p[28].x+=.06;
+ const r=settle(20);assert(r.lowerBody.shiftX<-.3);assert(r.lowerBody.drop>.25);assert(r.lowerBody.stance>.4);assert(r.lowerBody.leftKnee>.15);assert.equal(r.action,'control');
+ p[27].visibility=0;const lost=settle(20);assert(lost.lowerBody.confidence<.01);assert(Math.abs(lost.lowerBody.shiftX)<.01);assert(lost.valid);
+}
+console.log('PASS foreshortened frontal punches, four continuous diagonals, easier nod/bow walking and confidence-gated whole-body support');

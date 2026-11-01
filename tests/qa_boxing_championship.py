@@ -26,7 +26,7 @@ with sync_playwright() as p:
   page.evaluate('testPose[0].z=.055');page.wait_for_timeout(1000);assert abs(page.evaluate('Boxing.world.states[0].x')-start_x)<.03
   page.wait_for_function("Boxing.world.states[0].x < -1.35");reset(page)
   page.evaluate('testPose[0].z=-.1');page.wait_for_function("Boxing.world.states[0].x > -1.05");reset(page)
-  page.evaluate('for(const i of [0,11,12,13,14,15,16,23,24])testPose[i].y+=.17');page.wait_for_function("Boxing.world.actors[0].body.position.y<-.54");assert page.evaluate('Boxing.world.actors[0].bones.leftLeg.lower.rotation.x')>1
+  page.evaluate('for(const i of [0,11,12,13,14,15,16,23,24])testPose[i].y+=.17');page.wait_for_function("Boxing.world.actors[0].poseSmooth.crouch>.95&&Boxing.world.actors[0].body.position.y<-.52");assert page.evaluate('Boxing.world.actors[0].bones.leftLeg.lower.rotation.x')>1
   reset(page);page.wait_for_function("Math.abs(Boxing.world.actors[0].body.position.y+.06)<.04")
   for side,kind in [('right','hook'),('left','uppercut'),('right','straight')]:
    reset(page);n=page.evaluate('damageLog.length');punch(page,side,kind);page.wait_for_function('damageLog.length>'+str(n));assert page.evaluate('Boxing.world.actors[0].punchType')==kind

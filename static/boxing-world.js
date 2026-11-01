@@ -1,5 +1,77 @@
 /* Original cage scene. Shared Three.js renderer; approved profile avatar assets. */
 'use strict';
+// Kinematic contact constraints preserve the tracked pose until an arm meets a surface.
+window.BoxingContact={
+ closest(point,a,b){const d=b.clone().sub(a),t=THREE.MathUtils.clamp(point.clone().sub(a).dot(d)/Math.max(1e-9,d.lengthSq()),0,1);return a.clone().addScaledVector(d,t)},
+ distance(point,c){return point.distanceTo(this.closest(point,c.a,c.b))-c.radius},
+ sweep(from,to,c,radius){
+  const delta=to.clone().sub(from),steps=Math.max(2,Math.ceil(delta.length()/.025)),gap=p=>this.distance(p,c)-radius;
+  // Allow withdrawal from an existing contact; never keep a glove stuck to a surface.
+  let last=0,previous=gap(from);if(previous<=.003&&gap(to)>previous+.001)return null;
+  for(let i=1;i<=steps;i++){const t=i/steps,p=from.clone().addScaledVector(delta,t),d=gap(p);if(d<.003){let lo=last,hi=t;for(let n=0;n<12;n++){const mid=(lo+hi)/2;if(gap(from.clone().addScaledVector(delta,mid))<.003)hi=mid;else lo=mid}const hit=from.clone().addScaledVector(delta,lo),near=this.closest(hit,c.a,c.b),normal=hit.clone().sub(near);if(normal.lengthSq()<1e-8)normal.copy(from).sub(c.a);if(normal.lengthSq()<1e-8)normal.set(0,0,1);return hit.copy(near).addScaledVector(normal.normalize(),c.radius+radius+.004)}last=t;previous=d}return null;
+ },
+ shapes(actor){
+  const T=THREE,point=(bone,v=[0,0,0])=>bone.localToWorld(new T.Vector3(...v)),h=actor.height;
+  const arms=[];for(const side of ['left','right']){const b=actor.bones[side+'Arm'];if(!b)continue;const shoulder=point(b.upper),elbow=point(b.lower),hand=point(b.lower,b.contactEnd.toArray());arms.push({a:shoulder,b:elbow,radius:.075*h,kind:'arm',owner:actor},{a:elbow,b:hand,radius:.075*h,kind:'arm',owner:actor},{a:hand,b:hand,radius:.09*h,kind:'arm',owner:actor})}
+  return [...arms,{a:point(actor.pelvis,[0,.20,0]),b:point(actor.chest,[0,.35,0]),radius:.21*h,kind:'body',owner:actor},{a:point(actor.neck,[0,.16,0]),b:point(actor.neck,[0,.38,0]),radius:.135*h,kind:'head',owner:actor}];
+ },
+ segmentDistance(a,b,c,d){
+  const u=b.clone().sub(a),v=d.clone().sub(c),w=a.clone().sub(c),aa=u.dot(u),bb=u.dot(v),cc=v.dot(v),dd=u.dot(w),ee=v.dot(w),den=aa*cc-bb*bb,clamp=THREE.MathUtils.clamp;
+  let s=den>1e-10?clamp((bb*ee-cc*dd)/den,0,1):0,t=cc>1e-10?(bb*s+ee)/cc:0;
+  if(t<0){t=0;s=aa>1e-10?clamp(-dd/aa,0,1):0}else if(t>1){t=1;s=aa>1e-10?clamp((bb-dd)/aa,0,1):0}
+  return a.clone().addScaledVector(u,s).distanceTo(c.clone().addScaledVector(v,t));
+ },
+ solve(actor,side,target,shapes=[]){
+  const T=THREE,b=actor.bones[side+'Arm'],start=b.upper.getWorldPosition(new T.Vector3()),oldElbow=b.lower.getWorldPosition(new T.Vector3()),scale=actor.root.scale.x,l1=b.lower.position.length()*scale,l2=b.contactEnd.length()*scale;
+  const axis=target.clone().sub(start),distance=T.MathUtils.clamp(axis.length(),Math.abs(l1-l2)+.0001,l1+l2-.0001);if(axis.lengthSq()<1e-10)axis.set(0,0,1);axis.normalize();target.copy(start).addScaledVector(axis,distance);
+  const along=(l1*l1-l2*l2+distance*distance)/(2*distance),height=Math.sqrt(Math.max(0,l1*l1-along*along));
+  const pole=oldElbow.sub(start).addScaledVector(axis,-oldElbow.dot(axis));
+  if(pole.lengthSq()<1e-6){pole.set(side==='left'?.35:-.35,-1,0).applyQuaternion(actor.root.quaternion);pole.addScaledVector(axis,-pole.dot(axis))}
+  if(pole.lengthSq()<1e-8)pole.set(1,0,0);pole.normalize();
+  let elbow=start.clone().addScaledVector(axis,along).addScaledVector(pole,height);
+  // Rotate the elbow around the reach axis when the forearm would cut through a guard.
+  const clearance=e=>shapes.reduce((gap,c)=>Math.min(gap,this.segmentDistance(start,e,c.a,c.b)-c.radius-.075*actor.height,this.segmentDistance(e,target,c.a,c.b)-c.radius-.075*actor.height),Infinity);
+  let best=clearance(elbow);
+  if(best<.003)for(let i=1;i<16;i++){const e=start.clone().addScaledVector(axis,along).addScaledVector(pole.clone().applyAxisAngle(axis,i*Math.PI/8),height),gap=clearance(e);if(gap>best){elbow=e;best=gap}if(best>=.003)break}
+  const inv=b.upper.parent.getWorldQuaternion(new T.Quaternion()).invert();
+  const upper=elbow.clone().sub(start).normalize().applyQuaternion(inv),lower=target.clone().sub(elbow).normalize().applyQuaternion(inv),uq=new T.Quaternion().setFromUnitVectors(b.restUpper,upper);
+  b.upper.quaternion.copy(uq);b.lower.quaternion.copy(uq.clone().invert().multiply(new T.Quaternion().setFromUnitVectors(b.contactEnd.clone().normalize(),lower)));actor.root.updateMatrixWorld(true);
+ },
+ constrain(actor,shapes){
+  const T=THREE,contacts={};actor.contactPrevious??={};
+  if(actor.state.presentation){actor.contactPrevious={};actor.contacts=contacts;return}
+  for(const side of ['left','right']){
+   const b=actor.bones[side+'Arm'];if(!b?.contactEnd)continue;
+   let hand=b.lower.localToWorld(b.contactEnd.clone()),elbow=b.lower.getWorldPosition(new T.Vector3()),shoulder=b.upper.getWorldPosition(new T.Vector3()),target=hand.clone();const radius=.095*actor.height;
+   // Sweep from the shoulder as well as the previous glove to avoid tunnelling at low FPS.
+   for(const from of [shoulder,elbow,actor.contactPrevious[side]].filter(Boolean)){
+    let nearest=null,distance=Infinity;
+    for(const c of shapes){const hit=this.sweep(from,target,c,radius);if(hit&&from.distanceToSquared(hit)<distance){nearest={hit,c};distance=from.distanceToSquared(hit)}}
+    if(nearest){target.copy(nearest.hit);contacts[side]=nearest.c.kind}
+   }
+   for(let i=0;i<8;i++){const nx=Math.cos(i*Math.PI/4),nz=Math.sin(i*Math.PI/4),excess=target.x*nx+target.z*nz-(5.85*Math.cos(Math.PI/8)-radius);if(excess>0){target.x-=nx*excess;target.z-=nz*excess;contacts[side]='cage'}}
+   if(target.y<radius){target.y=radius;contacts[side]='floor'}
+   if(contacts[side]){
+    this.solve(actor,side,target,shapes);
+    // Correct endpoint overlap after the fixed-length IK solve; never scale the arm bones.
+    for(let pass=0;pass<4;pass++){
+     hand=b.lower.localToWorld(b.contactEnd.clone());let pushed=false;
+     for(const c of shapes){const near=this.closest(hand,c.a,c.b),normal=hand.clone().sub(near),length=normal.length();if(length<c.radius+radius){if(length<1e-6)normal.copy(shoulder).sub(near);if(normal.lengthSq()<1e-8)normal.set(0,0,1);target.copy(near).addScaledVector(normal.normalize(),c.radius+radius+.004);this.solve(actor,side,target,shapes);hand=b.lower.localToWorld(b.contactEnd.clone());pushed=true;contacts[side]=c.kind}}
+     if(!pushed)break;
+    }
+   }
+   // If no elbow swivel clears a close obstacle, retract the chain until both links clear.
+   for(let pass=0;pass<10;pass++){
+    elbow=b.lower.getWorldPosition(new T.Vector3());hand=b.lower.localToWorld(b.contactEnd.clone());
+    const obstruction=shapes.find(c=>this.segmentDistance(shoulder,elbow,c.a,c.b)<c.radius+.07*actor.height||this.segmentDistance(elbow,hand,c.a,c.b)<c.radius+.07*actor.height);
+    if(!obstruction)break;contacts[side]=obstruction.kind;target.copy(hand).lerp(shoulder,.12);this.solve(actor,side,target,shapes);
+   }
+   actor.contactPrevious[side]=b.lower.localToWorld(b.contactEnd.clone());
+  }
+  actor.contacts=contacts;
+ }
+};
+
 window.CageFighter=class extends FitnessImportedAvatar{
  constructor(world,model,id){const canvas=document.createElement('canvas');super(canvas,world);this.world=world;this.id=id;this.target={x:0,z:0};this.position=new THREE.Vector2();this.state={};this.poseSmooth={bend:0,slip:0,crouch:0};this.set(model)}
  status(value){this.canvas.dataset.avatarState=value;this.world?.loading()}
@@ -38,7 +110,7 @@ window.CageFighter=class extends FitnessImportedAvatar{
   // Build glove attachment in the bind pose, before any animated posture is applied.
   this.root.scale.setScalar(this.height*.5);this.body.updateMatrixWorld(true);
   const glove=this.material(this.id===0?'#252b36':'#3c2429',.7);
-  for(const side of ['left','right']){const b=this.bones[side+'Arm'],grip=this.handGrips[side];if(!b||!grip)continue;const center=b.lower.worldToLocal(this.body.localToWorld(grip.center.clone()));this.ell(center.x,center.y,center.z,.135,.10,.16,glove,b.lower)}
+  for(const side of ['left','right']){const b=this.bones[side+'Arm'],grip=this.handGrips[side];if(!b||!grip)continue;const center=b.lower.worldToLocal(this.body.localToWorld(grip.center.clone()));b.contactEnd=center.clone();this.ell(center.x,center.y,center.z,.17,.15,.18,glove,b.lower)}
  }
  makeBelt(){
   if(this.belt)return;const T=THREE,w=this.world;this.belt=new T.Group();this.pelvis.add(this.belt);this.belt.position.y=.12;
@@ -59,27 +131,28 @@ window.CageFighter=class extends FitnessImportedAvatar{
   let down=kind==='down'?smooth(0,.75,age):0;
   if(kind==='down'&&state.recoverAfter!=null)down*=1-smooth(state.recoverAfter-1.8,state.recoverAfter-.25,age);
   this.downAmount=down;
-  if(kind==='down')this.canvas.dataset.presentation=down>.95?'seated':age<1?'falling':down>.01?'rising':'ready';
-  this.pelvis.rotation.set(.05*down,0,.035*down);this.spine.rotation.set(.22*down,0,.05*down);this.chest.rotation.set(.24*down,0,0);this.neck.rotation.set(.22*down,0,0);
-  this.body.position.set(0,-.06,0);
+  const gettingUp=kind==='down'&&state.recoverAfter!=null?Math.sin(Math.PI*smooth(state.recoverAfter-1.8,state.recoverAfter-.25,age)):0;
+  if(kind==='down')this.canvas.dataset.presentation=down>.95?'lying':age<1?'falling':down>.01?'rising':'ready';
+  this.pelvis.rotation.set(.03*down,0,.035*down);this.spine.rotation.set(.04*down+.18*gettingUp,0,.05*down);this.chest.rotation.set(.06*down+.12*gettingUp,0,0);this.neck.rotation.set(.05*down,0,0);
+  this.body.rotation.x=-Math.PI/2*down+.55*gettingUp;this.body.position.set(0,-.06+.23*down,0);
   const inv=this.pelvis.quaternion.clone().multiply(this.spine.quaternion).multiply(this.chest.quaternion).invert(),lift=kind==='champion'?smooth(.35,1.5,age):0;
   if(kind==='champion'){this.yaw+=Math.atan2(Math.sin(-this.yaw),Math.cos(-this.yaw))*(1-Math.exp(-dt*4));this.root.rotation.y=this.yaw}
   for(const [side,sign]of [['left',1],['right',-1]]){
-   const arm=this.bones[side+'Arm'],u=new T.Vector3(sign*.25,-.5,.65).normalize().lerp(new T.Vector3(sign*.22,-.7,.6).normalize(),down),l=new T.Vector3(-sign*.15,.8,.4).normalize().lerp(new T.Vector3(-sign*.1,-.4,.9).normalize(),down);
+   const arm=this.bones[side+'Arm'],u=new T.Vector3(sign*.25,-.5,.65).normalize().lerp(new T.Vector3(sign*.5,-.85,.08).normalize(),down),l=new T.Vector3(-sign*.15,.8,.4).normalize().lerp(new T.Vector3(-sign*.1,-.98,.06).normalize(),down);
    if(lift){u.lerp(new T.Vector3(sign*.65,.75,.1).normalize(),lift);l.lerp(new T.Vector3(sign*.05,.99,.1).normalize(),lift)}
    const uq=new T.Quaternion().setFromUnitVectors(arm.restUpper,u.normalize().applyQuaternion(inv)),lq=uq.clone().invert().multiply(new T.Quaternion().setFromUnitVectors(arm.restLower,l.normalize().applyQuaternion(inv)));
    arm.upper.position.copy(arm.cageBindPosition);arm.upper.quaternion.copy(uq);arm.lower.quaternion.copy(lq);arm.cageUpper.copy(uq);arm.cageLower.copy(lq);
-   const leg=this.bones[side+'Leg'],sitU=new T.Vector3(sign*.22,.32,.92).normalize(),sitL=new T.Vector3(sign*.06,-.66,.75).normalize(),lu=new T.Quaternion().setFromUnitVectors(leg.restUpper,sitU),ll=lu.clone().invert().multiply(new T.Quaternion().setFromUnitVectors(leg.restLower,sitL));
+   const leg=this.bones[side+'Leg'],sitU=new T.Vector3(sign*.12,-.98,.08).lerp(new T.Vector3(sign*.2,-.25,.95),gettingUp).normalize(),sitL=new T.Vector3(sign*.04,-.98,.15).lerp(new T.Vector3(sign*.06,-.98,.05),gettingUp).normalize(),lu=new T.Quaternion().setFromUnitVectors(leg.restUpper,sitU),ll=lu.clone().invert().multiply(new T.Quaternion().setFromUnitVectors(leg.restLower,sitL));
    lu.premultiply(this.pelvis.quaternion.clone().invert());leg.upper.quaternion.slerp(lu,down);leg.lower.quaternion.slerp(ll,down);
   }
-  // Keep the seated feet above the canvas as hips descend, including different saved heights.
-  if(down>0){this.body.updateMatrixWorld(true);const ankles=['left','right'].map(side=>{const b=this.bones[side+'Leg'];return b.lower.localToWorld(b.end.clone()).y});this.body.position.y+=(.07*this.height-Math.min(...ankles))/this.root.scale.y}
+
+  if(gettingUp>.001){this.body.updateMatrixWorld(true);const feet=['left','right'].map(side=>{const leg=this.bones[side+'Leg'];return leg.lower.localToWorld(leg.end.clone()).y});this.body.position.y+=(.07*this.height-Math.min(...feet))/this.root.scale.y*gettingUp}
  }
  punch(hand,token,type='straight'){if(this.punchToken===token)return;this.punchToken=token;this.punchHand=hand;this.punchType=type;this.punchAt=performance.now()}
  update(state,target,dt,time){
   if(!this.body)return;const T=THREE;this.state=state;this.target={x:state.x||0,z:state.z||0};const ease=1-Math.exp(-dt*15);this.position.lerp(new T.Vector2(this.target.x,this.target.z),ease);
   this.root.position.set(this.position.x,0,this.position.y);const yaw=state.presentation==='champion'?0:Math.atan2(target.x-this.position.x,target.z-this.position.y);this.yaw=(this.yaw??yaw)+Math.atan2(Math.sin(yaw-(this.yaw??yaw)),Math.cos(yaw-(this.yaw??yaw)))*ease;this.root.rotation.y=this.yaw;
-  this.phase=time;super.restPose();for(const key of ['bend','slip','crouch'])this.poseSmooth[key]+=(Number(state[key]||0)-this.poseSmooth[key])*ease;
+  this.phase=time;this.body.rotation.set(0,0,0);const preview=this.workoutPreview;this.workoutPreview=true;super.restPose();this.workoutPreview=preview;for(const key of ['bend','slip','crouch'])this.poseSmooth[key]+=(Number(state[key]||0)-this.poseSmooth[key])*ease;
   const pose=this.poseSmooth,bow=Math.max(0,pose.bend),sway=Math.abs(pose.slip);
   const elapsed=performance.now()-(this.punchAt??-1000),envelope=elapsed<0||elapsed>360?0:Math.sin(Math.PI*elapsed/360);
   const striking=state.arms?.[this.punchHand],alignment=striking?striking.upper.reduce((sum,v,i)=>sum+v*striking.lower[i],0):.7;
@@ -87,11 +160,10 @@ window.CageFighter=class extends FitnessImportedAvatar{
   const drive=envelope*power,twist=(this.punchHand==='left'?1:-1)*drive;
   // Hips initiate the action; lumbar/chest flex separately so the back actually rounds.
   this.pelvis.rotation.set(pose.bend*.18,twist*.10,-pose.slip*.10);
-  this.spine.rotation.set(pose.bend*.42,twist*.13,-pose.slip*.22);
-  this.chest.rotation.set(pose.bend*.50+drive*(this.punchType==='uppercut'?-.08:.07),twist*(this.punchType==='hook'?.30:.18),-pose.slip*.25-twist*.05);
-  this.neck.rotation.set(-pose.bend*.28,-twist*.12,pose.slip*.18);
+  this.spine.rotation.set(.06+pose.bend*.42,twist*.13,-pose.slip*.22);
+  this.chest.rotation.set(.12+pose.bend*.50+drive*(this.punchType==='uppercut'?-.08:.07),twist*(this.punchType==='hook'?.30:.18),-pose.slip*.25-twist*.05);
+  this.neck.rotation.set(-.08-pose.bend*.28,-twist*.12,pose.slip*.18);
   this.body.position.set(pose.slip*.06,-.06-.55*pose.crouch-.07*bow-.035*sway,-bow*.10);
-  for(const {name,bone}of this.fingers||[]){if(name.includes('leaf'))continue;const grip=this.handGrips[name.endsWith('_l')?'left':'right'];bone.quaternion.setFromAxisAngle(grip.axis,name.startsWith('thumb')?.6:1.3)}
   const inverseTorso=this.pelvis.quaternion.clone().multiply(this.spine.quaternion).multiply(this.chest.quaternion).invert();
   for(const side of ['left','right']){
    const b=this.bones[side+'Arm'],sign=side==='left'?1:-1,measured=state.arms?.[side];if(!b)continue;
@@ -123,7 +195,7 @@ window.CageFighter=class extends FitnessImportedAvatar{
 };
 window.BoxingWorld=class{
  constructor(container){
-  const T=THREE;this.container=container;this.events=new AbortController();this.resources=[];this.actors=[];this.states=[];this.running=true;this.yaw=.28;this.elevation=.30;this.distance=4.6;this.mode='side';this.focus=new T.Vector3(0,.9,0);this.last=performance.now();
+  const T=THREE;this.container=container;this.events=new AbortController();this.resources=[];this.actors=[];this.states=[];this.running=true;this.yaw=.28;this.elevation=.12;this.distance=3.15;this.mode='follow';this.focus=new T.Vector3(0,.9,0);this.last=performance.now();
   this.canvas=document.createElement('canvas');this.canvas.className='cage-canvas';this.canvas.setAttribute('aria-label',window.I18N?.lang==='en'?'3D boxing cage. Drag to orbit; scroll or pinch to zoom.':'สนามมวย 3 มิติ ลากเพื่อหมุนกล้อง เลื่อนหรือจีบสองนิ้วเพื่อซูม');this.canvas.tabIndex=0;container.append(this.canvas);
   this.notice=document.createElement('div');this.notice.className='cage-loading';container.append(this.notice);
   this.renderer=new T.WebGLRenderer({canvas:this.canvas,antialias:true,powerPreference:'high-performance'});this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.25;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=T.PCFSoftShadowMap;
@@ -166,23 +238,28 @@ window.BoxingWorld=class{
   this.canvas.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();this.mode='orbit';if(e.key==='ArrowLeft')this.yaw-=.12;if(e.key==='ArrowRight')this.yaw+=.12;if(e.key==='ArrowUp')this.distance=Math.max(3.5,this.distance-.3);if(e.key==='ArrowDown')this.distance=Math.min(14,this.distance+.3)}},{signal});
   this.canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();this.lost=true;this.notice.textContent=window.I18N?.lang==='en'?'Graphics interrupted; restoring…':'กราฟิกสะดุด กำลังกู้คืน…'},{signal});this.canvas.addEventListener('webglcontextrestored',()=>{this.lost=false;this.loading()},{signal});
  }
- view(mode){this.mode=mode;this.yaw=.28;this.elevation=mode==='top'?.95:.30;this.distance=mode==='top'?9:4.6}
+ view(mode){this.mode=mode;this.yaw=.28;this.elevation=mode==='top'?.95:mode==='follow'?.12:.22;this.distance=mode==='top'?9:mode==='follow'?3.15:4.2}
  add(model,id){const actor=new CageFighter(this,model,id);this.actors.push(actor);return actor}
  clearActors(){for(const a of this.actors)a.destroy();this.actors=[];this.states=[];this.loading()}
  loading(){const error=this.actors.some(a=>a.canvas.dataset.avatarState==='error'),pending=this.actors.some(a=>a.canvas.dataset.avatarState!=='ready');this.notice.textContent=error?(window.I18N?.lang==='en'?'Avatar unavailable. Leave and reopen the arena to retry.':'โหลดตัวละครไม่ได้ ออกแล้วเปิดสนามใหม่เพื่อลองอีกครั้ง'):pending?(window.I18N?.lang==='en'?'Loading your fighters…':'กำลังโหลดตัวละครของคุณ…'):''}
- set(states,practice=true){this.states=states;this.practice=practice;this.bag.visible=practice;const champion=states.findIndex(s=>s.presentation==='champion');if(champion>=0&&!this.celebrating){this.mode='champion';this.distance=3.8;this.elevation=.18}if(champion<0&&this.celebrating)this.view('side');this.celebrating=champion>=0;this.loading()}
+ set(states,practice=true){this.states=states;this.practice=practice;this.bag.visible=practice;const champion=states.findIndex(s=>s.presentation==='champion');if(champion>=0&&!this.celebrating){this.mode='champion';this.distance=3.8;this.elevation=.18}if(champion<0&&this.celebrating)this.view('follow');this.celebrating=champion>=0;this.loading()}
  hitBag(){this.bagHit=performance.now()}
  project(x,z,y=1.65){const v=new THREE.Vector3(x,y,z).project(this.camera);return{x:(v.x*.5+.5)*100,y:(-.5*v.y+.5)*100}}
  tick(now){
   if(!this.running)return;this.frame=requestAnimationFrame(t=>this.tick(t));const dt=Math.min(.05,(now-this.last)/1000);this.last=now;if(document.hidden||this.lost)return;
   const T=THREE,rect=this.canvas.getBoundingClientRect();if(rect.width<2||rect.height<2)return;const ratio=Math.min(devicePixelRatio||1,1.5);if(this.width!==rect.width||this.height!==rect.height){this.width=rect.width;this.height=rect.height;this.renderer.setPixelRatio(ratio);this.renderer.setSize(rect.width,rect.height,false);this.camera.aspect=rect.width/rect.height;this.camera.updateProjectionMatrix()}
   const states=this.states;for(let i=0;i<this.actors.length;i++){const state=states[i]||{},target=states[1-i]||{x:0,z:0};this.actors[i].update(state,target,dt,now/1000)}
-  let x=0,z=0;for(const s of states){x+=s.x||0;z+=s.z||0}const count=states.length||1,champion=this.mode==='champion'?this.actors[states.findIndex(s=>s.presentation==='champion')]:null;this.focus.lerp(new T.Vector3(champion?champion.position.x:x/count,champion?1.02:.9,champion?champion.position.y:z/count),1-Math.exp(-dt*5));
+  const ready=this.actors.filter(a=>a.body&&a.canvas.dataset.avatarState==='ready');for(const a of ready)a.root.updateMatrixWorld(true);
+  // Both fighters see constraints from the same pose snapshot, independent of player order.
+  const bodies=new Map(ready.map(a=>[a,BoxingContact.shapes(a)]));
+  for(const actor of ready){const obstacles=ready.filter(a=>a!==actor).flatMap(a=>bodies.get(a));if(this.practice)obstacles.push({a:this.bag.localToWorld(new T.Vector3(0,.70,0)),b:this.bag.localToWorld(new T.Vector3(0,1.30,0)),radius:.30,kind:'bag'});BoxingContact.constrain(actor,obstacles)}
+  const down=states.some(s=>s.presentation==='down')&&!states.some(s=>s.presentation==='champion');
+  let x=0,z=0;for(const s of states){x+=s.x||0;z+=s.z||0}const count=states.length||1,champion=this.mode==='champion'?this.actors[states.findIndex(s=>s.presentation==='champion')]:null;this.focus.lerp(new T.Vector3(champion?champion.position.x:x/count,champion?1.02:down?.55:this.mode==='follow'?1.02:.9,champion?champion.position.y:z/count),1-Math.exp(-dt*5));
   if(champion)this.yaw+=Math.atan2(Math.sin(-this.yaw),Math.cos(-this.yaw))*(1-Math.exp(-dt*3));
   if(this.mode==='side'&&states.length===2){const dx=states[1].x-states[0].x,dz=states[1].z-states[0].z,desired=Math.atan2(-dz,dx)+.18;this.yaw+=Math.atan2(Math.sin(desired-this.yaw),Math.cos(desired-this.yaw))*(1-Math.exp(-dt*3))}
-  if(this.mode==='follow'&&this.actors[this.selfIndex||0])this.yaw=this.actors[this.selfIndex||0].yaw+Math.PI+.30;
+  if(this.mode==='follow'&&this.actors[this.selfIndex||0]){const desired=this.actors[this.selfIndex||0].yaw+Math.PI+.60;this.yaw+=Math.atan2(Math.sin(desired-this.yaw),Math.cos(desired-this.yaw))*(1-Math.exp(-dt*5))}
   const separation=states.length===2?Math.hypot(states[0].x-states[1].x,states[0].z-states[1].z):1;
-  const radius=Math.max(this.distance,champion?0:separation*1.15+2.5)/Math.min(1,Math.max(.6,this.camera.aspect));this.camera.position.set(this.focus.x+Math.sin(this.yaw)*radius*Math.cos(this.elevation),this.focus.y+Math.sin(this.elevation)*radius,this.focus.z+Math.cos(this.yaw)*radius*Math.cos(this.elevation));this.camera.lookAt(this.focus);
+  const radius=Math.max(down?4:this.distance,champion?0:this.mode==='follow'?separation*.8+1.8:separation*1.15+2.5)/Math.min(1,Math.max(.6,this.camera.aspect));const elevation=down?Math.max(.55,this.elevation):this.elevation;this.camera.position.set(this.focus.x+Math.sin(this.yaw)*radius*Math.cos(elevation),this.focus.y+Math.sin(elevation)*radius,this.focus.z+Math.cos(this.yaw)*radius*Math.cos(elevation));this.camera.lookAt(this.focus);
   for(const f of this.fences){const towardCamera=f.mid.clone().sub(this.focus).dot(this.camera.position.clone().sub(this.focus));f.group.visible=towardCamera<4}
   for(const lamp of this.lamps)lamp.visible=this.camera.position.y<5.3;for(const beam of this.beams)beam.visible=this.camera.position.y<5.3;
   const motion=!matchMedia('(prefers-reduced-motion: reduce)').matches&&document.body.dataset.effects!=='off';for(let i=0;i<this.beams.length;i++)this.beams[i].rotation.z=motion?Math.sin(now/2600+i)*.15:0;

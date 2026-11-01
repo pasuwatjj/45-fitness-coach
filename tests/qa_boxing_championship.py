@@ -73,12 +73,14 @@ with sync_playwright() as p:
   for hit in range(10):
    reset(attacker);punch(attacker,'right','straight')
    attacker.wait_for_function(f"Boxing.state.players[{target}].hp<={9-hit}",timeout=7000)
-  for page in [a,c]:page.wait_for_function("Boxing.state.status==="+repr('finished' if round_number==3 else 'round_break'))
+  for page in [a,c]:page.wait_for_function("Boxing.state.status==="+repr('round_break'))
   if round_number<3:
    for page in [a,c]:
-    page.wait_for_function("/Round over|จบยก/.test(document.querySelector('.boxing-banner').textContent)");page.wait_for_function(f"Boxing.world.actors[{target}].downAmount>.9");assert not page.evaluate('Boxing.world.actors.some(a=>a.belt?.visible)')
+    page.wait_for_function("/COUNTDOWN|นับถอยหลัง/.test(document.querySelector('.boxing-banner').textContent)");page.wait_for_function(f"Boxing.world.actors[{target}].downAmount>.9");assert not page.evaluate('Boxing.world.actors.some(a=>a.belt?.visible)')
    assert ca.request.get(root+f'/social/boxing/belts/{pid}',headers=h).json()['belts']==0
-   a.wait_for_function(f"Boxing.state.round==={round_number+1}",timeout=10000);assert a.evaluate('Boxing.state.players.every(p=>p.hp===10&&p.armor===10)');a.wait_for_function('Boxing.world.actors.every(a=>a.canvas.dataset.presentation==="fighting")')
+   a.wait_for_function(f"Boxing.state.round==={round_number+1}",timeout=15000);assert a.evaluate('Boxing.state.players.every(p=>p.hp===10&&p.armor===10)');a.wait_for_function('Boxing.world.actors.every(a=>a.canvas.dataset.presentation==="fighting")')
+  if round_number==3:
+   for page in [a,c]:page.wait_for_function("Boxing.state.status==='finished'",timeout=15000)
   print('round',round_number,'PASS',flush=True)
  assert a.evaluate('Boxing.state.winner')==uid;assert a.evaluate('Boxing.state.players.map(p=>p.wins)')==[2,1];assert ca.request.get(root+f'/social/boxing/belts/{pid}',headers=h).json()['belts']==1
  for page in [a,c]:

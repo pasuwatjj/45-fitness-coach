@@ -2,7 +2,7 @@
 import json,time,uuid,math
 from flask import Blueprint,g,request,jsonify
 import character,collaboration_features,boxing_cage
-MATCH_RULES=4
+MATCH_RULES=5
 
 def clock():return time.time()
 def schema(store):
@@ -33,10 +33,12 @@ def advance(m,now):
     if now-m['created']>1800 or (m['status']=='invited' and now-m['created']>120):m['status']='expired';return
     if m['status']=='countdown' and now>=m['start']:m['status']='active';m['round_start']=m['start']
     if m['status']=='round_break' and now>=m['next_round_at']:
+        if m.get('rules',2)>=5 and any(p.get('wins',0)>=2 for p in m['players']):
+            finish(m,m['round_winner'],'best_of_three',now);return
         m.update(status='active',round=m['round']+1,round_start=m['next_round_at'],motion_at=now)
         m.pop('knockdown',None)
         for i,p in enumerate(m['players']):
-            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,hp=10,armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,guard_since=None,guard_until=0,last_punch=0,last_hand=None,control_at=0)
+            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,hp=10,armor=10,position=.35 if i==0 else .65,move=0,crouch=0,arms=None,guard_since=None,guard_until=0,last_punch=0,last_hand=None,control_at=0)
     if m['status']=='active':
         motion(m,now)
         if m.get('rules',2)>=4:boxing_cage.resolve(m,now,knockout)
@@ -49,21 +51,22 @@ def finish(m,winner,result,now):
     m['pending_strikes']=[]
     m.update(status='finished',winner=winner,result=result,ended_at=now)
     if result not in ['best_of_three','knockout']:m.pop('knockdown',None)
-    for p in m['players']:p.update(move=0,crouch=0,slip=0,bend=0,side=0,side_since=None,guard_until=0)
+    for p in m['players']:p.update(move=0,crouch=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,guard_until=0)
 
 def knockout(m,winner,now):
     if m.get('rules',2)<3:finish(m,winner['uid'],'knockout',now);return
     duration=max(0,now-m['round_start']);m['elapsed']=m.get('elapsed',0)+duration
     winner['wins']=winner.get('wins',0)+1
     m.setdefault('rounds',[]).append(dict(number=m['round'],winner=winner['uid'],duration=duration))
-    m.update(status='round_break',round_winner=winner['uid'],round_ended_at=now,next_round_at=now+5)
+    pause=10 if m.get('rules',2)>=5 else 5
+    m.update(status='round_break',round_winner=winner['uid'],round_ended_at=now,next_round_at=now+pause)
     loser=next(p for p in m['players'] if p['uid']!=winner['uid'])
-    m['knockdown']=dict(uid=loser['uid'],at=now,recover_at=None if winner['wins']>=2 else now+5)
-    for p in m['players']:p.update(move=0,crouch=0,slip=0,bend=0,side=0,side_since=None,guard_until=0)
-    if winner['wins']>=2:finish(m,winner['uid'],'best_of_three',now)
+    m['knockdown']=dict(uid=loser['uid'],at=now,recover_at=None if winner['wins']>=2 else now+pause)
+    for p in m['players']:p.update(move=0,crouch=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,guard_until=0)
+    if winner['wins']>=2 and m.get('rules',2)<5:finish(m,winner['uid'],'best_of_three',now)
 
 def award(db,m,now):
-    if m.get('rules') not in [2,3,4] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
+    if m.get('rules') not in [2,3,4,5] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
     winner=next((p for p in m['players'] if p['uid']==m.get('winner') and p.get('profile_id')),None)
     if winner:
         db.execute('INSERT OR IGNORE INTO boxing_trophies VALUES(?,?,?,?)',(m['id'],winner['uid'],winner['profile_id'],now));m['trophy_awarded']=True;m['belt_awarded']=True
@@ -94,7 +97,7 @@ def action(m,uid,data,now):
             for v in side.values():
                 if not isinstance(v,list) or len(v)!=3 or any(type(x) not in (int,float) or not math.isfinite(x) or abs(x)>1.01 for x in v):raise ValueError('Invalid vector')
     if now-p.get('control_at',0)>.7:p['guard_since']=None
-    if m.get('rules',2)>=4:boxing_cage.control(p,slip,bend,now)
+    if m.get('rules',2)>=4:boxing_cage.control(p,slip,bend,now,move)
     p.update(seq=seq,pose=kind,move=move,control_at=now,arms=arms,crouch=crouch)
     if guard and kind=='control':
         if p.get('guard_since') is None:p['guard_since']=now

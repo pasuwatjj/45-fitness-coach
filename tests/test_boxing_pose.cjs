@@ -5,8 +5,8 @@ function fixture(){
 }
 // Front remains responsive, while small backward depth must not be masked by mild forward torso noise.
 {const {p,settle}=fixture();p[11].z=p[12].z=-.14;assert.equal(settle(82).move,1);p[11].z=p[12].z=0;p[0].z=.05;assert.equal(settle(82).move,-1);p[0].z=0;assert.equal(settle().move,0);p[11].z=p[12].z=-.04;p[0].z=.03;assert.equal(settle(82).move,-1)}
-// Smaller image-space shoulder width provides a fallback when model depth barely changes.
-{const {p,settle}=fixture();p[11].x=.365;p[12].x=.635;assert.equal(settle(82).move,-1);p[11].x=.35;p[12].x=.65;assert.equal(settle().move,0)}
+// Shoulder-width change alone must not cause a false backward bend or retreat.
+{const {p,settle}=fixture();p[11].x=.365;p[12].x=.635;assert.equal(settle(82).move,0);p[11].x=.35;p[12].x=.65;assert.equal(settle().move,0)}
 // Partial frame, crouch/stand, loss of head tracking, and English-only feedback.
 {const {p,d,settle}=fixture();p[15].visibility=p[16].visibility=.1;p[23].visibility=p[24].visibility=.1;p[0].z=.06;assert.equal(settle(82).move,-1);p[0].z=0;for(const i of [0,11,12])p[i].y+=.17;let r=settle();assert(r.crouch>.9);assert(!r.guard);assert(!/[ก-๙]/.test(r.label));for(const i of [0,11,12])p[i].y-=.17;assert(settle().crouch<.05);p[0].visibility=.1;assert.equal(settle().valid,false);assert.equal(d.walk,0)}
 for(const side of ['left','right'])for(const type of ['straight','hook','uppercut']){
@@ -20,7 +20,7 @@ for(const side of ['left','right'])for(const type of ['straight','hook','uppercu
 }
 // Guard activation remains a 3-second elbow hold.
 {const {p,settle}=fixture();p[13].y=p[14].y=.4;const r=settle(50);assert(r.guard);assert.equal(r.guardSeconds,3)}
-console.log('PASS mild backward lean, depth conflict, perspective fallback, crouch/stand, cropped/occluded body, assisted left/right straight/hook/uppercut, hold suppression, guard and English');
+console.log('PASS mild backward lean, depth conflict, no width-only retreat, crouch/stand, cropped/occluded body, assisted left/right straight/hook/uppercut, hold suppression, guard and English');
 // Retraction, held extension and small jitter never create a bonus uppercut/hook.
 for(const side of ['left','right']){
  const {p,read,settle}=fixture(),s=side==='left'?11:12,e=s+2,h=s+4,sign=side==='left'?1:-1,neutral=JSON.parse(JSON.stringify(p));
@@ -29,24 +29,24 @@ for(const side of ['left','right']){
  extend();assert.equal(read().action,side);for(let i=0;i<20;i++){p[h].x+=(i%2?1:-1)*.005;assert.equal(read().action,'control')}
 }
 // Upper-body-only lateral movement: immediate slip, two-second hold, neutral/reversal reset.
-{const {p,read,settle}=fixture();p[23].visibility=p[24].visibility=0;for(const i of [0,11,12,13,14,15,16])p[i].x-=.10;let r=settle(5);assert(r.slip>.5);assert.equal(r.strafe,0);r=settle(18);assert.equal(r.strafe,0);r=settle(12);assert.equal(r.strafe,1);for(const i of [0,11,12,13,14,15,16])p[i].x+=.20;r=settle(8);assert(r.slip<-.5);assert.equal(r.strafe,0);for(const i of [0,11,12,13,14,15,16])p[i].x-=.10;r=settle(10);assert.equal(r.strafe,0);assert.equal(r.sideSeconds,0)}
+{const {p,read,settle}=fixture();p[23].visibility=p[24].visibility=0;for(const i of [0,11,12,13,14,15,16])p[i].x-=.10;let r=settle(5);assert(r.slip>.5);assert.equal(r.strafe,0);r=settle(18);assert.equal(r.strafe,0);r=settle(12);assert.equal(r.strafe,1);for(const i of [0,11,12,13,14,15,16])p[i].x+=.20;r=settle(8);assert(r.slip<-.5);assert.equal(r.strafe,-1);for(const i of [0,11,12,13,14,15,16])p[i].x-=.10;r=settle(10);assert.equal(r.strafe,0);assert.equal(r.sideSeconds,0)}
 // Deep bow changes the torso and suppresses forward travel; missing hands do not strike on recovery.
 {const {p,settle}=fixture();p[23].visibility=p[24].visibility=0;p[0].z=-.4;let r=settle(15);assert(r.bend>.8);assert.equal(r.move,0);p[0].z=0;r=settle(15);assert(Math.abs(r.bend)<.05);p[15].visibility=0;settle();p[15].visibility=1;assert.equal(settle(3).action,'control')}
-console.log('PASS no recoil/hold/jitter bonus punches, deliberate rearm, upper-body 2-second circling, reversal/neutral reset, deep bend and occlusion recovery');
+console.log('PASS no recoil/hold/jitter bonus punches, deliberate rearm, upper-body 2-second circling, continuous reversal / neutral reset, deep bend and occlusion recovery');
 {const {p,d}=fixture();assert.equal(d.read(p,p,10000).valid,false);assert.equal(d.sideAt,null);assert.equal(d.walk,0)}
 console.log('PASS stalled tracking recalibrates rather than completing a stale side hold');
 
-// Both depth directions wait two seconds; reversal, neutral and tracking loss cancel progress.
+// Both depth directions wait two seconds; completed walks reverse continuously; neutral and tracking loss cancel progress.
 for(const depth of [-.10,.06]){
  const {p,read,settle}=fixture();p[0].z=depth;
  let r=settle(12);assert.equal(r.move,0);assert(r.walkSeconds>0);
  r=settle(10);assert.equal(r.move,0);r=settle(14);assert.equal(r.move,depth<0?1:-1);
- p[0].z=-depth;r=settle(10);assert.equal(r.move,0);assert(r.walkSeconds<1);
+ p[0].z=-depth;r=settle(10);assert.equal(r.move,depth<0?-1:1);assert.equal(r.walkSeconds,2);
  p[0].z=0;r=settle(12);assert.equal(r.move,0);assert.equal(r.walkSeconds,0);
  p[0].z=depth;settle(40);p[0].visibility=0;assert.equal(read().valid,false);
  p[0].visibility=1;p[0].z=0;settle(24);p[0].z=depth;assert.equal(settle(22).move,0);
 }
-console.log('PASS two-second forward/backward holds; reversal, neutral and tracking-loss reset');
+console.log('PASS two-second forward/backward holds; continuous reversal, neutral and tracking-loss reset');
 // Lateral holds work in both directions, without a leg landmark requirement.
 for(const sign of [-1,1]){
  const {p,settle}=fixture();p[23].visibility=p[24].visibility=0;
@@ -85,3 +85,25 @@ for(const direction of ['left','right','forward','back']){
  assert.equal(lateral?before.strafe:before.move,0);assert.notEqual(lateral?after.strafe:after.move,0);
 }
 console.log('PASS exact 1,999/2,000 ms boundary in all four directions');
+// Camera yaw must not turn a forward punch into a cross-body/backward arm pose.
+const rotate=(source,degrees)=>{const a=degrees*Math.PI/180,c=Math.cos(a),s=Math.sin(a);return source.map(p=>({...p,x:.5+(p.x-.5)*c+p.z*s,z:-(p.x-.5)*s+p.z*c}))};
+for(const yaw of [-90,-65,0,65,90])for(const side of ['left','right']){
+ const f=fixture(),neutral=JSON.parse(JSON.stringify(f.p));neutral[0].z=-.08;
+ const d=new D();let now=0;const sample=(pose,n=1)=>{let r;for(let i=0;i<n;i++)r=d.read(pose,pose,now+=70);return r};sample(neutral,24);
+ const turned=rotate(neutral,yaw),idle=sample(turned,40);assert(Math.abs(idle.bend)<.01,`${yaw} yaw must not bend`);assert(Math.abs(idle.slip)<.01);assert.equal(idle.move,0);assert.equal(idle.strafe,0);assert.equal(idle.action,'control');
+ const s=side==='left'?11:12,punch=JSON.parse(JSON.stringify(neutral));Object.assign(punch[s+2],{x:punch[s].x,y:punch[s].y,z:-.15});Object.assign(punch[s+4],{x:punch[s].x,y:punch[s].y,z:-.30});
+ const hit=sample(rotate(punch,yaw));assert.equal(hit.action,side,`${yaw} ${side}`);assert.equal(hit.punchType,'straight');
+ const arm=sample(rotate(punch,yaw),15).arms[side];assert(arm.upper[2]>.99&&arm.lower[2]>.99);assert(Math.abs(arm.upper[0])<.01);
+ // A real waist bow remains a forward bend at every camera orientation.
+ const bowed=JSON.parse(JSON.stringify(neutral));for(const i of [0,11,12,13,14,15,16])bowed[i].z-=.18;
+ assert(sample(rotate(bowed,yaw),15).bend>.35,`${yaw} forward bow`);
+}
+// Front-view torso compression is a bow, not a false backward estimate.
+{const {p,settle}=fixture();p[11].y=p[12].y=.52;p[0].y=.39;assert(settle(15).bend>.3)}
+// Backward posture is bounded, while true forward bows still reach their full range.
+{const {p,settle}=fixture();p[0].z=.6;const r=settle(20);assert(r.bend>=-.251&&r.bend<-.20)}
+// Completed movement can cross axes, but a neutral hold or bad tracking rearms the timer.
+{const {p,d,settle}=fixture();p[0].x-=.07;assert.equal(settle(40).strafe,1);p[0].x+=.07;p[0].z=-.05;const r=settle(8);assert.equal(r.move,1);assert.equal(r.walkSeconds,2);p[0].z=0;settle(12);p[0].x+=.07;assert.equal(settle(10).strafe,0)}
+// Before the first two seconds, reversal still requires a fresh deliberate hold.
+{const {p,settle}=fixture();p[0].x-=.07;assert.equal(settle(18).strafe,0);p[0].x+=.14;assert.equal(settle(18).strafe,0);assert.equal(settle(18).strafe,-1)}
+console.log('PASS side-on punches at ±90°, yaw-stable upright posture, body-relative bows, bounded back lean and continuous cross-axis walking');

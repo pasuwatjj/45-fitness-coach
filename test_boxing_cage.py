@@ -101,6 +101,12 @@ class CageRoutes(unittest.TestCase):
         r=self.control(self.a,posture=posture,bend=-.7);self.assertEqual(r.status_code,200)
         self.assertEqual(self.b.get('/social/boxing/'+self.mid).json['match']['players'][0]['posture'],posture)
         self.assertIsNone(self.control(self.a,'idle').json['match']['players'][0]['posture'])
+    def test_lower_body_sync_and_validation(self):
+        body=dict(confidence=1,shiftX=.6,shiftZ=-.4,drop=.3,hipRoll=.2,leftKnee=.6,rightKnee=.3,stance=.2,stagger=-.2)
+        r=self.control(self.a,lowerBody=body);self.assertEqual(r.status_code,200)
+        self.assertEqual(self.b.get('/social/boxing/'+self.mid).json['match']['players'][0]['lowerBody'],body)
+        for bad in [{},[],dict(body,shiftX=2),dict(body,confidence=-1),dict(body,drop=True),dict(body,leftKnee=float('nan'))]:self.assertEqual(self.control(self.a,lowerBody=bad).status_code,400)
+        self.assertIsNone(self.control(self.a,'idle').json['match']['players'][0]['lowerBody'])
     def test_invalid_upper_body_posture_rejected(self):
         good=dict(turn=0,hipTurn=0,tilt=0,headPitch=0,headYaw=0,headRoll=0)
         for value in [[],{},dict(good,extra=0),dict(good,turn=1.1),dict(good,headPitch=True),dict(good,headRoll=float('nan'))]:

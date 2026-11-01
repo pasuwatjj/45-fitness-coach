@@ -73,7 +73,7 @@ window.BoxingContact={
 };
 
 window.CageFighter=class extends FitnessImportedAvatar{
- constructor(world,model,id){const canvas=document.createElement('canvas');super(canvas,world);this.world=world;this.id=id;this.target={x:0,z:0};this.position=new THREE.Vector2();this.state={};this.poseSmooth={bend:0,slip:0,crouch:0,turn:0,hipTurn:0,tilt:0,headPitch:0,headYaw:0,headRoll:0};this.set(model)}
+ constructor(world,model,id){const canvas=document.createElement('canvas');super(canvas,world);this.world=world;this.id=id;this.target={x:0,z:0};this.position=new THREE.Vector2();this.state={};this.supportSmooth={confidence:0,shiftX:0,shiftZ:0,drop:0,hipRoll:0,leftKnee:0,rightKnee:0,stance:0,stagger:0};this.poseSmooth={bend:0,slip:0,crouch:0,turn:0,hipTurn:0,tilt:0,headPitch:0,headYaw:0,headRoll:0};this.set(model)}
  status(value){this.canvas.dataset.avatarState=value;this.world?.loading()}
  start(){this.running=true}stop(){this.running=false}schedule(){}draw(){}
  buildRig(deform){
@@ -88,6 +88,7 @@ window.CageFighter=class extends FitnessImportedAvatar{
    const leg=this.bones[side+'Leg'].upper;this.pelvis.add(leg);leg.position.y-=hip;
   }
   for(const name of ['pelvis','spine','chest','neck']){this[name+'Index']=this.skeleton.bones.length;this.skeleton.bones.push(this[name])}
+  for(const side of ['left','right']){const leg=this.bones[side+'Leg'];leg.foot=new T.Bone();leg.foot.position.copy(leg.end);leg.lower.add(leg.foot);leg.footIndex=this.skeleton.bones.length;leg.lowerIndex=this.skeleton.bones.indexOf(leg.lower);leg.footBind=new T.Vector3(...deform(...this.assetRig.joints[side+'Leg'][2]));this.skeleton.bones.push(leg.foot)}
   this.body.updateMatrixWorld(true);this.skeleton.calculateInverses();this.skeleton.init();
  }
  build(){
@@ -104,29 +105,41 @@ window.CageFighter=class extends FitnessImportedAvatar{
      if(base<0)continue;const w=weight.array[i*4+base];
      index.array[i*4+base]=blend<.5?low[1]:high[1];
      if(empty>=0&&blend>0&&blend<1){index.array[i*4+base]=low[1];weight.array[i*4+base]=w*(1-blend);index.array[i*4+empty]=high[1];weight.array[i*4+empty]=w*blend}
-    }index.needsUpdate=true;weight.needsUpdate=true;mesh.castShadow=true;mesh.receiveShadow=true;
+    }
+    // A cage-only ankle joint keeps feet level while hips and knees absorb the lean.
+    for(let i=0;i<position.count;i++)for(const side of ['left','right']){
+     const leg=this.bones[side+'Leg'],blend=1-T.MathUtils.smoothstep(position.getY(i),leg.footBind.y,leg.footBind.y+.10);if(blend<=0)continue;
+     let slot=-1,empty=-1;for(let k=0;k<4;k++){if(index.array[i*4+k]===leg.lowerIndex&&weight.array[i*4+k]>0)slot=k;if(weight.array[i*4+k]===0)empty=k}
+     if(slot<0)continue;if(blend>.999){index.array[i*4+slot]=leg.footIndex}else if(empty>=0){const w=weight.array[i*4+slot];weight.array[i*4+slot]=w*(1-blend);weight.array[i*4+empty]=w*blend;index.array[i*4+empty]=leg.footIndex}
+    }
+    index.needsUpdate=true;weight.needsUpdate=true;mesh.castShadow=true;mesh.receiveShadow=true;
    }else if(mesh.isMesh){mesh.geometry.computeBoundingBox();const bottom=mesh.geometry.boundingBox.min.y*mesh.scale.y+mesh.position.y;if(bottom>this.hip+.2){this.neck.add(mesh);mesh.position.y-=this.shoulderHeight+.12}mesh.castShadow=true}
   }
   // Build glove attachment in the bind pose, before any animated posture is applied.
   this.root.scale.setScalar(this.height*.5);this.body.updateMatrixWorld(true);
-  const leather=this.material('#171a20',.48),seam=this.material('#353b45',.75),strap=this.material(this.id===0?'#2458ac':'#b52c36',.7);
+  // Hide only cage hand triangles under the closed glove; profile meshes stay untouched.
+  const wrists=['left','right'].map(side=>{const b=this.bones[side+'Arm'];return{lower:this.skeleton.bones.indexOf(b.lower),fingers:new Set(this.fingers.filter(f=>f.name.endsWith(side==='left'?'_l':'_r')).map(f=>this.skeleton.bones.indexOf(f.bone))),point:b.lower.localToWorld(b.end.clone()).applyMatrix4(this.body.matrixWorld.clone().invert()),direction:b.restLower.clone()}});
+  this.coveredHandTriangles=0;
+  for(const mesh of this.body.children.filter(m=>m.isSkinnedMesh)){
+   const geometry=mesh.geometry,position=geometry.attributes.position,skin=geometry.attributes.skinIndex,weight=geometry.attributes.skinWeight,idx=geometry.index;if(!idx)continue;const covered=[];
+   for(let i=0;i<position.count;i++){const v=new T.Vector3().fromBufferAttribute(position,i);covered[i]=wrists.some(w=>{let forearm=false;for(let k=0;k<4;k++){if(weight.array[i*4+k]<.01)continue;const bone=skin.array[i*4+k];if(w.fingers.has(bone))return true;if(bone===w.lower)forearm=true}const d=v.clone().sub(w.point);return forearm&&d.length()<.46&&d.dot(w.direction)>-.025})}
+   const kept=[];for(let i=0;i<idx.count;i+=3){const a=idx.getX(i),b=idx.getX(i+1),c=idx.getX(i+2);if(covered[a]||covered[b]||covered[c])this.coveredHandTriangles++;else kept.push(a,b,c)}geometry.setIndex(kept);
+  }
+  const leather=this.material('#c82032',.42),seam=this.material('#781624',.65),strap=this.material('#f2eee5',.8);
   for(const side of ['left','right']){
    const b=this.bones[side+'Arm'],grip=this.handGrips[side];if(!b||!grip)continue;
    const center=b.lower.worldToLocal(this.body.localToWorld(grip.center.clone()));b.contactEnd=center.clone();
-   const glove=new T.Group();glove.name='boxing-mma-glove';glove.position.copy(center);b.lower.add(glove);b.glove=glove;
-   const y=center.clone().sub(b.end).normalize(),x=grip.across.clone().addScaledVector(y,-grip.across.dot(y)).normalize(),z=new T.Vector3().crossVectors(x,y).normalize();
-   glove.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(x,y,z));
-   // Reuse two instanced sphere batches per glove rather than ten separate draw calls.
-   const pads=[],seams=[],pad=(list,name,x,y,z,rx,ry,rz)=>{const marker=new T.Object3D();marker.name=name;marker.position.set(x,y,z);marker.scale.set(rx,ry,rz);marker.updateMatrix();glove.add(marker);list.push(marker.matrix.clone())};
-   pad(pads,'palm-wrap',0,0,0,.125,.135,.10);
-   for(let i=0;i<4;i++){pad(pads,'knuckle-pad',(i-1.5)*.057,.073,.045,.034,.077,.066);pad(seams,'stitch',(i-1.5)*.057,.095,.101,.023,.04,.008)}
-   pad(pads,'thumb-wrap',.115,-.035,.012,.05,.09,.063);
-   for(const [instances,material]of [[pads,leather],[seams,seam]]){const geometry=new T.SphereGeometry(1,12,8),mesh=new T.InstancedMesh(geometry,material,instances.length);instances.forEach((matrix,i)=>mesh.setMatrixAt(i,matrix));mesh.instanceMatrix.needsUpdate=true;mesh.frustumCulled=false;this.resources.push(geometry,mesh);glove.add(mesh)}
+   const glove=new T.Group();glove.name='boxing-closed-glove';glove.position.copy(center);b.lower.add(glove);b.glove=glove;
+   const y=center.clone().sub(b.end).normalize(),x=grip.across.clone().addScaledVector(y,-grip.across.dot(y)).normalize(),z=new T.Vector3().crossVectors(x,y).normalize();glove.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(x,y,z));
+   this.ell(0,.025,0,.165,.19,.145,leather,glove).name='closed-shell';this.ell(.14,-.035,.015,.07,.11,.085,leather,glove).name='thumb-cover';
    const wrist=b.end.clone().sub(center).applyQuaternion(glove.quaternion.clone().invert());
-   const cuff=this.mesh(new T.CylinderGeometry(.103,.11,.105,20),leather,glove);cuff.position.copy(wrist);cuff.name='wrist-cuff';
-   const band=this.mesh(new T.CylinderGeometry(.108,.112,.045,20),strap,glove);band.position.copy(wrist);band.name='wrist-strap';
-   const patch=this.mesh(new T.BoxGeometry(.11,.055,.018),seam,glove);patch.position.copy(wrist).add(new T.Vector3(0,0,.109));patch.name='strap-fastener';
+   const cuff=this.mesh(new T.CylinderGeometry(.12,.125,.15,20),leather,glove);cuff.position.copy(wrist);cuff.name='wrist-cuff';
+   const band=this.mesh(new T.CylinderGeometry(.125,.13,.055,20),strap,glove);band.position.copy(wrist);band.name='wrist-strap';
+   const patch=this.mesh(new T.BoxGeometry(.105,.06,.018),seam,glove);patch.position.copy(wrist).add(new T.Vector3(0,0,.129));
   }
+  this.root.updateMatrixWorld(true);
+  for(const side of ['left','right']){const leg=this.bones[side+'Leg'];leg.footHome=this.root.worldToLocal(leg.lower.localToWorld(leg.end.clone()));leg.footHome.y=.06*this.height/this.root.scale.y;leg.footHome.x+=(side==='left'?1:-1)*.09;leg.footHome.z+=(side==='left'?1:-1)*.10}
+
  }
  makeBelt(){
   if(this.belt)return;const T=THREE,w=this.world;this.belt=new T.Group();this.pelvis.add(this.belt);this.belt.position.y=.12;
@@ -164,24 +177,45 @@ window.CageFighter=class extends FitnessImportedAvatar{
 
   if(gettingUp>.001){this.body.updateMatrixWorld(true);const feet=['left','right'].map(side=>{const leg=this.bones[side+'Leg'];return leg.lower.localToWorld(leg.end.clone()).y});this.body.position.y+=(.07*this.height-Math.min(...feet))/this.root.scale.y*gettingUp}
  }
+ supportLegs(dt){
+  const T=THREE,s=this.supportSmooth,blend=s.confidence,targets={};this.root.updateMatrixWorld(true);
+  for(const [side,sign]of [['left',1],['right',-1]]){
+   const leg=this.bones[side+'Leg'],step=Math.sin(this.stepPhase||0)*sign,gait=this.gait||0,home=leg.footHome.clone();
+   home.x+=sign*s.stance*.13*blend+step*(this.state.strafe||0)*.13*gait;
+   home.z+=sign*s.stagger*.17*blend+step*(this.state.move||0)*.18*gait;
+   home.y+=Math.max(0,step)*.13*gait;targets[side]=this.root.localToWorld(home);
+  }
+  // Lower the pelvis enough for both fixed-length chains to reach their planted feet.
+  let lower=0;for(const side of ['left','right']){const leg=this.bones[side+'Leg'],hip=leg.upper.getWorldPosition(new T.Vector3()),target=targets[side],length=(leg.lower.position.length()+leg.end.length())*this.root.scale.x-.008,horizontal=(hip.x-target.x)**2+(hip.z-target.z)**2;lower=Math.max(lower,hip.y-target.y-Math.sqrt(Math.max(.01,length*length-horizontal)))}
+  this.body.position.y-=Math.max(0,lower)/this.root.scale.y;this.root.updateMatrixWorld(true);
+  for(const [side,sign]of [['left',1],['right',-1]]){
+   const b=this.bones[side+'Leg'],start=b.upper.getWorldPosition(new T.Vector3()),target=targets[side],l1=b.lower.position.length()*this.root.scale.x,l2=b.end.length()*this.root.scale.x,axis=target.clone().sub(start),distance=T.MathUtils.clamp(axis.length(),Math.abs(l1-l2)+.001,l1+l2-.001);axis.normalize();
+   const along=(l1*l1-l2*l2+distance*distance)/(2*distance),height=Math.sqrt(Math.max(0,l1*l1-along*along)),pole=new T.Vector3(sign*.12,0,1).applyQuaternion(this.root.quaternion);pole.addScaledVector(axis,-pole.dot(axis)).normalize();
+   const knee=start.clone().addScaledVector(axis,along).addScaledVector(pole,height),end=start.clone().addScaledVector(axis,distance),inv=b.upper.parent.getWorldQuaternion(new T.Quaternion()).invert(),upper=knee.clone().sub(start).normalize().applyQuaternion(inv),lower=end.clone().sub(knee).normalize().applyQuaternion(inv),uq=new T.Quaternion().setFromUnitVectors(b.restUpper,upper);
+   b.upper.quaternion.copy(uq);b.lower.quaternion.copy(uq.clone().invert().multiply(new T.Quaternion().setFromUnitVectors(b.restLower,lower)));this.root.updateMatrixWorld(true);
+   b.foot.quaternion.copy(b.lower.getWorldQuaternion(new T.Quaternion()).invert().multiply(this.root.quaternion));this.root.updateMatrixWorld(true);
+  }
+ }
  punch(hand,token,type='straight'){if(this.punchToken===token)return;this.punchToken=token;this.punchHand=hand;this.punchType=type;this.punchAt=performance.now()}
  update(state,target,dt,time){
   if(!this.body)return;const T=THREE;this.state=state;this.target={x:state.x||0,z:state.z||0};const ease=1-Math.exp(-dt*15);this.position.lerp(new T.Vector2(this.target.x,this.target.z),ease);
   this.root.position.set(this.position.x,0,this.position.y);const yaw=state.presentation==='champion'?0:Math.atan2(target.x-this.position.x,target.z-this.position.y);this.yaw=(this.yaw??yaw)+Math.atan2(Math.sin(yaw-(this.yaw??yaw)),Math.cos(yaw-(this.yaw??yaw)))*ease;this.root.rotation.y=this.yaw;
   this.phase=time;this.body.rotation.set(0,0,0);const preview=this.workoutPreview;this.workoutPreview=true;super.restPose();this.workoutPreview=preview;for(const key of ['bend','slip','crouch'])this.poseSmooth[key]+=(Number(state[key]||0)-this.poseSmooth[key])*ease;
   for(const key of ['turn','hipTurn','tilt','headPitch','headYaw','headRoll'])this.poseSmooth[key]+=(Number(state.posture?.[key]||0)-this.poseSmooth[key])*ease;
-  const pose=this.poseSmooth,bow=Math.max(0,pose.bend),sway=Math.abs(pose.slip);
+  for(const key of Object.keys(this.supportSmooth))this.supportSmooth[key]+=(Number(state.lowerBody?.[key]||0)-this.supportSmooth[key])*ease;
+  const support=this.supportSmooth,lowerMix=support.confidence,kneeDrop=(1-Math.cos((support.leftKnee+support.rightKnee)*.45))/.45;
+  const pose={...this.poseSmooth,crouch:this.poseSmooth.crouch*(1-lowerMix)+Math.max(support.drop,kneeDrop)*lowerMix},bow=Math.max(0,pose.bend),sway=Math.abs(pose.slip);
   const elapsed=performance.now()-(this.punchAt??-1000),envelope=elapsed<0||elapsed>360?0:Math.sin(Math.PI*elapsed/360);
   const striking=state.arms?.[this.punchHand],alignment=striking?striking.upper.reduce((sum,v,i)=>sum+v*striking.lower[i],0):.7;
   let power=.16+.84*T.MathUtils.clamp((alignment-.15)/.85,0,1);if(this.punchType==='hook')power=Math.max(power,.55);if(this.punchType==='uppercut')power=Math.max(power,.45);
   const drive=envelope*power,twist=(this.punchHand==='left'?1:-1)*drive;
   // Shoulder/hip rotation is continuous, including the wind-up before a strike event.
-  const turn=pose.turn*1.05,hipYaw=pose.hipTurn*.42,remaining=turn-hipYaw,back=Math.min(0,pose.bend),pitch=pose.bend<0?pose.bend*.70:pose.bend,curve=1+Math.min(0,pose.bend)*1.1;
-  this.pelvis.rotation.set(pitch*.22,hipYaw+twist*.04,-pose.slip*.10);
+  const turn=pose.turn*1.05,hipYaw=pose.hipTurn*.82+twist*.08,remaining=turn-hipYaw,back=Math.min(0,pose.bend),pitch=pose.bend<0?pose.bend*.70:pose.bend,curve=1+Math.min(0,pose.bend)*1.1;
+  this.pelvis.rotation.set(pitch*.32,hipYaw+twist*.04,-pose.slip*.16+support.hipRoll*.25*lowerMix);
   this.spine.rotation.set(.06*curve+pitch*.43,remaining*.35+twist*.045,-pose.slip*.20+pose.tilt*.15);
-  this.chest.rotation.set(.12*curve+pitch*.48+drive*(this.punchType==='uppercut'?-.04:.035),remaining*.65+twist*.065,-pose.slip*.22+pose.tilt*.35);
-  this.neck.rotation.set(-.08*curve-bow*.28+back*.08+pose.headPitch*.65,pose.headYaw*.75-twist*.04,pose.headRoll*.55-pose.tilt*.50+pose.slip*.52);
-  this.body.position.set(pose.slip*.09,-.06-.55*pose.crouch-.07*bow-.035*sway,-bow*.10-back*.10);
+  this.chest.rotation.set(.12*curve+pitch*.38+drive*(this.punchType==='uppercut'?-.04:.035),remaining*.65+twist*.065,-pose.slip*.22+pose.tilt*.35);
+  this.neck.rotation.set(-.08*curve-bow*.28+back*.08+pose.headPitch*.65,pose.headYaw*.75-twist*.04,pose.headRoll*.55-pose.tilt*.50+pose.slip*.58-support.hipRoll*.25*lowerMix);
+  this.body.position.set(pose.slip*.17*(1-lowerMix)+support.shiftX*.30*lowerMix+twist*.025,-.06-.48*pose.crouch-.08*bow-.045*sway,-bow*.12-back*.12+support.shiftZ*.26*lowerMix+drive*.025);
   const shoulderFrame=new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),turn);
   const inverseTorso=this.pelvis.quaternion.clone().multiply(this.spine.quaternion).multiply(this.chest.quaternion).invert();
   for(const side of ['left','right']){
@@ -203,12 +237,13 @@ window.CageFighter=class extends FitnessImportedAvatar{
   const lateral=(state.strafe||0),forward=(state.move||0),phase=this.stepPhase,gait=this.gait;
   this.body.position.y+=Math.sin(phase*2)*.025*gait;
   for(const [side,sign]of [['left',1],['right',-1]]){
-   const leg=this.bones[side+'Leg'];if(!leg)continue;const step=Math.sin(phase)*sign,lift=Math.max(0,step);
+   const leg=this.bones[side+'Leg'];if(!leg)continue;leg.foot?.quaternion.identity();const step=Math.sin(phase)*sign,lift=Math.max(0,step);
    leg.upper.rotation.z=sign*.10+step*.26*lateral*gait;
    leg.upper.rotation.x=-.10+sign*.07-.7*pose.crouch-.13*bow+step*.32*forward*gait;
    leg.lower.rotation.x=.20+1.35*pose.crouch+.24*bow+.12*sway+lift*.48*gait;
    leg.upper.quaternion.premultiply(this.pelvis.quaternion.clone().invert());
   }
+  if(!state.presentation)this.supportLegs(dt);
   this.presentation(state,dt);
  }
 };

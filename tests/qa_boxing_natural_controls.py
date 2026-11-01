@@ -51,6 +51,20 @@ with sync_playwright() as pw:
  a.wait_for_function('z=>Math.abs(Boxing.state.players[0].z-z)>.15',arg=start,timeout=3500)
  z=a.evaluate('Boxing.state.players[0].z');a.evaluate('testPose[0].x=.56');a.wait_for_function('Boxing.state.players[0].side===-1');a.wait_for_function('z=>Boxing.state.players[0].z>z+.10',arg=z,timeout=1700)
  a.evaluate('testPose[0].x=.5');a.wait_for_function('Boxing.state.players[0].side===0');a.wait_for_timeout(300);stopped=a.evaluate('Boxing.state.players[0].z');a.wait_for_timeout(400);assert abs(a.evaluate('Boxing.state.players[0].z')-stopped)<.01
+ # Nod plus lateral lean starts diagonal travel; all quadrants switch without a new hold.
+ a.evaluate('testPose[0].y+=.06;testPose[0].x=.44')
+ a.wait_for_function('Boxing.state.players[0].move===1&&Boxing.state.players[0].side===1',timeout=4500)
+ for depth,x,move,side in [(.06,.44,-1,1),(.06,.56,-1,-1),(-.05,.56,1,-1)]:
+  a.evaluate('v=>{testPose[0].y=.2;testPose[0].z=v[0];testPose[0].x=v[1]}',[depth,x])
+  c.wait_for_function('v=>Boxing.state.players[0].move===v[0]&&Boxing.state.players[0].side===v[1]',arg=[move,side],timeout=1800)
+ neutral(a)
+ # Acquire visible lower-body landmarks after cropped calibration and synchronize support to the peer.
+ a.evaluate("testPose=structuredClone(neutralPose);for(const v of testPose)v.y=v.y*.65+.02;for(const [i,x,y]of [[25,.4,.75],[26,.6,.75],[27,.4,.95],[28,.6,.95]])Object.assign(testPose[i],{x,y,z:0})")
+ c.wait_for_function('Boxing.state.players[0].lowerBody?.confidence>.95')
+ a.evaluate('testPose[23].x+=.06;testPose[24].x+=.06')
+ c.wait_for_function('Boxing.state.players[0].lowerBody?.shiftX<-.3&&Boxing.world.actors[0].supportSmooth.shiftX<-.25')
+ a.evaluate('testPose[27].visibility=0')
+ c.wait_for_function('Boxing.world.actors[0].supportSmooth.confidence<.01')
  assert not errors,errors
- print('PASS two-client short jabs/rearm, no hold/recoil bonus hits, gentle short duck/back sway without travel, two-second server circling, immediate reversal, neutral stop and remote shoulder wind-up')
+ print('PASS two-client short jabs/rearm, no hold/recoil bonus hits, gentle short duck/back sway without travel, two-second server circling, immediate reversal, neutral stop remote shoulder wind-up, four diagonal directions and synchronized lower-body tracking/fallback')
  b.close()

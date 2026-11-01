@@ -7,12 +7,12 @@ def get(path):
  r=s.get(origin+path,timeout=40);r.raise_for_status();return r
 assert get('/status?release='+revision).json()['revision']==revision
 assert 'new BoxingLobby' in get('/static/boxing.js?release='+revision).text
-for name in ['cozy-ui.js','boxing-computer.js','boxing-lobby.js','boxing-lobby.css','images/boxing/fighter-lobby.webp','boxing-motion.js','boxing-world.js','images/boxing/champion-belt.svg','images/boxing/mode-menu.png','images/boxing/arena-championship.png','inbox.js','character.js','character-renderer.js','cozy-ui.css','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
+for name in ['boxing-lobby-stage.js','cozy-ui.js','boxing-computer.js','boxing-lobby.js','boxing-lobby.css','images/boxing/fighter-lobby.webp','boxing-motion.js','boxing-world.js','images/boxing/champion-belt.svg','images/boxing/mode-menu.png','images/boxing/arena-championship.png','inbox.js','character.js','character-renderer.js','cozy-ui.css','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
  assert get('/static/'+name+'?release='+revision).content==Path('static',name).read_bytes(),name
 assert s.get(origin+'/social/boxing',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/belts/1',timeout=40).status_code==401
 html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=16' in html
-for asset in ['boxing-motion.js?v=2','boxing-lobby.css?v=2','boxing-lobby.js?v=3','boxing-computer.js?v=3','cozy-ui.js?v=3','profile.js?v=50','boxing-world.js?v=10','boxing-pose.js?v=10','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=10']:
+for asset in ['boxing-lobby-stage.js?v=1','boxing-motion.js?v=3','boxing-lobby.css?v=3','boxing-lobby.js?v=4','boxing-computer.js?v=4','cozy-ui.js?v=3','profile.js?v=50','boxing-world.js?v=11','boxing-pose.js?v=10','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=10']:
  assert '/static/'+asset in html,asset
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']);page=b.new_page();page.set_content('<main></main>');page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
@@ -55,7 +55,7 @@ with sync_playwright() as p:
  page.add_style_tag(content=get('/static/boxing.css?release='+revision).text)
  page.add_style_tag(content=get('/static/boxing-lobby.css?release='+revision).text)
  page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
- for asset in ['boxing-computer.js','boxing-lobby.js','boxing.js']:page.add_script_tag(content=get('/static/'+asset+'?release='+revision).text)
+ for asset in ['boxing-computer.js','boxing-lobby-stage.js','boxing-lobby.js','boxing.js']:page.add_script_tag(content=get('/static/'+asset+'?release='+revision).text)
  page.evaluate('Boxing.open()')
  assert page.locator('.boxing-menu').is_visible()
  assert page.locator('.boxing-mode-card').count()==4
@@ -66,11 +66,13 @@ with sync_playwright() as p:
  assert page.evaluate('Boxing.world===null&&document.querySelector(".boxing-preview video").srcObject===null')
  # Preview a public-asset fixture without loading any account or writing production data.
  page.evaluate("window.lobbySmoke=new BoxingLobby({enter(){},profile:document.createElement('select')});document.querySelector('.boxing-menu').hidden=true;document.getElementById('boxingPage').append(lobbySmoke.root,lobbySmoke.dialog);lobbySmoke.update({created:true,profile:{name:'Live preview'},appearance:{},growth:{parts:{arms:{level:3,progress:.5,exp:50,next_exp:100}}},visual:{}});lobbySmoke.setAvailable(true)")
- page.wait_for_function("lobbySmoke.preview.querySelector('canvas')?.dataset.avatarState==='ready'",timeout=60000)
+ page.wait_for_function("lobbySmoke.sceneHost.querySelector('canvas')?.dataset.avatarState==='ready'",timeout=60000)
  before=page.evaluate('lobbySmoke.renderer.info.render.frame');page.wait_for_timeout(1100);after=page.evaluate('lobbySmoke.renderer.info.render.frame');assert 1<after-before<=28,(before,after)
- assert page.evaluate("lobbySmoke.previewResources.length>3&&lobbySmoke.previewBag?.name==='lobby-heavy-bag'&&lobbySmoke.actor.state.controlMode==='computer'&&lobbySmoke.actor.yaw>1.4")
+ assert page.evaluate("lobbySmoke.stage.room.getObjectByName('lobby-floor').receiveShadow&&lobbySmoke.previewBag.getObjectByName('bag-chain').children.length===60&&lobbySmoke.renderer.shadowMap.enabled&&lobbySmoke.previewResources.length>3&&lobbySmoke.previewBag?.name==='lobby-heavy-bag'&&lobbySmoke.actor.state.controlMode==='computer'&&lobbySmoke.actor.yaw>1.4")
  page.wait_for_function("lobbySmoke.actor.punchToken?.startsWith('lobby:')",timeout=12000)
  page.emulate_media(reduced_motion='reduce');page.wait_for_timeout(200);frozen=page.evaluate('lobbySmoke.renderer.info.render.frame');page.wait_for_timeout(300);assert page.evaluate('lobbySmoke.renderer.info.render.frame')==frozen;page.emulate_media(reduced_motion='no-preference')
+ Path('work/boxing-lobby-review').mkdir(parents=True,exist_ok=True)
+ page.locator('.fighter-lobby').last.screenshot(path='work/boxing-lobby-review/final-room.png')
  assert page.evaluate("lobbySmoke.rows.querySelector('[data-part=arms] strong').textContent==='LV 3'")
  page.evaluate("lobbySmoke.choose('friends')");assert page.locator('dialog[open] .fighter-primary').is_disabled();page.locator('dialog[open] [data-control=computer]').click();assert page.locator('dialog[open] .fighter-primary').is_enabled()
  page.evaluate("lobbySmoke.dialog.close();lobbySmoke.showSettings()");assert page.locator('dialog[open] [data-binding=dash]').inner_text()=='CTRL';assert page.locator('dialog[open] [data-binding=crouch]').inner_text()=='C'

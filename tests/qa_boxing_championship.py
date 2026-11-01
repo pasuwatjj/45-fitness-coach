@@ -63,7 +63,13 @@ with sync_playwright() as p:
  for page in [a,c]:
   page.wait_for_function('Boxing.state?.players.length===2&&Boxing.world?.actors.length===2');page.evaluate("const render=Boxing.world.renderer.render.bind(Boxing.world.renderer);let last=0;Boxing.world.renderer.render=(...args)=>{if(performance.now()-last>80){last=performance.now();render(...args)}};void 0")
  a.wait_for_function("Boxing.state.status==='active'",timeout=12000);assert a.locator('.boxing-clock').is_visible();assert a.evaluate('!Boxing.world.bag.visible&&Boxing.world.actors.length===2');initial=a.locator('.boxing-clock strong').inner_text();a.wait_for_function("old=>document.querySelector('.boxing-clock strong').textContent!==old",arg=initial,timeout=5000)
- c.evaluate('for(const i of [0,11,12,13,14,15,16,23,24])testPose[i].y+=.17');a.wait_for_function('Boxing.state.players[1].crouch>.9');a.wait_for_function("Boxing.world.actors[1].body.position.y<-.51");reset(c);a.wait_for_function('Boxing.state.players[1].crouch<.05')
+ # Avatar loading can pause the fake camera; wait for both clients to finish neutral calibration.
+ for page in [a,c]:page.wait_for_function("/Ready|พร้อม/.test(document.querySelector('.boxing-status').textContent)")
+ c.evaluate('for(const i of [0,11,12,13,14,15,16,23,24])testPose[i].y+=.17')
+ try:a.wait_for_function('Boxing.state.players[1].crouch>.9')
+ except Exception:
+  print('CROUCH DIAGNOSTICS',[(page.locator('.boxing-status').inner_text(),page.evaluate('({status:Boxing.state.status,player:Boxing.state.players[1],local:Boxing.world.states[1]})')) for page in [a,c]],flush=True);raise
+ a.wait_for_function("Boxing.world.actors[1].body.position.y<-.51");reset(c);a.wait_for_function('Boxing.state.players[1].crouch<.05')
  # Correct-side slip avoids a real timed punch; recovery does not add a second strike.
  c.evaluate('testPose[0].x+=.12');c.wait_for_function('Boxing.world.states[1].slip<-.6');a.wait_for_function('Boxing.state.players[1].slip<-.6');punch(a,'left');a.wait_for_function("Boxing.state.event?.result==='dodge'",timeout=7000);assert a.evaluate('Boxing.state.players[1].hp')==10
  reset(a);reset(c);n=a.evaluate('Boxing.state.events.length');a.wait_for_timeout(900);assert a.evaluate('Boxing.state.events.length')==n

@@ -1,7 +1,7 @@
 'use strict';
 window.BoxingPose=class {
  constructor(){this.reset()}
- reset(){this.base=null;this.samples=[];this.arms={left:{armed:true,last:-1000,history:[]},right:{armed:true,last:-1000,history:[]}};this.smooth={};this.walk=0;this.walkAt=null;this.walkDirection=0;this.guardAt=null;this.lastTime=null;this.lean=0;this.crouch=0;this.space=null;this.sideAt=null;this.side=0;this.slip=0;this.bend=0;this.gesture=0;this.facingSign=null;this.travelAt=null;this.travelDirection=null;this.travelReady=false;this.neutralAt=null}
+ reset(){this.base=null;this.samples=[];this.arms={left:{armed:true,last:-1000,history:[]},right:{armed:true,last:-1000,history:[]}};this.smooth={};this.walk=0;this.walkAt=null;this.walkDirection=0;this.guardAt=null;this.lastTime=null;this.lean=0;this.crouch=0;this.space=null;this.sideAt=null;this.side=0;this.slip=0;this.bend=0;this.gesture=0;this.facingSign=null;this.travelAt=null;this.travelDirection=null;this.travelReady=false;this.neutralAt=null;this.posture={turn:0,hipTurn:0,tilt:0,headPitch:0,headYaw:0,headRoll:0};this.faceAt=null}
  read(p=[],w,now){
   if(this.lastTime!==null&&now-this.lastTime>700)this.reset();
   const good=i=>p[i]&&p[i].visibility>.5&&['x','y','z'].every(k=>Number.isFinite(p[i][k]));
@@ -27,6 +27,14 @@ window.BoxingPose=class {
   const torso=hips?Math.atan2(-dot(torsoVector,front),Math.max(.12,torsoVector[1])):null;
   const bodyLateral=hips?local(vector(23,0).map((v,i)=>(v+vector(24,0)[i])/2))[0]/span:null;
   const head=Math.atan2(-dot(headVector,front),Math.max(.1,headVector[1]));
+  const heading=Math.atan2(front[0],front[2]),roll=Math.atan2(shoulder[1],width);
+  const hipLine=hips?vector(24,23):null,hipHeading=hipLine?Math.atan2(-hipLine[2]*this.facingSign,hipLine[0]*this.facingSign):null;
+  const faceGood=[7,8].every(i=>good(i)&&finite(q,i))&&Math.hypot(...vector(8,7))>span*.18;
+  const faceVector=faceGood?local(vector(7,0).map((v,i)=>(v+vector(8,0)[i])/2)):null;
+  const faceValid=faceVector&&faceVector[2]>span*.06&&Math.hypot(...faceVector)<span*.95;
+  const facePitch=faceValid?Math.atan2(-faceVector[1],faceVector[2]):null,faceYaw=faceValid?Math.atan2(faceVector[0],faceVector[2]):null;
+  const faceLine=faceValid?vector(8,7):null,faceRoll=faceLine?Math.atan2(faceLine[1],Math.hypot(faceLine[0],faceLine[2])):null;
+  const neckVector=faceValid?vector(11,7).map((v,i)=>(v+vector(12,8)[i])/2):null,neckPitch=neckVector?Math.atan2(-dot(neckVector,front),Math.max(.1,neckVector[1])):null;
   const dt=this.lastTime===null?33:Math.max(1,Math.min(150,now-this.lastTime));this.lastTime=now;
   const alpha=1-Math.exp(-dt/65),arms={},candidates=[];
   for(const [side,s,e,h]of [['left',11,13,15],['right',12,14,16]]){
@@ -62,13 +70,21 @@ window.BoxingPose=class {
   }
   if(!this.base){
    const hipX=good(23)&&good(24)?(p[23].x+p[24].x)/2:(p[11].x+p[12].x)/2;
-   this.samples.push({torso,head,bodyLateral,torsoHeight:torsoVector?.[1]??null,headHeight:headVector[1],imageSpan,shoulderY,headY:p[0].y,centerX:p[0].x*.65+(p[11].x+p[12].x)*.175,lateral:(p[0].x-hipX)/imageSpan});
-   if(this.samples.length>=20){const median=key=>{const values=this.samples.map(v=>v[key]).filter(v=>v!==null).sort((a,b)=>a-b);return values.length?values[Math.floor(values.length/2)]:null};this.base=Object.fromEntries(['torso','head','bodyLateral','torsoHeight','headHeight','imageSpan','shoulderY','headY','centerX','lateral'].map(k=>[k,median(k)]))}
+   this.samples.push({neckPitch,heading,hipHeading,roll,facePitch,faceYaw,faceRoll,torso,head,bodyLateral,torsoHeight:torsoVector?.[1]??null,headHeight:headVector[1],imageSpan,shoulderY,headY:p[0].y,centerX:p[0].x*.65+(p[11].x+p[12].x)*.175,lateral:(p[0].x-hipX)/imageSpan});
+   if(this.samples.length>=20){const median=key=>{const values=this.samples.map(v=>v[key]).filter(v=>v!==null).sort((a,b)=>a-b);return values.length?values[Math.floor(values.length/2)]:null};this.base=Object.fromEntries(['neckPitch','heading','hipHeading','roll','facePitch','faceYaw','faceRoll','torso','head','bodyLateral','torsoHeight','headHeight','imageSpan','shoulderY','headY','centerX','lateral'].map(k=>[k,median(k)]))}
    return{...invalid(t('ยืนตรง มองกล้อง เพื่อปรับศูนย์…','Stand upright and face the camera to calibrate…')),arms};
   }
+  const clamp=(v,limit=1)=>Math.max(-limit,Math.min(limit,v)),angleDelta=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
+  const turn=clamp(angleDelta(heading,this.base.heading)/1.05),hipTurn=hipHeading!==null&&this.base.hipHeading!==null?clamp(angleDelta(hipHeading,this.base.hipHeading)/1.05):turn*.25;
+  const targets={turn,hipTurn,tilt:clamp(angleDelta(roll,this.base.roll)/.6)};
+  if(faceValid){
+   this.faceAt=now;for(const key of ['facePitch','faceYaw','faceRoll'])if(this.base[key]===null)this.base[key]=({facePitch,faceYaw,faceRoll})[key];
+   targets.headPitch=clamp((angleDelta(facePitch,this.base.facePitch)+(hips&&this.base.torso!==null?torso-this.base.torso:0))/.65);targets.headYaw=clamp(angleDelta(faceYaw,this.base.faceYaw)/.75);targets.headRoll=clamp(angleDelta(faceRoll,this.base.faceRoll)/.55);
+  }else if(this.faceAt===null||now-this.faceAt>200)Object.assign(targets,{headPitch:0,headYaw:0,headRoll:0});
+  for(const [key,value]of Object.entries(targets))this.posture[key]+=(value-this.posture[key])*(1-Math.exp(-dt/(key.startsWith('head')?100:75)));
   const chosen=candidates.sort((a,b)=>b.score-a.score)[0];let punch=null,punchType='straight';
   if(chosen){punch=chosen.side;punchType=chosen.type;const a=this.arms[punch];a.armed=false;a.last=now;a.launch=a.home?.slice();a.launchTolerance=Math.max(.04,Math.min(.15,Math.hypot(...chosen.hand.map((v,i)=>v-(a.home?.[i]??v)))*.35));a.retractDistance=Math.max(.07,Math.min(.38,Math.hypot(...chosen.hand.map((v,i)=>v-(a.home?.[i]??v)))*.55));a.end=chosen.hand;a.recoverAt=null;a.history=[];this.gesture++}
-  const torsoAngle=torso!==null&&this.base.torso!==null?-(torso-this.base.torso)*180/Math.PI:0,headAngle=-(head-this.base.head)*180/Math.PI;
+  const torsoAngle=torso!==null&&this.base.torso!==null?-(torso-this.base.torso)*180/Math.PI:0,headAngle=-(neckPitch!==null&&this.base.neckPitch!==null?neckPitch-this.base.neckPitch:head-this.base.head)*180/Math.PI;
   // Backward lean is usually smaller. Do not let a small forward torso estimate mask it.
   const back=Math.min(torsoAngle,headAngle),forwardAngle=Math.max(torsoAngle,headAngle*.85);
   let angle=back<-6&&forwardAngle<10?back:Math.abs(torsoAngle)>7?torsoAngle:headAngle*.85;
@@ -76,7 +92,9 @@ window.BoxingPose=class {
   // Do not translate that ambiguous signal into a back bend or retreat.
   const fold=hips&&this.base.torsoHeight>0?1-torsoVector[1]/this.base.torsoHeight:0,headFold=this.base.headHeight>0?1-headVector[1]/this.base.headHeight:0;
   if(fold>.16&&headFold>.12)angle=Math.max(angle,Math.min(45,(fold-.08)*100));
-  angle=Math.max(-18,Math.min(65,angle));
+  // Reliable torso and face landmarks separate a head look-up from a whole-body lean.
+  if(faceValid&&hips&&this.base.torso!==null)angle=fold>.16&&headFold>.12?Math.max(torsoAngle,Math.min(45,(fold-.08)*100)):torsoAngle;
+  angle=Math.max(hips?-38:-28,Math.min(65,angle));
   this.lean+=(angle-this.lean)*(1-Math.exp(-dt/95));
   if(this.lean>10)this.walk=1;else if(this.lean<-6)this.walk=-1;else if(Math.abs(this.lean)<3)this.walk=0;
   const drop=Math.min(shoulderY-this.base.shoulderY,p[0].y-this.base.headY)/this.base.imageSpan;
@@ -86,7 +104,7 @@ window.BoxingPose=class {
   const leftSign=Math.sign(p[11].x-p[12].x)||1;
   const lateral=hips&&this.base.bodyLateral!==null?bodyLateral-this.base.bodyLateral:((p[0].x*.65+(p[11].x+p[12].x)*.175-this.base.centerX)/this.base.imageSpan)*leftSign;
   const targetSlip=Math.max(-1,Math.min(1,lateral/.32));this.slip+=(targetSlip-this.slip)*alpha;
-  this.bend+=(Math.max(-.25,Math.min(1,this.lean/45))-this.bend)*alpha;
+  this.bend+=(Math.max(-.85,Math.min(1,this.lean/45))-this.bend)*alpha;
   const side=Math.abs(this.slip)>.35?Math.sign(this.slip):0;
   if(this.bend>.60||this.crouch>.50)this.walk=0;
   const direction=side+':'+this.walk,hasDirection=!!(side||this.walk);
@@ -107,6 +125,6 @@ window.BoxingPose=class {
   const raised=[['left',11,13,15],['right',12,14,16]].every(([side,s,e,h])=>good(e)&&good(h)&&finite(q,e)&&Math.abs(q[e].y-q[s].y)/span<.32);
   if(raised&&!punch)this.guardAt??=now;else this.guardAt=null;
   const held=this.guardAt===null?0:Math.min(3,(now-this.guardAt)/1000),names={straight:t('หมัดตรง','Straight'),hook:t('ฮุก','Hook'),uppercut:t('อัปเปอร์คัต','Uppercut')};
-  return{valid:true,arms,move,walkSeconds,crouch:this.crouch,slip:this.slip,bend:this.bend,strafe,sideSeconds,gesture:this.gesture,guard:raised&&!punch,guardSeconds:held,angle:this.lean,action:punch||'control',punchType,label:punch?`${punch==='left'?t('ซ้าย','Left'):t('ขวา','Right')} · ${names[punchType]}`:side?`${side>0?t('โยกซ้าย','Lean left'):t('โยกขวา','Lean right')} · ${sideSeconds.toFixed(1)}/2 ${t('วิ','s')}${strafe?t(' · เดินวน',' · circling'):''}`:this.walk?`${this.walk>0?t('เอนหน้า','Lean forward'):t('เอนหลัง','Lean backward')} · ${walkSeconds.toFixed(1)}/2 ${t('วิ','s')}${move?t(' · กำลังเดิน',' · walking'):''}`:raised?`${t('ยกศอกการ์ด','Guard hold')} ${held.toFixed(1)}/3 ${t('วิ','s')}`:this.crouch>.3?t('ย่อตัว','Crouching'):this.walk>0?t('เดินหน้า','Forward'):this.walk<0?t('ถอยหลัง','Backward'):t('พร้อม · แขนตามท่าจริง','Ready · arms follow your movement')};
+  return{valid:true,posture:{...this.posture},arms,move,walkSeconds,crouch:this.crouch,slip:this.slip,bend:this.bend,strafe,sideSeconds,gesture:this.gesture,guard:raised&&!punch,guardSeconds:held,angle:this.lean,action:punch||'control',punchType,label:punch?`${punch==='left'?t('ซ้าย','Left'):t('ขวา','Right')} · ${names[punchType]}`:side?`${side>0?t('โยกซ้าย','Lean left'):t('โยกขวา','Lean right')} · ${sideSeconds.toFixed(1)}/2 ${t('วิ','s')}${strafe?t(' · เดินวน',' · circling'):''}`:this.walk?`${this.walk>0?t('เอนหน้า','Lean forward'):t('เอนหลัง','Lean backward')} · ${walkSeconds.toFixed(1)}/2 ${t('วิ','s')}${move?t(' · กำลังเดิน',' · walking'):''}`:raised?`${t('ยกศอกการ์ด','Guard hold')} ${held.toFixed(1)}/3 ${t('วิ','s')}`:this.crouch>.3?t('ย่อตัว','Crouching'):this.walk>0?t('เดินหน้า','Forward'):this.walk<0?t('ถอยหลัง','Backward'):t('พร้อม · แขนตามท่าจริง','Ready · arms follow your movement')};
  }
 };

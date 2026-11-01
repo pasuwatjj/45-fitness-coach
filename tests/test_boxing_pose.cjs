@@ -101,9 +101,40 @@ for(const yaw of [-90,-65,0,65,90])for(const side of ['left','right']){
 // Front-view torso compression is a bow, not a false backward estimate.
 {const {p,settle}=fixture();p[11].y=p[12].y=.52;p[0].y=.39;assert(settle(15).bend>.3)}
 // Backward posture is bounded, while true forward bows still reach their full range.
-{const {p,settle}=fixture();p[0].z=.6;const r=settle(20);assert(r.bend>=-.251&&r.bend<-.20)}
+{const {p,settle}=fixture();p[0].z=.6;const r=settle(20);assert(r.bend>=-.85&&r.bend<-.80)}
 // Completed movement can cross axes, but a neutral hold or bad tracking rearms the timer.
 {const {p,d,settle}=fixture();p[0].x-=.07;assert.equal(settle(40).strafe,1);p[0].x+=.07;p[0].z=-.05;const r=settle(8);assert.equal(r.move,1);assert.equal(r.walkSeconds,2);p[0].z=0;settle(12);p[0].x+=.07;assert.equal(settle(10).strafe,0)}
 // Before the first two seconds, reversal still requires a fresh deliberate hold.
 {const {p,settle}=fixture();p[0].x-=.07;assert.equal(settle(18).strafe,0);p[0].x+=.14;assert.equal(settle(18).strafe,0);assert.equal(settle(18).strafe,-1)}
 console.log('PASS side-on punches at ±90°, yaw-stable upright posture, body-relative bows, bounded back lean and continuous cross-axis walking');
+
+// Continuous torso wind-up follows shoulder depth before any strike, including cropped hips.
+for(const yaw of [-40,40]){
+ const f=fixture(),turned=rotate(f.p,yaw),d=f.d;let now=d.lastTime;let r;
+ for(let i=0;i<25;i++)r=d.read(turned,turned,now+=70);
+ assert(Math.abs(r.posture.turn)>.6);assert.equal(r.action,'control');
+ assert(Math.abs(r.bend)<.02);assert.equal(r.move,0);
+ turned[23].visibility=turned[24].visibility=0;
+ for(let i=0;i<10;i++)r=d.read(turned,turned,now+=70);
+ assert(Math.abs(r.posture.turn)>.6);assert(Number.isFinite(r.posture.hipTurn));
+}
+// Face orientation is independent of torso: looking up must not arch or walk the body.
+{
+ const {p,d,settle}=fixture();Object.assign(p[7],{x:.43,y:.20,z:.08});Object.assign(p[8],{x:.57,y:.20,z:.08});d.reset();settle(24);
+ p[0].y=.15;let r=settle(40);assert(r.posture.headPitch<-.7);assert(Math.abs(r.bend)<.03);assert.equal(r.move,0);
+ p[0].y=.20;p[0].x=.53;r=settle(15);assert(r.posture.headYaw<-.4);
+ p[7].y=.17;p[8].y=.23;r=settle(15);assert(r.posture.headRoll>.5);
+ p[7].visibility=p[8].visibility=0;r=settle(25);assert(Math.abs(r.posture.headPitch)<.02&&Math.abs(r.posture.headRoll)<.02);
+ p[0].visibility=0;assert.equal(settle().valid,false);assert.equal(d.posture.turn,0);
+}
+// Torso extension scales up rather than saturating at the former quarter range.
+{
+ const {p,settle}=fixture();for(const i of [0,11,12,13,14,15,16])p[i].z+=.12;const gentle=settle(20).bend;
+ for(const i of [0,11,12,13,14,15,16])p[i].z+=.15;const strong=settle(20).bend;
+ assert(gentle<-.3&&strong<gentle-.25&&strong>=-.85);
+}
+console.log('PASS continuous wind-up, cropped hip fallback, independent head pitch/yaw/roll, facial occlusion recovery and progressive back extension');
+
+// With hips cropped, a face look-up still does not move the body: ear/neck position owns lean.
+{const {p,d,settle}=fixture();Object.assign(p[7],{x:.43,y:.20,z:.08});Object.assign(p[8],{x:.57,y:.20,z:.08});p[23].visibility=p[24].visibility=0;d.reset();settle(24);p[0].y=.15;p[0].z=.02;const r=settle(45);assert(r.posture.headPitch<-.7);assert(Math.abs(r.bend)<.03);assert.equal(r.move,0)}
+console.log('PASS cropped-hip head look-up stays independent of body lean and movement');

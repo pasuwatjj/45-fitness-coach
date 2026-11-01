@@ -73,7 +73,7 @@ window.BoxingContact={
 };
 
 window.CageFighter=class extends FitnessImportedAvatar{
- constructor(world,model,id){const canvas=document.createElement('canvas');super(canvas,world);this.world=world;this.id=id;this.target={x:0,z:0};this.position=new THREE.Vector2();this.state={};this.poseSmooth={bend:0,slip:0,crouch:0};this.set(model)}
+ constructor(world,model,id){const canvas=document.createElement('canvas');super(canvas,world);this.world=world;this.id=id;this.target={x:0,z:0};this.position=new THREE.Vector2();this.state={};this.poseSmooth={bend:0,slip:0,crouch:0,turn:0,hipTurn:0,tilt:0,headPitch:0,headYaw:0,headRoll:0};this.set(model)}
  status(value){this.canvas.dataset.avatarState=value;this.world?.loading()}
  start(){this.running=true}stop(){this.running=false}schedule(){}draw(){}
  buildRig(deform){
@@ -109,8 +109,24 @@ window.CageFighter=class extends FitnessImportedAvatar{
   }
   // Build glove attachment in the bind pose, before any animated posture is applied.
   this.root.scale.setScalar(this.height*.5);this.body.updateMatrixWorld(true);
-  const glove=this.material(this.id===0?'#252b36':'#3c2429',.7);
-  for(const side of ['left','right']){const b=this.bones[side+'Arm'],grip=this.handGrips[side];if(!b||!grip)continue;const center=b.lower.worldToLocal(this.body.localToWorld(grip.center.clone()));b.contactEnd=center.clone();this.ell(center.x,center.y,center.z,.17,.15,.18,glove,b.lower)}
+  const leather=this.material('#171a20',.48),seam=this.material('#353b45',.75),strap=this.material(this.id===0?'#2458ac':'#b52c36',.7);
+  for(const side of ['left','right']){
+   const b=this.bones[side+'Arm'],grip=this.handGrips[side];if(!b||!grip)continue;
+   const center=b.lower.worldToLocal(this.body.localToWorld(grip.center.clone()));b.contactEnd=center.clone();
+   const glove=new T.Group();glove.name='boxing-mma-glove';glove.position.copy(center);b.lower.add(glove);b.glove=glove;
+   const y=center.clone().sub(b.end).normalize(),x=grip.across.clone().addScaledVector(y,-grip.across.dot(y)).normalize(),z=new T.Vector3().crossVectors(x,y).normalize();
+   glove.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(x,y,z));
+   // Reuse two instanced sphere batches per glove rather than ten separate draw calls.
+   const pads=[],seams=[],pad=(list,name,x,y,z,rx,ry,rz)=>{const marker=new T.Object3D();marker.name=name;marker.position.set(x,y,z);marker.scale.set(rx,ry,rz);marker.updateMatrix();glove.add(marker);list.push(marker.matrix.clone())};
+   pad(pads,'palm-wrap',0,0,0,.125,.135,.10);
+   for(let i=0;i<4;i++){pad(pads,'knuckle-pad',(i-1.5)*.057,.073,.045,.034,.077,.066);pad(seams,'stitch',(i-1.5)*.057,.095,.101,.023,.04,.008)}
+   pad(pads,'thumb-wrap',.115,-.035,.012,.05,.09,.063);
+   for(const [instances,material]of [[pads,leather],[seams,seam]]){const geometry=new T.SphereGeometry(1,12,8),mesh=new T.InstancedMesh(geometry,material,instances.length);instances.forEach((matrix,i)=>mesh.setMatrixAt(i,matrix));mesh.instanceMatrix.needsUpdate=true;mesh.frustumCulled=false;this.resources.push(geometry,mesh);glove.add(mesh)}
+   const wrist=b.end.clone().sub(center).applyQuaternion(glove.quaternion.clone().invert());
+   const cuff=this.mesh(new T.CylinderGeometry(.103,.11,.105,20),leather,glove);cuff.position.copy(wrist);cuff.name='wrist-cuff';
+   const band=this.mesh(new T.CylinderGeometry(.108,.112,.045,20),strap,glove);band.position.copy(wrist);band.name='wrist-strap';
+   const patch=this.mesh(new T.BoxGeometry(.11,.055,.018),seam,glove);patch.position.copy(wrist).add(new T.Vector3(0,0,.109));patch.name='strap-fastener';
+  }
  }
  makeBelt(){
   if(this.belt)return;const T=THREE,w=this.world;this.belt=new T.Group();this.pelvis.add(this.belt);this.belt.position.y=.12;
@@ -153,24 +169,27 @@ window.CageFighter=class extends FitnessImportedAvatar{
   if(!this.body)return;const T=THREE;this.state=state;this.target={x:state.x||0,z:state.z||0};const ease=1-Math.exp(-dt*15);this.position.lerp(new T.Vector2(this.target.x,this.target.z),ease);
   this.root.position.set(this.position.x,0,this.position.y);const yaw=state.presentation==='champion'?0:Math.atan2(target.x-this.position.x,target.z-this.position.y);this.yaw=(this.yaw??yaw)+Math.atan2(Math.sin(yaw-(this.yaw??yaw)),Math.cos(yaw-(this.yaw??yaw)))*ease;this.root.rotation.y=this.yaw;
   this.phase=time;this.body.rotation.set(0,0,0);const preview=this.workoutPreview;this.workoutPreview=true;super.restPose();this.workoutPreview=preview;for(const key of ['bend','slip','crouch'])this.poseSmooth[key]+=(Number(state[key]||0)-this.poseSmooth[key])*ease;
+  for(const key of ['turn','hipTurn','tilt','headPitch','headYaw','headRoll'])this.poseSmooth[key]+=(Number(state.posture?.[key]||0)-this.poseSmooth[key])*ease;
   const pose=this.poseSmooth,bow=Math.max(0,pose.bend),sway=Math.abs(pose.slip);
   const elapsed=performance.now()-(this.punchAt??-1000),envelope=elapsed<0||elapsed>360?0:Math.sin(Math.PI*elapsed/360);
   const striking=state.arms?.[this.punchHand],alignment=striking?striking.upper.reduce((sum,v,i)=>sum+v*striking.lower[i],0):.7;
   let power=.16+.84*T.MathUtils.clamp((alignment-.15)/.85,0,1);if(this.punchType==='hook')power=Math.max(power,.55);if(this.punchType==='uppercut')power=Math.max(power,.45);
   const drive=envelope*power,twist=(this.punchHand==='left'?1:-1)*drive;
-  // Hips initiate the action; lumbar/chest flex separately so the back actually rounds.
-  this.pelvis.rotation.set(pose.bend*.18,twist*.10,-pose.slip*.10);
-  this.spine.rotation.set(.06+pose.bend*.42,twist*.13,-pose.slip*.22);
-  this.chest.rotation.set(.12+pose.bend*.50+drive*(this.punchType==='uppercut'?-.08:.07),twist*(this.punchType==='hook'?.30:.18),-pose.slip*.25-twist*.05);
-  this.neck.rotation.set(-.08-pose.bend*.28,-twist*.12,pose.slip*.18);
-  this.body.position.set(pose.slip*.06,-.06-.55*pose.crouch-.07*bow-.035*sway,-bow*.10);
+  // Shoulder/hip rotation is continuous, including the wind-up before a strike event.
+  const turn=pose.turn*1.05,hipYaw=pose.hipTurn*.42,remaining=turn-hipYaw,back=Math.min(0,pose.bend),pitch=pose.bend<0?pose.bend*.70:pose.bend,curve=1+Math.min(0,pose.bend)*1.1;
+  this.pelvis.rotation.set(pitch*.22,hipYaw+twist*.04,-pose.slip*.10);
+  this.spine.rotation.set(.06*curve+pitch*.43,remaining*.35+twist*.045,-pose.slip*.20+pose.tilt*.15);
+  this.chest.rotation.set(.12*curve+pitch*.48+drive*(this.punchType==='uppercut'?-.04:.035),remaining*.65+twist*.065,-pose.slip*.22+pose.tilt*.35);
+  this.neck.rotation.set(-.08*curve-bow*.28+back*.08+pose.headPitch*.65,pose.headYaw*.75-twist*.04,pose.headRoll*.55-pose.tilt*.50+pose.slip*.52);
+  this.body.position.set(pose.slip*.09,-.06-.55*pose.crouch-.07*bow-.035*sway,-bow*.10-back*.10);
+  const shoulderFrame=new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),turn);
   const inverseTorso=this.pelvis.quaternion.clone().multiply(this.spine.quaternion).multiply(this.chest.quaternion).invert();
   for(const side of ['left','right']){
    const b=this.bones[side+'Arm'],sign=side==='left'?1:-1,measured=state.arms?.[side];if(!b)continue;
    const upper=new T.Vector3(...(measured?.upper||[sign*.25,-.5,.65])).normalize(),lower=new T.Vector3(...(measured?.lower||[-sign*.15,.8,.4])).normalize();
    // Tracked elbows/wrists own the pose, even during a scoring event. No canned extension.
-   upper.applyQuaternion(inverseTorso);lower.applyQuaternion(inverseTorso);
-   b.upper.position.copy(b.cageBindPosition);b.upper.position.z+=(this.punchHand===side?.06:-.015)*drive;
+   const pull=Math.max(0,-upper.z);upper.applyQuaternion(shoulderFrame).applyQuaternion(inverseTorso);lower.applyQuaternion(shoulderFrame).applyQuaternion(inverseTorso);
+   b.upper.position.copy(b.cageBindPosition);b.upper.position.z+=(this.punchHand===side?.04:-.01)*drive-pull*.10;b.upper.position.x+=sign*pull*.025;
    b.upper.scale.setScalar(1);const uq=new T.Quaternion().setFromUnitVectors(b.restUpper,upper),lq=uq.clone().invert().multiply(new T.Quaternion().setFromUnitVectors(b.restLower,lower));
    b.cageUpper??=uq.clone();b.cageLower??=lq.clone();const armEase=1-Math.exp(-dt*32);
    b.cageUpper.slerp(uq,armEase);b.cageLower.slerp(lq,armEase);b.upper.quaternion.copy(b.cageUpper);b.lower.quaternion.copy(b.cageLower);
@@ -207,8 +226,17 @@ window.BoxingWorld=class{
  mesh(geometry,material,parent=this.scene){this.resources.push(geometry);const m=new THREE.Mesh(geometry,material);parent.add(m);return m}
  bar(a,b,r,material,parent=this.scene){const T=THREE,delta=new T.Vector3().subVectors(b,a),m=this.mesh(new T.CylinderGeometry(r,r,delta.length(),8),material,parent);m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),delta.normalize());return m}
  makeArena(){
-  const T=THREE,canvas=document.createElement('canvas');canvas.width=canvas.height=1024;const c=canvas.getContext('2d');c.fillStyle='#dbe0e1';c.fillRect(0,0,1024,1024);for(let i=0;i<9000;i++){const x=(i*73)%1024,y=(i*137)%1024;c.fillStyle=i%2?'#28384908':'#ffffff18';c.fillRect(x,y,2,2)}c.strokeStyle='#303e52';c.lineWidth=8;c.strokeRect(60,60,904,904);c.beginPath();c.arc(512,512,245,0,Math.PI*2);c.fillStyle='#e7a542';c.fill();c.textAlign='center';c.fillStyle='#142237';c.font='900 112px sans-serif';c.fillText('45 FIGHT',512,505);c.font='700 70px sans-serif';c.fillText('CLUB',512,590);const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;this.resources.push(texture);
-  const floor=this.mesh(new T.CylinderGeometry(6,6,.22,8,1,false,Math.PI/8),this.mat('#d8dde3',{map:texture}));floor.position.y=-.12;floor.receiveShadow=true;
+  const T=THREE,canvas=document.createElement('canvas');canvas.width=canvas.height=1024;const c=canvas.getContext('2d');
+  c.fillStyle='#b6c9c6';c.fillRect(0,0,1024,1024);
+  for(let i=0;i<9000;i++){c.fillStyle=i%2?'#173d3509':'#ffffff18';c.fillRect((i*73)%1024,(i*137)%1024,2,2)}
+  for(const [x,color]of [[0,'#365979'],[850,'#8d4847']]){c.fillStyle=color;c.fillRect(x,0,174,1024)}
+  const octagon=(radius)=>{c.beginPath();for(let i=0;i<8;i++){const a=(i+.5)*Math.PI/4,x=512+Math.cos(a)*radius,y=512+Math.sin(a)*radius;i?c.lineTo(x,y):c.moveTo(x,y)}c.closePath()};
+  octagon(469);c.strokeStyle='#eef0de';c.lineWidth=9;c.stroke();octagon(440);c.strokeStyle='#22403b44';c.lineWidth=2;c.stroke();
+  c.beginPath();c.arc(512,512,227,0,Math.PI*2);c.fillStyle='#dce1cd';c.fill();c.strokeStyle='#193c35';c.lineWidth=3;c.stroke();
+  c.textAlign='center';c.fillStyle='#173c35';c.font='italic 900 190px sans-serif';c.fillText('45',505,530);c.font='900 44px sans-serif';c.fillText('FIGHT CLUB',512,594);c.font='700 17px sans-serif';c.fillText('TRAINING  /  CHAMPIONSHIP',512,638);
+  for(let i=0;i<4;i++){c.save();c.translate(512,512);c.rotate(i*Math.PI/2);c.fillStyle='#173c35';c.font='800 28px sans-serif';c.fillText('FORTY FIVE',0,-348);c.fillStyle='#eef0de';c.fillRect(-120,-325,240,3);c.restore()}
+  const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;this.resources.push(texture);
+  const floor=this.mesh(new T.CylinderGeometry(6,6,.22,8,1,false,Math.PI/8),this.mat('#ffffff',{map:texture,roughness:.92}));floor.position.y=-.12;floor.receiveShadow=true;
   const black=this.mat('#121922'),metal=this.mat('#6c7886',{metalness:.8,roughness:.35}),red=this.mat('#af3b3c'),blue=this.mat('#285a9d');this.fences=[];
   for(let i=0;i<8;i++){
    const a=(i+.5)*Math.PI/4,b=(i+1.5)*Math.PI/4,pa=new T.Vector3(Math.cos(a)*5.85,0,Math.sin(a)*5.85),pb=new T.Vector3(Math.cos(b)*5.85,0,Math.sin(b)*5.85),group=new T.Group();this.scene.add(group);this.fences.push({group,mid:pa.clone().add(pb).multiplyScalar(.5)});
@@ -219,15 +247,25 @@ window.BoxingWorld=class{
     let y0=Math.max(0,-x/sign),y1=Math.min(2.3,(length-x)/sign);if(sign<0){y0=Math.max(0,(length-x)/sign);y1=Math.min(2.3,-x/sign)}if(y1<=y0)continue;
     for(const y of [y0,y1]){const v=pa.clone().lerp(pb,(x+sign*y)/length);lines.push(v.x,y+.08,v.z)}
    }
-   const geom=new T.BufferGeometry();geom.setAttribute('position',new T.Float32BufferAttribute(lines,3));this.resources.push(geom);const material=new T.LineBasicMaterial({color:'#71818e',transparent:true,opacity:.50});this.resources.push(material);group.add(new T.LineSegments(geom,material));
+   const geom=new T.BufferGeometry();geom.setAttribute('position',new T.Float32BufferAttribute(lines,3));this.resources.push(geom);const material=new T.LineBasicMaterial({color:'#627786',transparent:true,opacity:.36});this.resources.push(material);group.add(new T.LineSegments(geom,material));
   }
   const skirt=this.mesh(new T.CylinderGeometry(6.05,6.15,.5,8,1,false,Math.PI/8),black);skirt.position.y=-.5;
-  const crowdMat=this.mat('#182333'),geo=new T.SphereGeometry(.13,6,4);this.resources.push(geo);const crowd=new T.InstancedMesh(geo,crowdMat,112);const dummy=new T.Object3D();for(let i=0;i<112;i++){const row=Math.floor(i/56),a=Math.PI+(i%56)/55*Math.PI;dummy.position.set(Math.cos(a)*(7.8+row*.8),.4+row*.4,Math.sin(a)*(7.8+row*.8));dummy.scale.set(1,1.6,1);dummy.updateMatrix();crowd.setMatrixAt(i,dummy.matrix)}this.scene.add(crowd);
-  const torsoGeo=new T.CylinderGeometry(.17,.22,.45,6);this.resources.push(torsoGeo);const bodies=new T.InstancedMesh(torsoGeo,crowdMat,112);for(let i=0;i<112;i++){crowd.getMatrixAt(i,dummy.matrix);dummy.matrix.decompose(dummy.position,dummy.quaternion,dummy.scale);dummy.position.y-=.32;dummy.scale.set(1,1,1);dummy.updateMatrix();bodies.setMatrixAt(i,dummy.matrix)}this.scene.add(bodies);
-
+  // A compact training hall replaces the placeholder spectators.
+  const outer=this.mesh(new T.CylinderGeometry(11,11,.12,64),this.mat('#111c26',{roughness:.94}));outer.position.y=-.82;outer.receiveShadow=true;
+  const warm=this.mat('#f0c47a',{emissive:'#dba851',emissiveIntensity:1.4}),cool=this.mat('#83b5d9',{emissive:'#5885aa',emissiveIntensity:1.2}),wall=this.mat('#152632',{roughness:.86});
+  const sign=document.createElement('canvas');sign.width=1024;sign.height=512;const sc=sign.getContext('2d'),gradient=sc.createLinearGradient(0,0,1024,512);gradient.addColorStop(0,'#213d47');gradient.addColorStop(1,'#091721');sc.fillStyle=gradient;sc.fillRect(0,0,1024,512);sc.fillStyle='#d9b477';sc.fillRect(38,38,948,4);sc.fillRect(38,470,948,4);sc.textAlign='center';sc.fillStyle='#f4ead7';sc.font='italic 900 190px sans-serif';sc.fillText('45',512,255);sc.font='800 64px sans-serif';sc.fillText('FIGHT CLUB',512,345);sc.fillStyle='#90b9bc';sc.font='600 22px sans-serif';sc.fillText('THE TRAINING HALL',512,409);const signTexture=new T.CanvasTexture(sign);signTexture.colorSpace=T.SRGBColorSpace;this.resources.push(signTexture);const signMat=this.mat('#fff',{map:signTexture,emissive:'#284044',emissiveMap:signTexture,emissiveIntensity:.3});
+  this.hallWalls=[];
+  for(let i=0;i<8;i++){
+   const a=i*Math.PI/4,normal=new T.Vector3(Math.cos(a),0,Math.sin(a)),group=new T.Group();this.scene.add(group);group.position.copy(normal).multiplyScalar(8.5);group.lookAt(0,0,0);this.hallWalls.push({group,mid:group.position.clone()});
+   const panel=this.mesh(new T.BoxGeometry(6.7,3.7,.15),wall,group);panel.position.y=1.05;
+   for(const x of [-2.8,2.8]){const rib=this.mesh(new T.BoxGeometry(.10,4.3,.20),metal,group);rib.position.set(x,1.3,.12);const strip=this.mesh(new T.BoxGeometry(.035,2.2,.025),i%2?cool:warm,group);strip.position.set(x,1.35,.235)}
+   const screen=this.mesh(new T.PlaneGeometry(3.2,1.6),signMat,group);screen.position.set(0,1.6,.091);
+   for(const y of [-.62,3.15]){const rail=this.mesh(new T.BoxGeometry(6.8,.06,.08),black,group);rail.position.set(0,y,.16)}
+   const pa=normal.clone().multiplyScalar(5.7).setY(-.3),pb=new T.Vector3(Math.cos(a+Math.PI/4)*5.7,-.3,Math.sin(a+Math.PI/4)*5.7);this.bar(pa,pb,.018,i<4?warm:cool);
+  }
 
   this.lamps=[];this.beams=[];for(let i=0;i<8;i++){const a=i*Math.PI/4;const lamp=this.mesh(new T.BoxGeometry(.7,.13,.25),this.mat('#ffffff',{emissive:i%2?'#85bfff':'#fff3df',emissiveIntensity:3}));lamp.position.set(Math.cos(a)*4,5.5,Math.sin(a)*4);this.lamps.push(lamp);const beam=this.mesh(new T.ConeGeometry(1.3,5,16,1,true),new T.MeshBasicMaterial({color:i%2?0xa1c9ff:0xffe7bd,transparent:true,opacity:.018,depthWrite:false,side:T.DoubleSide}));this.resources.push(beam.material);beam.position.set(Math.cos(a)*3.5,3.0,Math.sin(a)*3.5);this.beams.push(beam)}
-  this.bag=new T.Group();this.scene.add(this.bag);const leather=this.mat('#a34735',{roughness:.55});const bagBody=this.mesh(new T.CylinderGeometry(.28,.30,1.25,24),leather,this.bag);bagBody.position.y=1.0;bagBody.castShadow=true;const trim=this.mat('#242c38');for(const y of [.43,1.57]){const band=this.mesh(new T.CylinderGeometry(.30,.30,.12,24),trim,this.bag);band.position.y=y}const label=document.createElement('canvas');label.width=256;label.height=256;const bc=label.getContext('2d');bc.fillStyle='#252b36';bc.fillRect(0,0,256,256);bc.strokeStyle='#dfb775';bc.lineWidth=8;bc.strokeRect(12,12,232,232);bc.fillStyle='#fff0cf';bc.textAlign='center';bc.font='bold 100px sans-serif';bc.fillText('45',128,125);bc.font='bold 34px sans-serif';bc.fillText('FIGHT CLUB',128,188);const bt=new T.CanvasTexture(label);bt.colorSpace=T.SRGBColorSpace;this.resources.push(bt);const badge=this.mesh(new T.PlaneGeometry(.30,.35),this.mat('#fff',{map:bt}),this.bag);badge.position.set(0,1.1,.301);this.bar(new T.Vector3(0,1.65,0),new T.Vector3(0,4.7,0),.018,metal,this.bag);const base=this.mesh(new T.CylinderGeometry(.52,.58,.12,24),black,this.bag);base.position.y=.06;
+  this.bag=new T.Group();this.scene.add(this.bag);const leather=this.mat('#243b43',{roughness:.48});const bagBody=this.mesh(new T.CylinderGeometry(.28,.30,1.25,24),leather,this.bag);bagBody.position.y=1.0;bagBody.castShadow=true;const trim=this.mat('#242c38');for(const y of [.43,1.57]){const band=this.mesh(new T.CylinderGeometry(.30,.30,.12,24),trim,this.bag);band.position.y=y}const label=document.createElement('canvas');label.width=256;label.height=256;const bc=label.getContext('2d');bc.fillStyle='#252b36';bc.fillRect(0,0,256,256);bc.strokeStyle='#dfb775';bc.lineWidth=8;bc.strokeRect(12,12,232,232);bc.fillStyle='#fff0cf';bc.textAlign='center';bc.font='bold 100px sans-serif';bc.fillText('45',128,125);bc.font='bold 34px sans-serif';bc.fillText('FIGHT CLUB',128,188);const bt=new T.CanvasTexture(label);bt.colorSpace=T.SRGBColorSpace;this.resources.push(bt);const badge=this.mesh(new T.PlaneGeometry(.30,.35),this.mat('#fff',{map:bt}),this.bag);badge.position.set(0,1.1,.301);this.bar(new T.Vector3(0,1.65,0),new T.Vector3(0,4.7,0),.018,metal,this.bag);const base=this.mesh(new T.CylinderGeometry(.52,.58,.12,24),black,this.bag);base.position.y=.06;
  }
  bind(){
   const signal=this.events.signal,points=new Map();let pinch=0;
@@ -254,13 +292,14 @@ window.BoxingWorld=class{
   const bodies=new Map(ready.map(a=>[a,BoxingContact.shapes(a)]));
   for(const actor of ready){const obstacles=ready.filter(a=>a!==actor).flatMap(a=>bodies.get(a));if(this.practice)obstacles.push({a:this.bag.localToWorld(new T.Vector3(0,.70,0)),b:this.bag.localToWorld(new T.Vector3(0,1.30,0)),radius:.30,kind:'bag'});BoxingContact.constrain(actor,obstacles)}
   const down=states.some(s=>s.presentation==='down')&&!states.some(s=>s.presentation==='champion');
-  let x=0,z=0;for(const s of states){x+=s.x||0;z+=s.z||0}const count=states.length||1,champion=this.mode==='champion'?this.actors[states.findIndex(s=>s.presentation==='champion')]:null;this.focus.lerp(new T.Vector3(champion?champion.position.x:x/count,champion?1.02:down?.55:this.mode==='follow'?1.02:.9,champion?champion.position.y:z/count),1-Math.exp(-dt*5));
+  let x=0,z=0;for(const s of states){x+=s.x||0;z+=s.z||0}const count=states.length||1,champion=this.mode==='champion'?this.actors[states.findIndex(s=>s.presentation==='champion')]:null;this.focus.lerp(new T.Vector3(champion?champion.position.x:states.length===1&&this.practice?x*.72:x/count,champion?1.02:down?.55:this.mode==='follow'?1.02:.9,champion?champion.position.y:states.length===1&&this.practice?z*.72:z/count),1-Math.exp(-dt*5));
   if(champion)this.yaw+=Math.atan2(Math.sin(-this.yaw),Math.cos(-this.yaw))*(1-Math.exp(-dt*3));
   if(this.mode==='side'&&states.length===2){const dx=states[1].x-states[0].x,dz=states[1].z-states[0].z,desired=Math.atan2(-dz,dx)+.18;this.yaw+=Math.atan2(Math.sin(desired-this.yaw),Math.cos(desired-this.yaw))*(1-Math.exp(-dt*3))}
-  if(this.mode==='follow'&&this.actors[this.selfIndex||0]){const desired=this.actors[this.selfIndex||0].yaw+Math.PI+.60;this.yaw+=Math.atan2(Math.sin(desired-this.yaw),Math.cos(desired-this.yaw))*(1-Math.exp(-dt*5))}
+  if(this.mode==='follow'&&this.actors[this.selfIndex||0]){const desired=this.actors[this.selfIndex||0].yaw+Math.PI+.86;this.yaw+=Math.atan2(Math.sin(desired-this.yaw),Math.cos(desired-this.yaw))*(1-Math.exp(-dt*5))}
   const separation=states.length===2?Math.hypot(states[0].x-states[1].x,states[0].z-states[1].z):1;
   const radius=Math.max(down?4:this.distance,champion?0:this.mode==='follow'?separation*.8+1.8:separation*1.15+2.5)/Math.min(1,Math.max(.6,this.camera.aspect));const elevation=down?Math.max(.55,this.elevation):this.elevation;this.camera.position.set(this.focus.x+Math.sin(this.yaw)*radius*Math.cos(elevation),this.focus.y+Math.sin(elevation)*radius,this.focus.z+Math.cos(this.yaw)*radius*Math.cos(elevation));this.camera.lookAt(this.focus);
   for(const f of this.fences){const towardCamera=f.mid.clone().sub(this.focus).dot(this.camera.position.clone().sub(this.focus));f.group.visible=towardCamera<4}
+  for(const wall of this.hallWalls||[])wall.group.visible=wall.mid.clone().sub(this.focus).dot(this.camera.position.clone().sub(this.focus))<12;
   for(const lamp of this.lamps)lamp.visible=this.camera.position.y<5.3;for(const beam of this.beams)beam.visible=this.camera.position.y<5.3;
   const motion=!matchMedia('(prefers-reduced-motion: reduce)').matches&&document.body.dataset.effects!=='off';for(let i=0;i<this.beams.length;i++)this.beams[i].rotation.z=motion?Math.sin(now/2600+i)*.15:0;
   const elapsed=(now-(this.bagHit??-5000))/1000;this.bag.rotation.z=elapsed<2&&motion?Math.sin(elapsed*12)*Math.exp(-elapsed*3)*.12:0;

@@ -96,6 +96,15 @@ class CageRoutes(unittest.TestCase):
         self.assertEqual(self.a.get('/social/boxing/belts/'+str(self.pa)).json['belts'],1)
         self.assertEqual(self.b.get('/social/boxing/belts/'+str(self.pa)).status_code,404)
         self.assertEqual(self.b.get('/social/boxing/belts/'+str(self.pb)).json['belts'],0)
+    def test_upper_body_posture_sync_and_clear(self):
+        posture=dict(turn=.8,hipTurn=.25,tilt=-.3,headPitch=-.7,headYaw=.4,headRoll=.2)
+        r=self.control(self.a,posture=posture,bend=-.7);self.assertEqual(r.status_code,200)
+        self.assertEqual(self.b.get('/social/boxing/'+self.mid).json['match']['players'][0]['posture'],posture)
+        self.assertIsNone(self.control(self.a,'idle').json['match']['players'][0]['posture'])
+    def test_invalid_upper_body_posture_rejected(self):
+        good=dict(turn=0,hipTurn=0,tilt=0,headPitch=0,headYaw=0,headRoll=0)
+        for value in [[],{},dict(good,extra=0),dict(good,turn=1.1),dict(good,headPitch=True),dict(good,headRoll=float('nan'))]:
+            self.assertEqual(self.control(self.a,posture=value).status_code,400)
     def test_historical_victories_are_preserved_as_belts(self):
         self.snapshot()
         with self.store.connect() as db:

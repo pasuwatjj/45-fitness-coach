@@ -1,30 +1,112 @@
-/* Loy Krathong seasonal surface; all controls and data retain their original owners. */
+/* Loy Krathong UI. Motion is opt-in through the existing effects preference. */
 body[data-theme=power]{--bg:#091522;--panel:#102333;--line:#365261;--mint:#173c45;--green:#f9d47d;--text:#fff4df;--muted:#b7c8d5;--lavender:#20334a;--theme-wash:#142e3a;--theme-shadow:#0003;background:#091522}
 body[data-theme=spicy]{--bg:#fff8ec;--panel:#fffdf5;--line:#cbd6c4;--mint:#dceadf;--green:#195344;--text:#173f35;--muted:#526b61;--lavender:#edf1e2;--theme-wash:#f1ead8;--theme-shadow:#183c3110;background:#fff8ec}
-body[data-home-active=true] .corner-brand{position:absolute;top:10px;left:24px;width:125px;align-items:flex-start}body[data-home-active=true] .brand-home img{width:120px}body[data-home-active=true] .corner-brand .theme-switch{position:absolute;left:150px;top:18px;white-space:nowrap;display:flex;gap:6px;align-items:center}body[data-home-active=true] .theme-switch>span,body[data-home-active=true] .theme-switch>small{display:none}body[data-home-active=true] .corner-brand~.lang-bar{min-height:116px;padding-left:160px;padding-right:24px}body[data-home-active=true] main{max-width:1440px;margin:0 auto;padding:0 28px}body[data-home-active=true] .account-bar{margin-bottom:16px;padding:8px 0;border-bottom:1px solid var(--line)}
-body[data-theme] .festival-hero{background:#081a2b url('/static/images/festival/hero.webp') center/cover no-repeat!important;padding:64px 46px!important;min-height:570px;border:0;box-shadow:none;border-radius:24px;text-align:left;isolation:isolate}body[data-theme] .festival-hero:before,body[data-theme] .festival-hero:after,.festival-hero .theme-garden{display:none!important}.festival-copy{width:49%;max-width:620px}.festival-hero .home-tag{font-size:11px;letter-spacing:2.5px;color:#f7cf73;background:#0a2036bd;padding:10px 0;border-radius:0}.festival-hero h2{font-size:clamp(32px,4.5vw,62px)!important;letter-spacing:-1px!important;line-height:1.25!important;margin:28px 0 20px!important;color:#ffe7a7!important}.festival-hero p{font-size:17px;line-height:1.9;max-width:450px!important;margin:0!important;color:#e1eaf3!important}.festival-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}.festival-actions button{min-height:52px;padding:14px 23px;border-radius:40px}.festival-primary{background:#ffdb80!important;color:#142235!important;border:1px solid #ffeab1;font-size:17px;font-weight:800;box-shadow:0 0 24px #f3bc4233}.festival-actions .secondary{background:#0e233be6;color:#fff0d3;border-color:#82949c}.festival-section-title{font-size:25px;margin:22px 0}.home-setup{padding:14px 0;gap:10px}.home-setup p{font-size:12px}.home-cozy-actions{padding:0;justify-content:flex-start}.home-cozy-actions button{font-size:12px;min-height:38px}.home-tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-body[data-theme] .home-tile{min-height:150px;padding:22px;border-radius:18px;box-shadow:none;background:var(--panel)!important}body[data-theme] .home-tile:first-child{grid-column:auto;min-height:270px}body[data-theme] .home-tile strong{font-size:22px;line-height:1.4}body[data-theme] .home-tile small{font-size:13px;line-height:1.7;max-width:100%}.home-tile-copy{gap:8px}.home-tile-icon{font-size:26px}.home-tile.festival-feature{min-height:270px;background:#112334!important}.home-tile.festival-feature img{opacity:1;object-position:center;z-index:-2}.home-tile.festival-feature .home-tile-copy{max-width:64%;padding:10px;border-radius:10px;background:#081728d9}.home-tile.festival-feature strong{color:#fff2d8!important}.home-tile.festival-feature small{color:#dfebef!important}.home-tile.festival-feature .home-tile-icon{display:none}.click-particle .lightning-icon,.effect-preview .lightning-icon{width:100%;height:100%;filter:invert(89%) sepia(42%) saturate(922%) hue-rotate(334deg) brightness(104%);object-fit:contain}.effect-preview .lightning-icon{width:var(--effect-size);height:var(--effect-size)}
-#boxingPage .fighter-lobby{border:1px solid #8a7148;border-radius:24px;box-shadow:0 18px 60px #0005}#boxingPage .fighter-lobby-head{border-bottom:1px solid #e4c48333!important;padding-bottom:16px;background:#091925cc!important}.fighter-growth{border-radius:16px!important;background:#0a1c29eb!important}.fighter-growth-row progress{height:7px!important;border-radius:8px!important}.fighter-mode-nav{gap:12px!important;padding:20px!important;background:#091725ed!important}.fighter-mode-nav .boxing-mode-card{border-radius:14px!important;min-height:110px;border:1px solid #6b849266!important;padding:16px!important;transition:border-color .2s,transform .2s}.fighter-mode-nav .boxing-mode-card:hover{border-color:#edca81!important;transform:translateY(-3px)}.fighter-mode-nav .boxing-mode-card[data-mode=bot]{background:#274557!important}.fighter-mode-nav .boxing-mode-card[data-mode=friends]{background:#453452!important}.fighter-mode-nav .boxing-mode-card[data-mode=practice]{background:#24463e!important}.fighter-stage-caption{padding:12px 18px;border-left:3px solid #edca81;background:#091725b8;border-radius:0 10px 10px 0}.fighter-dialog{border-radius:22px!important;border-color:#d9b46a!important}.boxing-room-summary{border-radius:14px;background:#17333d!important;color:#f1dfba}.boxing-arena{border-radius:24px!important;border:1px solid #71959e!important;box-shadow:0 16px 48px #0005}.boxing-clock{background:#081624dc;padding:10px 24px;border:1px solid #d6b97666;border-radius:0 0 18px 18px}.boxing-views button,.boxing-expand{background:#0b243be8!important;border-color:#ddc17e!important;color:#fff0c7!important}.boxing-result{border-color:#e5c27d!important;background:#081c2aee!important}.boxing-controls{padding:12px;border:1px solid var(--line);border-radius:14px}
-@media(max-width:1000px){body[data-home-active=true] .corner-brand .theme-switch{top:75px;left:0}.festival-copy{width:54%}body[data-theme] .festival-hero{padding:40px 30px!important}.home-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.home-tile.festival-feature:last-child{grid-column:1/-1}}
-@media(max-width:600px){body[data-home-active=true] .corner-brand{left:12px;width:90px}body[data-home-active=true] .brand-home img{width:90px}body[data-home-active=true] .corner-brand .theme-switch{top:69px;gap:3px}.theme-switch button{font-size:10px;padding:8px!important}body[data-home-active=true] .corner-brand~.lang-bar{min-height:132px;padding-right:12px;padding-left:108px}body[data-home-active=true] main{padding:0 12px}.account-bar{gap:6px}body[data-theme] .festival-hero{min-height:640px;padding:28px 22px 280px!important;background-size:auto 100%!important;background-position:62% center!important}.festival-copy{width:100%;max-width:none;background:#081827dc;border-radius:14px;padding:14px}.festival-hero h2{font-size:32px!important;margin:15px 0!important}.festival-hero p{font-size:14px!important}.festival-hero .home-tag{font-size:9px;letter-spacing:1px}.festival-actions{margin-top:20px;gap:8px}.festival-actions button{font-size:14px;padding:11px 16px;min-height:44px}.home-tiles{grid-template-columns:1fr}.home-tile.festival-feature{min-height:230px!important}.home-setup p{margin:0}.home-setup{gap:12px}.home-tile.festival-feature .home-tile-copy{max-width:58%}.festival-section-title{font-size:21px}.fighter-mode-nav{gap:8px!important;padding:12px!important}.fighter-mode-nav .boxing-mode-card{min-height:96px;padding:12px!important}.boxing-clock{padding:6px 12px}.boxing-controls{padding:8px}}
-@media(prefers-reduced-motion:reduce){.fighter-mode-nav .boxing-mode-card{transition:none;transform:none!important}}
-
-#boxingPage .fighter-lobby-head{background:#091925 url('/static/images/festival/boxing-hall.webp') center 24%/cover!important}.fighter-identity{padding:10px 16px;border-radius:12px;background:#071722e8}.fighter-controls-link{background:#071722ed!important}
-/* Reserve a real header row above account navigation; legacy header is absolute. */
-body[data-home-active=true] main{padding-top:124px}
-body[data-home-active=true] .corner-brand{margin:0}
-body[data-home-active=true] .corner-brand .theme-switch{max-width:none;flex-wrap:nowrap;margin:0}
-body[data-home-active=true] .corner-brand~.lang-bar{padding:8px 24px;min-height:0;max-width:420px}
-body[data-theme] #homePage .festival-hero h2{color:#ffe7a7!important}
-body[data-theme] #homePage .festival-hero p{color:#e1eaf3!important}
-body[data-theme] #homePage .festival-actions .secondary{color:#fff0d3!important;background:#0e233be6!important}
-body[data-theme] #homePage .home-tile.festival-feature strong{color:#fff2d8!important}
-body[data-theme] #homePage .home-tile.festival-feature small{color:#dfebef!important}
-@media(max-width:1000px){body[data-home-active=true] main{padding-top:144px}}
-@media(max-width:600px){body[data-home-active=true] main{padding-top:172px}body[data-home-active=true] .corner-brand~.lang-bar{max-width:220px;padding:8px 12px}body[data-theme] .festival-hero{background-size:auto 350px!important;background-position:85% bottom!important;padding:20px 18px 340px!important}.festival-copy{padding:0;background:none}.festival-actions{margin-top:16px}.festival-hero .home-tag{border:0}}
-body[data-home-active=true] .lang-bar{pointer-events:none}body[data-home-active=true] .lang-bar button{pointer-events:auto}
+body[data-home-active=true] .corner-brand{position:absolute;top:10px;left:24px;width:125px;margin:0;align-items:flex-start}
+body[data-home-active=true] .brand-home img{width:120px}
+body[data-home-active=true] .corner-brand .theme-switch{position:absolute;left:150px;top:18px;white-space:nowrap;display:flex;gap:6px;align-items:center;max-width:none;flex-wrap:nowrap;margin:0}
+body[data-home-active=true] .theme-switch>span,body[data-home-active=true] .theme-switch>small{display:none}
+body[data-home-active=true] .corner-brand~.lang-bar{padding:8px 24px;min-height:0;max-width:420px;pointer-events:none}
+body[data-home-active=true] .lang-bar button{pointer-events:auto}
+body[data-home-active=true] main{max-width:1440px;margin:0 auto;padding:124px 28px 0}
+body[data-home-active=true] .account-bar{margin-bottom:16px;padding:8px 0;border-bottom:1px solid var(--line)}
+/* The hero is a live scene, not a flattened banner. */
+body[data-theme] #homePage .festival-hero{position:relative;background:radial-gradient(ellipse at 50% 95%,#35675c44,transparent 60%),#282338!important;padding:34px 28px 24px!important;min-height:0;border:1px solid #716080;border-radius:28px;text-align:center;isolation:isolate;box-shadow:none}
+body[data-theme=spicy] #homePage .festival-hero{background:radial-gradient(ellipse at 50% 95%,#c4dfce77,transparent 60%),#f2ecef!important;border-color:#cbb7cf}
+body[data-theme] #homePage .festival-hero:before{display:block!important;position:absolute;inset:12px;border:1px dashed #9c83a35c;border-radius:20px;background:none;opacity:1;z-index:-1;pointer-events:none}
+.festival-hero:after,.festival-hero .theme-garden{display:none!important}
+.festival-copy{width:100%;max-width:none;background:none;padding:0}
+.festival-hero .home-tag{font-size:10px;letter-spacing:1.8px;color:#ffe2aa;background:#574159;padding:8px 16px;border:1px solid #8b6c86;border-radius:30px}
+body[data-theme] #homePage .festival-hero h2{font-size:clamp(30px,4.6vw,62px)!important;letter-spacing:-1px!important;line-height:1.18!important;margin:24px auto 12px!important;max-width:100%;color:#ffe7a7!important}
+body[data-theme] #homePage .festival-hero h3{font-size:clamp(18px,2.1vw,26px);margin:0 0 12px;color:#fff0d7!important}
+body[data-theme] #homePage .festival-hero p{font-size:15px;line-height:1.7;max-width:680px!important;margin:0 auto!important;color:#dfd2e3!important}
+body[data-theme=spicy] #homePage .festival-hero h2{color:#694977!important}
+body[data-theme=spicy] #homePage .festival-hero h3{color:#694977!important}
+body[data-theme=spicy] #homePage .festival-hero p{color:#65566c!important}
+.festival-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:0 auto 12px}
+.festival-actions button{min-height:46px;padding:12px 20px;border-radius:16px}
+.festival-primary{background:#ffdb80!important;color:#142235!important;border:1px solid #ffeab1;font-size:15px;font-weight:800;box-shadow:none}
+body[data-theme] #homePage .festival-actions .secondary{background:#3d344f!important;color:#fff0d3!important;border-color:#8c7498}
+.festival-hero .festival-greeting{font-size:12px!important;min-height:22px}
+.festival-scene{position:relative;width:min(460px,100%);height:214px;margin:0 auto 12px;isolation:isolate}
+.festival-sky{position:absolute;inset:0;pointer-events:none;color:#f7d78f}
+.festival-moon{position:absolute;top:12px;right:12%;font:64px/1 serif;transform:rotate(-15deg)}
+.festival-star{position:absolute;font-size:26px;color:#f7d78f}.star-one{top:50px;left:14%}.star-two{top:10px;left:40%;font-size:18px}.star-three{top:104px;right:10%;font-size:18px}
+body[data-theme=spicy] .festival-sky,body[data-theme=spicy] .festival-star{color:#ab7b36}
+.festival-friend{position:absolute;z-index:3;left:calc(50% - 134px);top:7px;width:182px;height:208px;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;border-radius:48%;cursor:pointer;touch-action:manipulation}
+.festival-mascot{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 10px 12px #0002)}
+.ghost-eyes{transform-box:fill-box;transform-origin:center}.ghost-arm{transform-box:fill-box;transform-origin:left bottom}
+.festival-river{position:absolute;inset:138px 10px 0;pointer-events:none;z-index:1}
+.river-ring{position:absolute;left:13%;top:22px;width:70%;height:29px;border:2px solid #91c4b755;border-radius:50%}
+.ring-two{left:6%;top:34px;width:84%;height:31px;border-color:#91c4b72b}.ring-three{left:22%;top:10px;width:52%;border-color:#c3a1d955}
+.festival-krathong{position:absolute;width:112px;height:88px;left:61%;top:-31px;filter:drop-shadow(0 0 14px #f8cf751c)}
+.festival-krathong svg{width:100%;height:100%}.candle-flame{transform-box:fill-box;transform-origin:center bottom}
+.festival-wish{position:absolute;left:65%;top:40%;color:#ffdc8d;font-size:26px;pointer-events:none;animation:festival-wish 1.7s ease-out both}
+/* Pause every ambient loop offscreen, off-page or when effects are disabled. */
+body[data-effects=on][data-home-active=true] .festival-scene[data-scene-visible=true] .festival-mascot{animation:ghost-float 4s ease-in-out infinite}
+body[data-effects=on][data-home-active=true] .festival-scene[data-scene-visible=true] .ghost-eyes{animation:ghost-blink 6s infinite}
+body[data-effects=on][data-home-active=true] .festival-scene[data-scene-visible=true] .festival-krathong{animation:krathong-float 5s ease-in-out infinite}
+body[data-effects=on][data-home-active=true] .festival-scene[data-scene-visible=true] .candle-flame{animation:candle-flicker 1.6s ease-in-out infinite}
+body[data-effects=on][data-home-active=true] .festival-scene[data-scene-visible=true] .festival-star{animation:festival-twinkle 4s ease-in-out infinite}
+body[data-effects=on] .festival-friend.is-waving .ghost-arm{animation:ghost-wave .4s ease-in-out 4}
+body[data-effects=on] .festival-friend:hover .ghost-arm{transform:rotate(-12deg)}
+@keyframes ghost-float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-9px) rotate(2deg)}}
+@keyframes ghost-blink{0%,42%,46%,100%{transform:scaleY(1)}44%{transform:scaleY(.12)}}
+@keyframes krathong-float{0%,100%{transform:translate(0,0) rotate(-3deg)}50%{transform:translate(10px,-4px) rotate(3deg)}}
+@keyframes candle-flicker{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.9,1.12);opacity:.8}}
+@keyframes festival-twinkle{0%,100%{opacity:.45;transform:scale(.85)}50%{opacity:1;transform:scale(1.08)}}
+@keyframes ghost-wave{0%,100%{transform:rotate(0)}50%{transform:rotate(-25deg)}}
+@keyframes festival-wish{0%{opacity:0;transform:translateY(0) scale(.4)}20%{opacity:1}100%{opacity:0;transform:translateY(-65px) scale(1.2)}}
+.festival-section-title{font-size:25px;margin:22px 0}.home-setup{padding:14px 0;gap:10px}.home-setup p{font-size:12px}.home-cozy-actions{padding:0;justify-content:flex-start}.home-cozy-actions button{font-size:12px;min-height:44px}
+.home-tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+body[data-theme] .home-tile{min-height:186px;padding:24px;border-radius:20px;box-shadow:none;background:var(--panel)!important}
+body[data-theme] .home-tile strong{font-size:22px;line-height:1.4}body[data-theme] .home-tile small{font-size:13px;line-height:1.7;max-width:100%}
+.home-tile-copy{gap:10px}.home-tile-icon{font-size:26px}
+body[data-theme] .home-tile.festival-photo{grid-column:1/-1;min-height:210px}
+.home-tile.festival-photo img{opacity:.23;object-position:center 35%;z-index:-1}
+.activity-arrow{position:absolute;right:18px;bottom:14px;width:9px;height:9px;border-right:2px solid currentColor;border-top:2px solid currentColor;color:var(--muted);opacity:.75;transform:rotate(45deg)}
+body[data-effects=on] .activity-arrow{transition:transform .2s ease}
+body[data-effects=on] .home-tile:hover .activity-arrow{transform:translateX(3px) rotate(45deg)}
+body[data-effects=on] .home-tile:hover .home-tile-icon{animation:activity-bounce .65s ease}
+@keyframes activity-bounce{0%,100%{transform:translateY(0)}45%{transform:translateY(-8px) rotate(-6deg)}70%{transform:translateY(-3px) rotate(4deg)}}
+.category-particle{display:flex;align-items:center;justify-content:center;font-size:var(--particle-size,30px);line-height:1;text-shadow:0 2px 10px #0002;color:#f5ce77}
+.category-particle[data-effect-kind=health]{color:#f47fa2;text-shadow:0 0 12px #f47fa266}
+.click-particle .lightning-icon,.effect-preview .lightning-icon{width:100%;height:100%;filter:invert(89%) sepia(42%) saturate(922%) hue-rotate(334deg) brightness(104%);object-fit:contain}
+.effect-preview .lightning-icon{width:var(--effect-size);height:var(--effect-size)}
+body[data-effects=on] :is(#healthPage,#calendarPage,#profilePage,#inboxPage,#rewardsPage,#leaderPage,#friendsPage):not([hidden]){animation:section-arrive .25s ease-out both}
+@keyframes section-arrive{from{opacity:.3;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* One continuous live gym; never stack a painted room above the 3D room. */
+#boxingPage .fighter-lobby{border:1px solid #8a7148;border-radius:24px;box-shadow:0 18px 60px #0005}
+#boxingPage .fighter-lobby-head{background:linear-gradient(#08141df2,#08141d80,transparent)!important;border:0!important;padding-bottom:14px}
+.fighter-identity{padding:10px 16px;border-radius:12px;background:#071722d9}.fighter-controls-link{background:#071722ed!important}
+.fighter-growth{border-radius:16px!important;background:#0a1c29eb!important}.fighter-growth-row progress{height:7px!important;border-radius:8px!important}
+.fighter-mode-nav{gap:12px!important;padding:20px!important;background:#091725ed!important}
+.fighter-mode-nav .boxing-mode-card{border-radius:14px!important;min-height:110px;border:1px solid #6b849266!important;padding:16px!important}
+body[data-effects=on] .fighter-mode-nav .boxing-mode-card{transition:border-color .2s,transform .2s}
+.fighter-mode-nav .boxing-mode-card:hover{border-color:#edca81!important}
+body[data-effects=on] .fighter-mode-nav .boxing-mode-card:hover{transform:translateY(-3px)}
+.fighter-mode-nav .boxing-mode-card[data-mode=bot]{background:#274557!important}.fighter-mode-nav .boxing-mode-card[data-mode=friends]{background:#453452!important}.fighter-mode-nav .boxing-mode-card[data-mode=practice]{background:#24463e!important}
+.fighter-stage-caption{padding:12px 18px;border-left:3px solid #edca81;background:#091725b8;border-radius:0 10px 10px 0}
+.fighter-dialog{border-radius:22px!important;border-color:#d9b46a!important}.boxing-room-summary{border-radius:14px;background:#17333d!important;color:#f1dfba}
+.boxing-arena{border-radius:24px!important;border:1px solid #71959e!important;box-shadow:0 16px 48px #0005}.boxing-clock{background:#081624dc;padding:10px 24px;border:1px solid #d6b97666;border-radius:0 0 18px 18px}
+.boxing-views button,.boxing-expand{background:#0b243be8!important;border-color:#ddc17e!important;color:#fff0c7!important}.boxing-result{border-color:#e5c27d!important;background:#081c2aee!important}.boxing-controls{padding:12px;border:1px solid var(--line);border-radius:14px}
 body[data-theme=power] #homePage [data-theme-icon=back]{--theme-icon:url('/static/images/themes/spicy-back.svg?v=29')}
 body[data-theme=power] #homePage [data-theme-icon=arms]{--theme-icon:url('/static/images/themes/spicy-arms.svg?v=29')}
 body[data-theme=power] #homePage [data-theme-icon=chest]{--theme-icon:url('/static/images/themes/spicy-chest.svg?v=29')}
 body[data-theme=power] #homePage [data-theme-icon=shoulders]{--theme-icon:url('/static/images/themes/spicy-shoulders.svg?v=29')}
 body[data-theme=power] #homePage [data-theme-icon=legs]{--theme-icon:url('/static/images/themes/spicy-legs.svg?v=29')}
+@media(max-width:1000px){body[data-home-active=true] .corner-brand .theme-switch{top:75px;left:0}body[data-home-active=true] main{padding-top:144px}.home-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){
+ body[data-home-active=true] .corner-brand{left:12px;width:90px}body[data-home-active=true] .brand-home img{width:90px}
+ body[data-home-active=true] .corner-brand .theme-switch{top:69px;gap:3px}.theme-switch button{font-size:10px;padding:8px!important}
+ body[data-home-active=true] .corner-brand~.lang-bar{max-width:220px;padding:8px 12px}.account-bar{gap:6px}body[data-home-active=true] main{padding:150px 12px 0}
+ body[data-theme] #homePage .festival-hero{padding:26px 18px 20px!important}.festival-hero .home-tag{font-size:9px;letter-spacing:1px;padding:7px 10px}
+ body[data-theme] #homePage .festival-hero h2{font-size:32px!important;margin:20px auto 12px!important}.festival-hero h3{font-size:18px!important}
+ body[data-theme] #homePage .festival-hero p{font-size:13px}.festival-scene{height:205px}.festival-friend{left:calc(50% - 126px);width:174px}.festival-krathong{width:94px;left:61%;top:-20px}.festival-moon{font-size:48px;right:6%}.star-one{left:5%}
+ .festival-actions button{font-size:13px;padding:10px 13px;min-height:44px}.home-tiles{grid-template-columns:1fr}.home-setup p{margin:0}.home-setup{gap:12px}.festival-section-title{font-size:21px}
+ body[data-theme] .home-tile{min-height:170px}body[data-theme] .home-tile.festival-photo{min-height:200px}
+ .fighter-mode-nav{gap:8px!important;padding:12px!important}.fighter-mode-nav .boxing-mode-card{min-height:96px;padding:12px!important}.boxing-clock{padding:6px 12px}.boxing-controls{padding:8px}
+}
+@media(prefers-reduced-motion:reduce){.festival-scene *,.home-tile-icon,.activity-arrow,.fighter-mode-nav .boxing-mode-card{animation:none!important;transition:none!important}.fighter-mode-nav .boxing-mode-card:hover{transform:none!important}body[data-effects] :is(#healthPage,#calendarPage,#profilePage,#inboxPage,#rewardsPage,#leaderPage,#friendsPage){animation:none!important}}
+body[data-effects=off] .festival-scene *{animation:none!important;transition:none!important}
+
+@media(max-width:360px){body[data-home-active=true] .corner-brand .theme-switch{top:122px}body[data-home-active=true] main{padding-top:184px}}

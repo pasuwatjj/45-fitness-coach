@@ -230,8 +230,8 @@
       ]
     },
     "templates/index.html": {
-      "sha256": "7eac47085c1434fd5c2a8438d988468c3ad5cc13a6695dd229ef7535ab6d6d70",
-      "bytes": 44289,
+      "sha256": "99638903bf5fb0ed49de4d4486854f00bb6fa37dc22456f16a8692bffb891c34",
+      "bytes": 44339,
       "accepted_previous_sha256": [
         "9b7cf7d4198fb203d3da37dcf5b6c7950d83f0f5f4f7b5a366e8af5025df2460",
         "e130cbad8629911513b5cf66cce6cc5ff279acfcaa9b4d1d8e743cfaee6a6fcb",
@@ -269,7 +269,8 @@
         "caaed2e06cbe4978e8796648c4cc109a15bbb66c8a722f0b2cab6540ee5a9f23",
         "6a8853e8c9ad74aee4c6d6bee76347c695b2445984df092b2b33f5749b5752f1",
         "85e6122fed39cdae9450ee1e910d603304040b441b96f05c086669f3ea356a64",
-        "ae21518224858ccbac4da0e6b7cee586f94ee42bb874433d74422e682836a1d2"
+        "ae21518224858ccbac4da0e6b7cee586f94ee42bb874433d74422e682836a1d2",
+        "7eac47085c1434fd5c2a8438d988468c3ad5cc13a6695dd229ef7535ab6d6d70"
       ]
     },
     "static/character.js": {
@@ -439,12 +440,13 @@
       "bytes": 9448
     },
     "static/cozy-ui.js": {
-      "sha256": "43be41a514a76553ca39771f0a15b007e8221d56a84ae3b87e9fb8a05df1976c",
-      "bytes": 8704,
+      "sha256": "b9c2c554c73d712bb9807f5aae1d572ea20bea9c1ef7e156b25f37882655e937",
+      "bytes": 9491,
       "accepted_previous_sha256": [
         "3e4d143cfb19e997333ef5fbc91f98c5e2a66792179c98079c51ae8720efe286",
         "3cf441f273d4ed18a851262b6a0cafd634640a50e37bbbefb4dc59c0abd9c067",
-        "5fe0261fdb3964388b68acc09724672438a1d028c2a91bc1adff092781883c65"
+        "5fe0261fdb3964388b68acc09724672438a1d028c2a91bc1adff092781883c65",
+        "43be41a514a76553ca39771f0a15b007e8221d56a84ae3b87e9fb8a05df1976c"
       ]
     },
     "static/cozy-ui.css": {
@@ -667,8 +669,8 @@
       "bytes": 7466
     },
     "templates/templates/index.html": {
-      "sha256": "1c844a716f5fe759570a49e9f3aa25fa811b30539e85b9dff3111c7db05c0051",
-      "bytes": 44463,
+      "sha256": "6f7efc588cbf96c34870a0abecc5c83f58978ca9e7975c71c1939d7790af49a9",
+      "bytes": 44513,
       "accepted_previous_sha256": [
         "16d009ee0839e00f293c4901d735e7fa0a141ebe76626163fb946dfe7a645ecd",
         "976cc5f436e49fdc7368686d9260680e33207da0ec508c1a3278c4288d815ce9",
@@ -676,7 +678,8 @@
         "9fc8b4a9ca98bd560efe3625635feb5d92bce688154bfa350e0fab06e28bc312",
         "c377068edd9e2eb85de3a824fbe2b66c0b76c9e9447eedfb8ad09c6c8fc621e0",
         "1ed22e422b2e53c9961059f197c68eaead9164a3483b36d4ca2ce5ad4bf0c7ba",
-        "e8bb4d342f1e004f0d9a0935770cc52f498343e1067ce98f9a141d72ccb63db2"
+        "e8bb4d342f1e004f0d9a0935770cc52f498343e1067ce98f9a141d72ccb63db2",
+        "1c844a716f5fe759570a49e9f3aa25fa811b30539e85b9dff3111c7db05c0051"
       ]
     },
     "boxing_bot.py": {
@@ -723,16 +726,19 @@
       "bytes": 6045
     },
     "static/home.js": {
-      "sha256": "cbe9141693d09181426ab56164f85c4687a0efd36570bfeb9431485352ec880e",
-      "bytes": 8759,
+      "sha256": "8d2f9e98cdd918aa95e9c20e21aafc20434de15a9b9ec2ed6b9dd81a27865245",
+      "bytes": 8264,
       "accepted_previous_sha256": [
-        "d04b045eb9ebc55928deb520957f262785a92abc8631cecd940fb7f4e532a7c2"
+        "d04b045eb9ebc55928deb520957f262785a92abc8631cecd940fb7f4e532a7c2",
+        "cbe9141693d09181426ab56164f85c4687a0efd36570bfeb9431485352ec880e"
       ]
     },
     "static/festival.css": {
-      "sha256": "475e780406761f82b02cf08d51ff73709084ca46d8d1ebc54b80c2b6346ebc5b",
-      "bytes": 9772,
-      "accepted_previous_sha256": []
+      "sha256": "a0e804ba3ae562a36bdda4d64e96aebc1b9c32dec8d960e49bc26a564710b956",
+      "bytes": 14409,
+      "accepted_previous_sha256": [
+        "475e780406761f82b02cf08d51ff73709084ca46d8d1ebc54b80c2b6346ebc5b"
+      ]
     },
     "static/images/festival/hero.webp": {
       "sha256": "06e289a3c4ac82251d75544ce91304b3cc6b19202327a4bbd7f4fd4f275f9152",
@@ -767,6 +773,11 @@
     "static/images/festival/cardio.webp": {
       "sha256": "504ab9af41ef8c9388599c7b53220fcc491d313f9c2d4f21a45f29dd87cbdd24",
       "bytes": 83002,
+      "accepted_previous_sha256": []
+    },
+    "static/festival-ui.js": {
+      "sha256": "dca01f32e61c99ebd1cf71461472838be1fa6308a0c0893cdda6c2412990333f",
+      "bytes": 4776,
       "accepted_previous_sha256": []
     }
   }

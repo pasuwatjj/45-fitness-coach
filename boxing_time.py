@@ -1,23 +1,28 @@
 """Server-owned combat clock. Skill duration/cooldown use real time, combat uses game time."""
 SLOW_RATE=.4
 DURATION=60
-COOLDOWN=180
+COOLDOWN=120
 
 def sync(m,wall):
     previous=m.get('clock_wall',wall);wall=max(wall,previous);game=m.get('combat_now',previous)
     end=m.get('slow_until',0)
     slow=max(0,min(wall,end)-previous) if m.get('status')=='active' else 0
-    m['combat_now']=game+max(0,wall-previous)-slow*(1-SLOW_RATE)
+    special=m.get('special') or {};start=special.get('started_at',wall);stop=start+special.get('duration',0)
+    paused=max(0,min(wall,stop)-max(previous,start)) if m.get('status')=='active' else 0
+    paused_slow=max(0,min(wall,stop,end)-max(previous,start)) if paused else 0
+    m['combat_now']=game+max(0,wall-previous)-slow*(1-SLOW_RATE)-paused+paused_slow*(1-SLOW_RATE)
     m['clock_wall']=wall
     m['time_scale']=SLOW_RATE if m.get('status')=='active' and wall<end else 1
     return m['combat_now']
 
 def activate(m,p,wall):
     if m['status']!='active':raise ValueError('Skill is available during a round')
+    special=m.get('special') or {}
+    if wall<special.get('started_at',0)+special.get('duration',0):raise ValueError('A cinematic skill is already active')
     if wall<m.get('slow_until',0):raise ValueError('Slow motion is already active')
     if wall<p.get('skill_ready_at',0):raise ValueError('Skill is cooling down')
     p['skill_ready_at']=wall+COOLDOWN
-    m.update(slow_until=wall+DURATION,slow_by=p['uid'],time_scale=SLOW_RATE)
+    m.update(slow_until=wall+DURATION,slow_started_at=wall,slow_by=p['uid'],time_scale=SLOW_RATE)
 
 
 def evade_sync(m,wall,previous_wall,previous_game):

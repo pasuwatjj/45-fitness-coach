@@ -1,7 +1,7 @@
 """Private casual boxing matches. No images/landmarks leave the browser."""
 import json,time,uuid,math
 from flask import Blueprint,g,request,jsonify
-import character,collaboration_features,boxing_cage,boxing_bot,boxing_training,community,copy,boxing_time
+import character,collaboration_features,boxing_cage,boxing_bot,boxing_training,community,copy,boxing_time,boxing_special
 MATCH_RULES=9
 
 def clock():return time.time()
@@ -60,6 +60,8 @@ def advance(m,now):
     if m['status'] in ['countdown','active','round_break']:
         gone=[p for p in m['players'] if not p.get('bot') and now-p.get('seen_wall',p['seen'])>20]
         if gone:finish(m,next((p['uid'] for p in m['players'] if p not in gone),None),'disconnect',game);return
+    boxing_special.advance(m,now,knockout)
+    if boxing_special.active(m,now):return
     advance_combat(m,game)
     if m['status']!='active':m['time_scale']=1
 
@@ -104,7 +106,7 @@ def knockout(m,winner,now):
     m.setdefault('rounds',[]).append(dict(number=m['round'],winner=winner['uid'],duration=duration))
     pause=10 if m.get('rules',2)>=5 else 5
     event=m.get('event') or {}
-    if m.get('rules',0)>=9 and winner['wins']>=2 and event.get('result')=='hit' and event.get('attacker')==winner['uid']:
+    if m.get('rules',0)>=9 and winner['wins']>=2 and event.get('result')=='hit' and event.get('attacker')==winner['uid'] and not event.get('special'):
         # A visual replay of the confirmed deciding strike, never an extra attack.
         pause=6
         m['finale']=dict(id=str(event['id']),winner=winner['uid'],target=event['target'],hand=event['hand'],punch_type=event['punch_type'],started_at=m.get('clock_wall',now),duration=pause,players=[dict(uid=p['uid'],x=p.get('x',0),z=p.get('z',0)) for p in m['players']])
@@ -124,6 +126,11 @@ def award(db,m,now):
 def action(m,uid,data,now,internal_bot=False):
     p=next(p for p in m['players'] if p['uid']==uid)
     p['seen_wall']=now
+    if data.get('action')=='special':
+        if m.get('rules',0)<9:raise ValueError('Start a new match to use the skill')
+        boxing_special.activate(m,p,now);p['seen']=m['combat_now'];return
+    if boxing_special.active(m,now) and data.get('action') not in ('leave','heartbeat','skill'):
+        p['seen']=m['combat_now'];return
     if data.get('action')=='skill':
         if m.get('rules',0)<9:raise ValueError('Start a new match to use the skill')
         boxing_time.activate(m,p,now)

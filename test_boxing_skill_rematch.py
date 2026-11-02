@@ -53,7 +53,7 @@ class SkillRematch(unittest.TestCase):
         self.assertEqual(self.act(self.b,'skill').status_code,400)
         self.keepalive(60);m=self.act(self.a,'heartbeat').json['match'];self.assertEqual(m['time_scale'],1);self.assertAlmostEqual(m['combat_now']-game,24)
         self.assertEqual(self.act(self.a,'skill').status_code,400)
-        self.keepalive(119.9);self.assertEqual(self.act(self.a,'skill').status_code,400)
+        self.keepalive(59.9);self.assertEqual(self.act(self.a,'skill').status_code,400)
         self.keepalive(.1);self.assertEqual(self.act(self.a,'skill').status_code,200)
         self.now+=21;self.act(self.a,'heartbeat');m=self.act(self.a,'heartbeat').json['match'];self.assertEqual(m['result'],'disconnect')
     def test_rematch_requires_both_can_cancel_and_is_idempotent(self):

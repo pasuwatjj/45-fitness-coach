@@ -7,16 +7,25 @@ out=Path('work/festival-review');out.mkdir(parents=True,exist_ok=True)
 with sync_playwright() as pw:
  b=pw.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']);p=b.new_page(viewport={'width':1440,'height':1058});errors=[];p.on('pageerror',lambda e:errors.append(str(e)))
  p.goto(root+'/45-fitness-coach');p.wait_for_timeout(1200)
- for width,theme in [(1440,'power'),(390,'power'),(390,'spicy'),(768,'spicy')]:
+ for width,theme in [(1440,'power'),(390,'power'),(390,'spicy'),(768,'spicy'),(320,'power')]:
   p.set_viewport_size({'width':width,'height':1058 if width>600 else 844});p.locator('#'+theme+'Theme').click();p.wait_for_timeout(1000)
   assert p.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
-  assert p.locator('.festival-hero h2').evaluate("e=>getComputedStyle(e).color")=='rgb(255, 231, 167)'
-  assert p.locator('.festival-feature strong').first.evaluate("e=>getComputedStyle(e).color")=='rgb(255, 242, 216)'
+  assert p.locator('.festival-hero h2').evaluate("e=>getComputedStyle(e).color")==('rgb(255, 231, 167)' if theme=='power' else 'rgb(105, 73, 119)')
+  assert p.locator('.home-tile img').count()==1
+  assert p.locator('.festival-photo img').get_attribute('src')=='/static/images/jeff/page-31.jpg'
+  assert 'url(' not in p.locator('.festival-hero').evaluate('e=>getComputedStyle(e).backgroundImage')
+  assert p.locator('.festival-friend svg').count()==1
+  assert p.locator('#spicyTheme').evaluate("e=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.right-5,r.top+r.height/2))}")
   assert p.locator('.account-bar').bounding_box()['y']>p.locator('.brand-home').bounding_box()['height']
   p.screenshot(path=str(out/f'home-{theme}-{width}.png'),full_page=True)
+ p.locator('#festivalGhost').click();assert p.locator('.festival-wish').count()==1
+ assert 'ลอยความเหนื่อย' in p.locator('#festivalGreeting').inner_text()
+ p.locator('.home-tile[data-feedback=health]').click();assert p.locator('#healthPage').is_visible();assert p.locator('.click-particle[data-effect-kind=health]').count()>0
+ assert p.locator('.festival-wish').count()==0
+ p.evaluate("setTab('home')");p.locator('#festivalGhost').focus();p.keyboard.press('Enter');assert 'ขยับอีกนิด' in p.locator('#festivalGreeting').inner_text()
  p.locator('#homeStartTraining').click();assert p.locator('.home-categories').is_visible()
  p.locator('#effectsSettingsButton').click();assert p.locator('#effectsSettings').is_visible();assert p.locator('.effect-preview img').get_attribute('src').endswith('lightning.svg');p.keyboard.press('Escape')
- p.emulate_media(reduced_motion='reduce');p.locator('#effectsSettingsButton').click();assert p.locator('#clickEffectsEnabled').is_disabled();assert p.locator('.click-particle').count()==0;p.keyboard.press('Escape')
+ p.emulate_media(reduced_motion='reduce');p.locator('#effectsSettingsButton').click();assert p.locator('#clickEffectsEnabled').is_disabled();assert p.locator('.click-particle').count()==0;p.keyboard.press('Escape');p.locator('#festivalGhost').click();assert p.locator('.festival-wish').count()==0;assert p.locator('.festival-mascot').evaluate('e=>getComputedStyle(e).animationName')=='none'
  p.locator('.festival-actions .secondary').click();assert p.locator('#calendarPage').is_visible();assert p.locator('body').get_attribute('data-home-active')=='false'
  p.evaluate("setTab('home')");assert p.locator('body').get_attribute('data-home-active')=='true'
  p.goto(root+'/45-fitness-coach?lang=en');assert p.locator('#homeStartTraining').inner_text()=='Start training'

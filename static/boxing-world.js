@@ -150,7 +150,7 @@ window.CageFighter=class extends FitnessImportedAvatar{
   if(kind==='champion')this.makeBelt();if(this.belt)this.belt.visible=kind==='champion'&&age>=.7;
   this.canvas.dataset.presentation=kind||'fighting';
   if(!kind){this.downAmount=0;return;}
-  this.gait=0;this.punchAt=-1000;
+  this.footPlants={};this.gait=0;this.punchAt=-1000;
   let down=kind==='down'?smooth(0,.75,age):0;
   if(kind==='down'&&state.recoverAfter!=null)down*=1-smooth(state.recoverAfter-1.8,state.recoverAfter-.25,age);
   this.downAmount=down;
@@ -178,7 +178,13 @@ window.CageFighter=class extends FitnessImportedAvatar{
    const leg=this.bones[side+'Leg'],step=Math.sin(this.stepPhase||0)*sign,gait=(this.kickAmount>0?0:this.gait)||0,home=leg.footHome.clone();
    home.x+=sign*s.stance*.13*blend+step*(this.state.strafe||0)*.13*gait;
    home.z+=sign*s.stagger*.17*blend+step*(this.state.move||0)*.18*gait;
-   home.y+=Math.max(0,step)*.13*gait;if(this.kickAmount>0&&this.punchHand===side){home.y+=this.kickAmount*1.65+this.kickExtension*1.60;home.z+=this.kickExtension*1.72;home.x+=sign*(this.kickAmount*.65-this.kickExtension*.82)}targets[side]=this.root.localToWorld(home);if(this.kickAmount>0&&this.punchHand===side){const from=leg.contactPrevious||leg.foot.getWorldPosition(new T.Vector3());for(const obstacle of this.kickObstacles||[]){const hit=BoxingContact.sweep(from,targets[side],obstacle,.11*this.height);if(hit)targets[side].copy(hit)}}
+   home.y+=Math.max(0,step)*.13*gait;if(this.kickAmount>0&&this.punchHand===side){home.y+=this.kickAmount*1.65+this.kickExtension*1.60;home.z+=this.kickExtension*1.72;home.x+=sign*(this.kickAmount*.65-this.kickExtension*.82)}targets[side]=this.root.localToWorld(home);
+   // Hold the supporting foot in world space during the stance half-step.
+   // Camera poses, kicks and dashes retain their original measured choreography.
+   const planting=this.state.controlMode==='computer'&&gait>.18&&!this.kickAmount&&!(this.state.dashVisualUntil>this.now())&&Math.hypot(this.state.move||0,this.state.strafe||0)>0;
+   this.footPlants??={};const planted=this.footPlants[side];
+   if(planting&&step<=0){if(!planted||planted.distanceTo(targets[side])>.38)this.footPlants[side]=targets[side].clone();targets[side].copy(this.footPlants[side]);}else delete this.footPlants[side];
+   if(this.kickAmount>0&&this.punchHand===side){const from=leg.contactPrevious||leg.foot.getWorldPosition(new T.Vector3());for(const obstacle of this.kickObstacles||[]){const hit=BoxingContact.sweep(from,targets[side],obstacle,.11*this.height);if(hit)targets[side].copy(hit)}}
   }
   // Lower the pelvis enough for both fixed-length chains to reach their planted feet.
   let lower=0;for(const side of ['left','right']){const leg=this.bones[side+'Leg'],hip=leg.upper.getWorldPosition(new T.Vector3()),target=targets[side],length=(leg.lower.position.length()+leg.end.length())*this.root.scale.x-.008,horizontal=(hip.x-target.x)**2+(hip.z-target.z)**2;lower=Math.max(lower,hip.y-target.y-Math.sqrt(Math.max(.01,length*length-horizontal)))}
@@ -244,7 +250,8 @@ window.CageFighter=class extends FitnessImportedAvatar{
   this.previousStep=this.position.clone();const speed=Math.min(3,Math.hypot(dx,dz)/Math.max(.001,dt));
   const requested=Math.hypot(state.move||0,state.strafe||0)>0;
   this.gait=(this.gait||0)+((requested?Math.min(1,speed/1.05):0)-(this.gait||0))*ease;
-  this.stepPhase=(this.stepPhase||0)+speed*dt*9;
+  this.walkSpeed=(this.walkSpeed||0)+(speed-(this.walkSpeed||0))*(1-Math.exp(-dt*12));
+  this.stepPhase=(this.stepPhase||0)+(requested?this.walkSpeed:0)*dt*9;
   const lateral=(state.strafe||0),forward=(state.move||0),phase=this.stepPhase,gait=this.gait;
   this.body.position.y+=Math.sin(phase*2)*.025*gait;
   for(const [side,sign]of [['left',1],['right',-1]]){
@@ -264,7 +271,7 @@ window.BoxingWorld=class{
   this.canvas=document.createElement('canvas');this.canvas.className='cage-canvas';this.canvas.setAttribute('aria-label',window.I18N?.lang==='en'?'3D boxing cage. Drag to orbit; scroll or pinch to zoom.':'สนามมวย 3 มิติ ลากเพื่อหมุนกล้อง เลื่อนหรือจีบสองนิ้วเพื่อซูม');this.canvas.tabIndex=0;container.append(this.canvas);
   this.notice=document.createElement('div');this.notice.className='cage-loading';container.append(this.notice);
   this.renderer=new T.WebGLRenderer({canvas:this.canvas,antialias:true,powerPreference:'high-performance'});this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.25;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=T.PCFSoftShadowMap;
-  this.scene=new T.Scene();this.scene.background=new T.Color('#09121f');this.scene.fog=new T.Fog('#09121f',15,34);this.camera=new T.PerspectiveCamera(43,1,.08,65);
+  this.scene=new T.Scene();this.scene.background=new T.Color('#081822');this.scene.fog=new T.Fog('#09121f',15,34);this.camera=new T.PerspectiveCamera(43,1,.08,65);
   this.scene.add(new T.HemisphereLight(0xe6f1ff,0x586071,2.5));const sun=new T.DirectionalLight(0xfff3e1,4);sun.position.set(3,9,5);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-7,right:7,top:7,bottom:-7,near:.1,far:25});sun.shadow.bias=-.001;this.scene.add(sun);
   const fill=new T.DirectionalLight(0x98c9ff,2);fill.position.set(-5,5,-3);this.scene.add(fill);this.makeArena();this.finale=window.BoxingFinale?new BoxingFinale(this):null;this.bind();this.frame=requestAnimationFrame(t=>this.tick(t));
  }
@@ -283,7 +290,7 @@ window.BoxingWorld=class{
   for(let i=0;i<4;i++){c.save();c.translate(512,512);c.rotate(i*Math.PI/2);c.fillStyle='#173c35';c.font='800 28px sans-serif';c.fillText('FORTY FIVE',0,-348);c.fillStyle='#eef0de';c.fillRect(-120,-325,240,3);c.restore()}
   const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;this.resources.push(texture);
   const floor=this.mesh(new T.CylinderGeometry(6,6,.22,8,1,false,Math.PI/8),this.mat('#ffffff',{map:texture,roughness:.92}));floor.position.y=-.12;floor.receiveShadow=true;
-  const black=this.mat('#121922'),metal=this.mat('#6c7886',{metalness:.8,roughness:.35}),red=this.mat('#af3b3c'),blue=this.mat('#285a9d');this.fences=[];
+  const black=this.mat('#121922'),metal=this.mat('#6c7886',{metalness:.8,roughness:.35}),red=this.mat('#99515b'),blue=this.mat('#226d82');this.fences=[];
   for(let i=0;i<8;i++){
    const a=(i+.5)*Math.PI/4,b=(i+1.5)*Math.PI/4,pa=new T.Vector3(Math.cos(a)*5.85,0,Math.sin(a)*5.85),pb=new T.Vector3(Math.cos(b)*5.85,0,Math.sin(b)*5.85),group=new T.Group();this.scene.add(group);this.fences.push({group,mid:pa.clone().add(pb).multiplyScalar(.5)});
    const post=this.mesh(new T.CylinderGeometry(.10,.10,2.5,12),i<4?red:blue,group);post.position.copy(pa);post.position.y=1.2;post.castShadow=true;

@@ -111,6 +111,6 @@ with sync_playwright() as p:
   assert home.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
  home.locator('#homeStartTraining').click();assert home.locator('.home-categories').is_visible()
  home.locator('#effectsSettingsButton').click();assert home.locator('.effect-preview img').get_attribute('src').endswith('lightning.svg')
- home.keyboard.press('Escape');home.emulate_media(reduced_motion='reduce');assert home.locator('.click-particle').count()==0
+ home.keyboard.press('Escape');home.emulate_media(reduced_motion='reduce');home.wait_for_function("document.body.dataset.effects==='off'&&document.querySelectorAll('.click-particle').length===0")
  b.close()
 print('VERIFIED exact deployed Boxing assets, template, private API, pose confidence guard and shared 3D male/female scene with tracked upper-body/head rotation, original articulated bare hands, whole-body weight shift and ankle support, decorated hall, bend/slip, swept contact, close camera, lying knockdown, 45 champion belt, bag removal, animated grounded fighter lobby with reduced-motion pause, profile levels, required shared controls, language/key settings, enabled two-level Bot selector, keyboard dash, kicks and cleanup',revision)

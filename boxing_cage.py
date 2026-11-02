@@ -110,10 +110,23 @@ def parry(m,q,strike,now):
 
 def resolve(m,now,knockout):
     pending=m.get('pending_strikes',[]);m['pending_strikes']=[]
+    cancelled=set()
     for strike in pending:
+        if strike['id'] in cancelled:continue
         if m['status']!='active':break
         if strike['time']>now:m['pending_strikes'].append(strike);continue
+        cancelled.add(strike['id'])
         p=next(v for v in m['players'] if v['uid']==strike['attacker']);q=next(v for v in m['players'] if v['uid']==strike['target'])
+        other=clash(m,strike,p,q,pending,cancelled,now)
+        if other:
+            # Consume both attacks atomically before either can remove HP or armor.
+            cancelled.add(other['id'])
+            m['pending_strikes']=[s for s in m['pending_strikes'] if s['id']!=other['id']]
+            p.update(clash_at=now,clash_hand=strike['hand'])
+            q.update(clash_at=now,clash_hand=other['hand'])
+            event=dict(id=strike['id'],paired_strike_id=other['id'],attacker=p['uid'],target=q['uid'],hand=strike['hand'],punch_type=strike['punch_type'],result='counter',damage=0,hp_damage=0,armor_damage=0,time=now,x=(p['x']+q['x'])/2,z=(p['z']+q['z'])/2)
+            m['event']=event;m['events']=(m.get('events',[])+[event])[-12:]
+            continue
         dx,dz=q['x']-p['x'],q['z']-p['z'];distance=math.hypot(dx,dz)
         fresh=now-q.get('control_at',0)<.65
         slip=q.get('slip',0) if fresh else 0
@@ -137,3 +150,21 @@ def resolve(m,now,knockout):
         event={k:v for k,v in strike.items() if k not in ['fx','fz','token']};event.update(defense);event.update(result=result,time=now,x=q['x'],z=q['z'])
         m['event']=event;m['events']=(m.get('events',[])+[event])[-12:]
         if q['hp']==0:knockout(m,p,now);m['pending_strikes']=[];break
+
+
+def clash(m,strike,p,q,pending,cancelled,now):
+    """Matching hands/types within 120 ms of contact rebound, in either control mode.
+
+    Only still-pending attacks qualify: a late input cannot undo an already landed hit.
+    The window uses combat time so shared slow motion preserves the same timing rule.
+    """
+    if m.get('rules',0)<9 or strike['punch_type'] not in ('straight','hook','uppercut'):return None
+    dx,dz=q['x']-p['x'],q['z']-p['z'];distance=math.hypot(dx,dz)
+    if distance>RANGE or distance<.01:return None
+    if (dx*strike['fx']+dz*strike['fz'])/distance<.72:return None
+    for fighter in (p,q):
+        fresh=now-fighter.get('control_at',0)<.65
+        if fresh and (abs(fighter.get('slip',0))>.35 or now<fighter.get('dash_until',0) or fighter.get('crouch',0)>.5 or fighter.get('bend',0)>.24 or fighter.get('bend',0)<-.12):return None
+    return next((s for s in pending if s['id'] not in cancelled and s['attacker']==q['uid'] and s['target']==p['uid']
+        and s['hand']==strike['hand'] and s['punch_type']==strike['punch_type'] and abs(s['time']-strike['time'])<=.12
+        and (-dx*s['fx']-dz*s['fz'])/distance>=.72),None)

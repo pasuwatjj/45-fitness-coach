@@ -7,14 +7,14 @@ def get(path):
  r=s.get(origin+path,timeout=40);r.raise_for_status();return r
 assert get('/status?release='+revision).json()['revision']==revision
 assert 'new BoxingLobby' in get('/static/boxing.js?release='+revision).text
-for name in ['festival.css','festival-ui.js','images/festival/hero.webp','images/festival/strength.webp','images/festival/cardio.webp','images/festival/boxing.webp','images/festival/boxing-hall.webp','images/festival/lightning.svg','tracking-lock.js','person-tracking.js','person-tracking.css','session-camera.js','boxing-playback.js','boxing-training.js','boxing-lobby-stage.js','cozy-ui.js','boxing-computer.js','boxing-lobby.js','boxing-lobby.css','images/boxing/fighter-lobby.webp','boxing-motion.js','boxing-finale.js','boxing-special.js','boxing-world.js','images/boxing/champion-belt.svg','images/boxing/mode-menu.png','images/boxing/arena-championship.png','inbox.js','character.js','character-renderer.js','cozy-ui.css','boxing-skill.js','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
+for name in ['winter.css','winter-ui.js','images/festival/hero.webp','images/festival/strength.webp','images/festival/cardio.webp','images/festival/boxing.webp','images/festival/boxing-hall.webp','images/festival/lightning.svg','tracking-lock.js','person-tracking.js','person-tracking.css','session-camera.js','boxing-playback.js','boxing-training.js','boxing-lobby-stage.js','cozy-ui.js','boxing-computer.js','boxing-lobby.js','boxing-lobby.css','images/boxing/fighter-lobby.webp','boxing-motion.js','boxing-finale.js','boxing-special.js','boxing-world.js','images/boxing/champion-belt.svg','images/boxing/mode-menu.png','images/boxing/arena-championship.png','inbox.js','character.js','character-renderer.js','cozy-ui.css','boxing-skill.js','boxing.js','boxing-pose.js','boxing.css','profile.js','images/boxing/hud-frame.png','app.js','home.js','v19.js','images/boxing/arena.png','images/boxing/gloves.svg']:
  assert get('/static/'+name+'?release='+revision).content==Path('static',name).read_bytes(),name
 assert s.get(origin+'/social/boxing',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/belts/1',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/training/1',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/capabilities',timeout=40).status_code==401
 html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=24' in html
-for asset in ['festival.css?v=2','festival-ui.js?v=1','home.js?v=38','boxing-finale.js?v=2','tracking-lock.js?v=1','person-tracking.js?v=43','person-tracking.css?v=40','session-camera.js?v=43','boxing-playback.js?v=3','boxing-training.js?v=1','boxing-lobby-stage.js?v=1','boxing-motion.js?v=6','boxing-lobby.css?v=4','boxing-lobby.js?v=10','boxing-computer.js?v=8','cozy-ui.js?v=5','profile.js?v=50','boxing-world.js?v=19','boxing-pose.js?v=11','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=17','boxing-skill.js?v=1','boxing-special.js?v=1']:
+for asset in ['winter.css?v=1','winter-ui.js?v=1','home.js?v=39','boxing-finale.js?v=2','tracking-lock.js?v=1','person-tracking.js?v=43','person-tracking.css?v=40','session-camera.js?v=43','boxing-playback.js?v=3','boxing-training.js?v=1','boxing-lobby-stage.js?v=1','boxing-motion.js?v=6','boxing-lobby.css?v=4','boxing-lobby.js?v=10','boxing-computer.js?v=8','cozy-ui.js?v=6','profile.js?v=50','boxing-world.js?v=19','boxing-pose.js?v=11','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=17','boxing-skill.js?v=1','boxing-special.js?v=1']:
  assert '/static/'+asset in html,asset
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']);page=b.new_page();page.set_content('<main></main>');page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
@@ -73,7 +73,7 @@ with sync_playwright() as p:
  page.evaluate("window.I18N={lang:'th'};window.FitnessAccount={guest:true}")
  page.add_style_tag(content=get('/static/boxing.css?release='+revision).text)
  page.add_style_tag(content=get('/static/boxing-lobby.css?release='+revision).text)
- page.add_style_tag(content=get('/static/festival.css?release='+revision).text)
+ page.add_style_tag(content=get('/static/winter.css?release='+revision).text)
  page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
  for asset in ['tracking-lock.js','boxing-playback.js','boxing-training.js','boxing-computer.js','boxing-lobby-stage.js','boxing-lobby.js','boxing-skill.js','boxing.js']:page.add_script_tag(content=get('/static/'+asset+'?release='+revision).text)
  page.evaluate('Boxing.open()')
@@ -124,11 +124,10 @@ with sync_playwright() as p:
  home.wait_for_selector('#homeStartTraining')
  for theme in ['power','spicy']:
   home.locator('#'+theme+'Theme').click()
-  assert home.locator('.festival-hero h2').evaluate('e=>getComputedStyle(e).color')==('rgb(255, 231, 167)' if theme=='power' else 'rgb(105, 73, 119)')
+  assert home.locator('.winter-hero h2').evaluate('e=>getComputedStyle(e).color')==('rgb(237, 248, 255)' if theme=='power' else 'rgb(24, 61, 83)')
   assert home.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
- assert home.locator('.festival-photo img').get_attribute('src')=='/static/images/jeff/page-31.jpg'
- assert home.locator('.home-tile img').count()==1
- home.locator('#festivalGhost').click();assert home.locator('.festival-wish').count()==1
+ assert home.locator('.home-tile img').count()==0
+ home.locator('#winterFriend').click();assert home.locator('.winter-wish').count()==5
  home.locator('.home-tile[data-feedback=health]').click();assert home.locator('.click-particle[data-effect-kind=health]').count()>0
  home.evaluate("setTab('home')")
  home.locator('#homeStartTraining').click();assert home.locator('.home-categories').is_visible()

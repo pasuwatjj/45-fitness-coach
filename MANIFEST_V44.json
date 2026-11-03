@@ -230,8 +230,8 @@
       ]
     },
     "templates/index.html": {
-      "sha256": "2eea0823e59027cbad5d1d2e540ba8002497373a290178d7f93e02f6288524d2",
-      "bytes": 44444,
+      "sha256": "6c2d3934c3ef3f79b6fa705fc9083e7d263940c9de2a4fd965e1b1cdd42961aa",
+      "bytes": 44440,
       "accepted_previous_sha256": [
         "9b7cf7d4198fb203d3da37dcf5b6c7950d83f0f5f4f7b5a366e8af5025df2460",
         "e130cbad8629911513b5cf66cce6cc5ff279acfcaa9b4d1d8e743cfaee6a6fcb",
@@ -274,7 +274,8 @@
         "99638903bf5fb0ed49de4d4486854f00bb6fa37dc22456f16a8692bffb891c34",
         "a8ff0cc6a0e9de0ad9dd8cc57aa04f02687187785c2453af7ae5316bd10cae93",
         "4192f5bb7a6be73adf1b4cf416723471319c468e797109de9cc8959d527857e3",
-        "f5c0a9d861ea5c45e27e6809a4e5e7857bbc41ba0ea03405a75ccc2e06ff0466"
+        "f5c0a9d861ea5c45e27e6809a4e5e7857bbc41ba0ea03405a75ccc2e06ff0466",
+        "2eea0823e59027cbad5d1d2e540ba8002497373a290178d7f93e02f6288524d2"
       ]
     },
     "static/character.js": {
@@ -444,13 +445,14 @@
       "bytes": 9448
     },
     "static/cozy-ui.js": {
-      "sha256": "b9c2c554c73d712bb9807f5aae1d572ea20bea9c1ef7e156b25f37882655e937",
-      "bytes": 9491,
+      "sha256": "75ce5a6e13cbdaf667c6ce90354614fb31c4848427290bdbb881c0307a3b7167",
+      "bytes": 9504,
       "accepted_previous_sha256": [
         "3e4d143cfb19e997333ef5fbc91f98c5e2a66792179c98079c51ae8720efe286",
         "3cf441f273d4ed18a851262b6a0cafd634640a50e37bbbefb4dc59c0abd9c067",
         "5fe0261fdb3964388b68acc09724672438a1d028c2a91bc1adff092781883c65",
-        "43be41a514a76553ca39771f0a15b007e8221d56a84ae3b87e9fb8a05df1976c"
+        "43be41a514a76553ca39771f0a15b007e8221d56a84ae3b87e9fb8a05df1976c",
+        "b9c2c554c73d712bb9807f5aae1d572ea20bea9c1ef7e156b25f37882655e937"
       ]
     },
     "static/cozy-ui.css": {
@@ -693,8 +695,8 @@
       "bytes": 7466
     },
     "templates/templates/index.html": {
-      "sha256": "09d937d8fa9c9377629acd119822e87984937a5df1f4dd6161e7a5a8d1ea55e2",
-      "bytes": 44618,
+      "sha256": "fac3c21bdb3b89392b4fe9ba1e870e0ee259a967f05fbdbfad4af7fbe3f2d82e",
+      "bytes": 44614,
       "accepted_previous_sha256": [
         "16d009ee0839e00f293c4901d735e7fa0a141ebe76626163fb946dfe7a645ecd",
         "976cc5f436e49fdc7368686d9260680e33207da0ec508c1a3278c4288d815ce9",
@@ -707,7 +709,8 @@
         "6f7efc588cbf96c34870a0abecc5c83f58978ca9e7975c71c1939d7790af49a9",
         "9c581fdda393ba425cb7bc35c43f7f01330fec15e0f73c2aed815975b826e9c9",
         "b1021bec8ae49c7b73cb829478382057d001893bf727f6011ced74aa1452f6bc",
-        "49c0eada8849f77f4c79bf70991d4998606ebef4b1e76460715caf4b67542fed"
+        "49c0eada8849f77f4c79bf70991d4998606ebef4b1e76460715caf4b67542fed",
+        "09d937d8fa9c9377629acd119822e87984937a5df1f4dd6161e7a5a8d1ea55e2"
       ]
     },
     "boxing_bot.py": {
@@ -759,11 +762,12 @@
       "bytes": 6343
     },
     "static/home.js": {
-      "sha256": "8d2f9e98cdd918aa95e9c20e21aafc20434de15a9b9ec2ed6b9dd81a27865245",
-      "bytes": 8264,
+      "sha256": "288807bbaa0748f937663bff0e05c103fa059afd3881e65d543ef94fcd55cf9a",
+      "bytes": 8355,
       "accepted_previous_sha256": [
         "d04b045eb9ebc55928deb520957f262785a92abc8631cecd940fb7f4e532a7c2",
-        "cbe9141693d09181426ab56164f85c4687a0efd36570bfeb9431485352ec880e"
+        "cbe9141693d09181426ab56164f85c4687a0efd36570bfeb9431485352ec880e",
+        "8d2f9e98cdd918aa95e9c20e21aafc20434de15a9b9ec2ed6b9dd81a27865245"
       ]
     },
     "static/festival.css": {
@@ -842,6 +846,16 @@
     "boxing_stamina.py": {
       "sha256": "7233dfed07c4c2cbfd07d5c41ece822b405ff48cd4b0f30803a75dff3bb915a5",
       "bytes": 1121,
+      "accepted_previous_sha256": []
+    },
+    "static/winter.css": {
+      "sha256": "d659ae28d188790fe69e57db31bc7b186d65a0384ad26b7728692a311dfd9467",
+      "bytes": 19123,
+      "accepted_previous_sha256": []
+    },
+    "static/winter-ui.js": {
+      "sha256": "4654c447f828a81523fb36f6e3800d74adf29c92dffef04456f5ee9d0e138684",
+      "bytes": 11661,
       "accepted_previous_sha256": []
     }
   }

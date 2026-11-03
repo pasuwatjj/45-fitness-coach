@@ -22,5 +22,14 @@ with sync_playwright() as pw:
   assert all(abs(x)<.98 and abs(y)<.95 for x,y in bounds),(label,bounds)
   p.locator('.boxing-arena').screenshot(path=str(out/('settle-'+label+'.png')))
  # Late views do not restart the beat; resources are released on reset/rematch.
- p.evaluate('sceneWall=1007000');p.wait_for_function('!scene.finale.active');p.evaluate('scene.clearActors()');assert p.evaluate('!scene.finale.effect&&scene.finale.resources.length===0')
- p.evaluate('scene.destroy()');assert not errors,errors;print('PASS contact framing, both bodies inside desktop/mobile settle shots, expired beat does not replay, particle resources and scene cleanup');b.close()
+ p.evaluate('sceneWall=1007000');p.wait_for_function('!scene.finale.active')
+ # Lethal X transitions into a slow launched fall; the cage bounds still apply.
+ p.evaluate("scene.finale.set(null);scene.set([{x:3,z:0,presentation:'waiting'},{x:4.8,z:0,presentation:'down',presentationAt:scene.actors[1].now()-800,launch:true,launchDirection:[1,0],recoverAfter:null}],false)")
+ p.wait_for_function('scene.actors[1].root.position.y>.15&&scene.actors[1].downAmount>.25')
+ assert p.evaluate('scene.actors[1].root.position.x<=5.001&&scene.actors[1].skeleton.bones.every(b=>b.matrixWorld.elements.every(Number.isFinite))')
+ p.evaluate('scene.states[1].presentationAt=scene.actors[1].now()-3000')
+ p.wait_for_function('scene.actors[1].downAmount>.99&&scene.actors[1].root.position.y<.01')
+ p.emulate_media(reduced_motion='reduce');p.evaluate('scene.states[1].presentationAt=scene.actors[1].now()-800')
+ p.wait_for_function('scene.actors[1].downAmount>.99&&scene.actors[1].root.position.y===0')
+ p.evaluate('scene.clearActors()');assert p.evaluate('!scene.finale.effect&&scene.finale.resources.length===0')
+ p.evaluate('scene.destroy()');assert not errors,errors;print('PASS contact framing, both bodies inside desktop/mobile settle shots, expired beat does not replay, bounded X launch, reduced-motion fall, particle resources and scene cleanup');b.close()

@@ -82,3 +82,19 @@ body[data-theme] [data-theme-icon="boxing"]{--theme-icon:url("/static/images/box
 .boxing-ruesi-cinematic .boxing-hud,.boxing-ruesi-cinematic .boxing-clock,.boxing-ruesi-cinematic .boxing-banner,.boxing-ruesi-cinematic .boxing-effects,.boxing-ruesi-cinematic .boxing-preview,.boxing-ruesi-cinematic .boxing-time-hud{visibility:hidden}
 .boxing-ability-actions{position:absolute;z-index:9;bottom:66px;left:50%;transform:translateX(-50%);display:flex;gap:8px;max-width:94%;justify-content:center;pointer-events:auto}.boxing-ability-actions button{min-height:44px;padding:9px 15px;background:#0d2234ed!important;color:#e2f7ff!important;border:1px solid #8bcfe1!important;font-size:13px;white-space:nowrap;border-radius:12px}.boxing-ability-actions button:disabled{opacity:.7}.boxing-ability-actions button:focus-visible{outline:3px solid #fff;outline-offset:3px}.boxing-ability-actions .boxing-special{color:#f1d5ff!important;border-color:#c19be0!important}.boxing-ruesi-cinematic .boxing-ability-actions,.boxing-cinematic .boxing-ability-actions{visibility:hidden}@media(max-width:600px){.boxing-ability-actions{bottom:56px;gap:6px}.boxing-ability-actions button{padding:7px 10px;font-size:11px}}
 body[data-effects=off] .boxing-time-cue,body[data-effects=off] .boxing-time-wave,body[data-effects=off] .boxing-time-hands,body[data-effects=off] .boxing-time-flash .boxing-fighters{animation:none}body[data-effects=off] .boxing-time-wave{display:none}
+
+/* Compact optional action reference, bounded above the arena controls. */
+.boxing-key-hints{position:absolute;z-index:8;right:10px;top:225px;bottom:120px;max-width:180px;display:flex;flex-direction:column;align-items:stretch;pointer-events:none;font-size:11px}
+.boxing-key-hints[hidden],.boxing-key-list[hidden]{display:none!important}
+.boxing-key-hints>*{pointer-events:auto}
+.boxing-key-hints .boxing-hints-toggle{align-self:flex-end;flex-shrink:0;padding:5px 9px!important;min-height:32px;height:32px;font-size:11px!important;border-radius:8px!important;background:#0a2029dd!important;color:#e4f6ef!important}
+.boxing-key-list{flex:0 1 auto;min-height:0;margin-top:5px;padding:7px;border:1px solid #92c6be38;border-radius:9px;background:#091c27db;backdrop-filter:blur(7px);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.boxing-key-row{display:flex;align-items:center;gap:7px;min-height:23px;color:#e0eded;white-space:nowrap}
+.boxing-key-row kbd{min-width:32px;padding:1px 4px;font:700 10px/1.6 monospace;border:1px solid #a3cab24d;border-radius:4px;background:#213d48;color:#ffe6b2;text-align:center}
+.boxing-charge-readout{flex-shrink:0;display:block;margin-top:6px;padding:5px 7px;border-radius:5px;color:#fff4d7;font-weight:800;background:linear-gradient(90deg,#9e6c25 var(--charge),#102833 var(--charge));border:1px solid #edbc5d77;box-shadow:0 0 12px #e5ad3022}
+.boxing-charge-readout[hidden]{display:none}.boxing-cinematic .boxing-key-hints,.boxing-ruesi-cinematic .boxing-key-hints,.boxing-finished .boxing-key-hints{display:none}
+.boxing-bars .stamina-bar{height:14px;width:94%;border-color:#62d9c477;background:#071c23}
+.boxing-bars .stamina-bar span{font-size:10px}.boxing-bars .stamina-bar progress{accent-color:#51dbc2}
+.boxing-bars .stamina-bar progress::-webkit-progress-value{background:linear-gradient(90deg,#249b95,#86f0bf)}
+.boxing-bars .stamina-bar progress::-moz-progress-bar{background:linear-gradient(90deg,#249b95,#86f0bf)}
+@media(max-width:600px){.boxing-bars{height:95px;gap:5px}.boxing-bars .stamina-bar{height:13px;width:100%}.boxing-key-hints{right:5px;top:222px;bottom:110px;max-width:145px;font-size:9px}.boxing-key-row{gap:4px;min-height:21px}.boxing-key-row kbd{min-width:28px;font-size:9px}.boxing-key-list{padding:5px}.boxing-key-hints .boxing-hints-toggle{font-size:10px!important}.boxing-time-hud{top:146px}}

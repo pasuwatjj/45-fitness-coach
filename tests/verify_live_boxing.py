@@ -13,8 +13,8 @@ assert s.get(origin+'/social/boxing',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/belts/1',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/training/1',timeout=40).status_code==401
 assert s.get(origin+'/social/boxing/capabilities',timeout=40).status_code==401
-html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=23' in html
-for asset in ['festival.css?v=2','festival-ui.js?v=1','home.js?v=38','boxing-finale.js?v=1','tracking-lock.js?v=1','person-tracking.js?v=43','person-tracking.css?v=40','session-camera.js?v=43','boxing-playback.js?v=3','boxing-training.js?v=1','boxing-lobby-stage.js?v=1','boxing-motion.js?v=6','boxing-lobby.css?v=4','boxing-lobby.js?v=9','boxing-computer.js?v=7','cozy-ui.js?v=5','profile.js?v=50','boxing-world.js?v=18','boxing-pose.js?v=11','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=16','boxing-skill.js?v=1','boxing-special.js?v=1']:
+html=get('/45-fitness-coach').text;assert 'id="boxingPage"' in html and '/static/boxing.js?v=24' in html
+for asset in ['festival.css?v=2','festival-ui.js?v=1','home.js?v=38','boxing-finale.js?v=2','tracking-lock.js?v=1','person-tracking.js?v=43','person-tracking.css?v=40','session-camera.js?v=43','boxing-playback.js?v=3','boxing-training.js?v=1','boxing-lobby-stage.js?v=1','boxing-motion.js?v=6','boxing-lobby.css?v=4','boxing-lobby.js?v=10','boxing-computer.js?v=8','cozy-ui.js?v=5','profile.js?v=50','boxing-world.js?v=19','boxing-pose.js?v=11','character.js?v=46','character-renderer.js?v=7','cozy-ui.css?v=4','boxing.css?v=17','boxing-skill.js?v=1','boxing-special.js?v=1']:
  assert '/static/'+asset in html,asset
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']);page=b.new_page();page.set_content('<main></main>');page.add_script_tag(content=get('/static/boxing-pose.js?release='+revision).text)
@@ -62,6 +62,10 @@ with sync_playwright() as p:
  page.evaluate('sceneSmoke.serverNow=()=>1004100');page.wait_for_function("sceneSmoke.special.stage==='elbow'")
  assert page.evaluate('sceneSmoke.actors[0].bones.rightArm.lower.getWorldPosition(new THREE.Vector3()).distanceTo(sceneSmoke.special.contacts.crown)<.09')
  page.evaluate('sceneSmoke.serverNow=()=>1007000');page.wait_for_function('!sceneSmoke.special.active')
+ # New impact and optional key-guide fixtures use public assets only.
+ page.evaluate("sceneSmoke.hitEffect({result:'hit',charge_multiplier:2},{x:.7,z:0})")
+ assert page.evaluate('sceneSmoke.hitEffects.length===1&&sceneSmoke.hitEffects[0].drops.geometry.attributes.position.count===36')
+ page.emulate_media(reduced_motion='reduce');page.wait_for_function('sceneSmoke.hitEffects.length===0');page.emulate_media(reduced_motion='no-preference')
  page.evaluate('sceneSmoke.destroy()');assert page.locator('#arena canvas').count()==0
  assert not errors,errors
  # Render the deployed menu without accessing private APIs or requesting a camera.
@@ -85,6 +89,9 @@ with sync_playwright() as p:
  assert page.locator('.boxing-special').count()==1
  assert page.evaluate("BoxingKeys.bindings.ruesi==='KeyX'&&BoxingKeys.bindings.slipRight==='KeyB'")
  assert page.evaluate("BoxingKeys.bindings.skill==='KeyV'&&typeof BoxingMotion.setSpeed==='function'")
+ assert page.locator('.boxing-key-hints').is_hidden()
+ assert page.evaluate("BoxingKeys.set('punchLeft','Mouse0')===null&&BoxingKeys.set('punchRight','Mouse2')===null&&BoxingKeys.name('Mouse2')==='RMB'")
+ page.evaluate('BoxingKeys.reset()')
  assert page.locator('input[aria-label="HP"]').count()==1
  assert page.evaluate('Boxing.world===null&&document.querySelector(".boxing-preview video").srcObject===null')
  # Preview a public-asset fixture without loading any account or writing production data.

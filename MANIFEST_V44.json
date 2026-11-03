@@ -230,7 +230,7 @@
       ]
     },
     "templates/index.html": {
-      "sha256": "45477cd446da01a2112970d7e5bedb54d14b85a45b4f747d71473e01a4f56673",
+      "sha256": "0e4784486af7c7ddb9b0ec3db9f3921f55d000bea042eb66ce57e35aab66babc",
       "bytes": 44490,
       "accepted_previous_sha256": [
         "9b7cf7d4198fb203d3da37dcf5b6c7950d83f0f5f4f7b5a366e8af5025df2460",
@@ -276,7 +276,8 @@
         "4192f5bb7a6be73adf1b4cf416723471319c468e797109de9cc8959d527857e3",
         "f5c0a9d861ea5c45e27e6809a4e5e7857bbc41ba0ea03405a75ccc2e06ff0466",
         "2eea0823e59027cbad5d1d2e540ba8002497373a290178d7f93e02f6288524d2",
-        "6c2d3934c3ef3f79b6fa705fc9083e7d263940c9de2a4fd965e1b1cdd42961aa"
+        "6c2d3934c3ef3f79b6fa705fc9083e7d263940c9de2a4fd965e1b1cdd42961aa",
+        "45477cd446da01a2112970d7e5bedb54d14b85a45b4f747d71473e01a4f56673"
       ]
     },
     "static/character.js": {
@@ -701,7 +702,7 @@
       "bytes": 7466
     },
     "templates/templates/index.html": {
-      "sha256": "cb6a75a35c3f8e7fb48fd3b05c211865e9a7c7a8943c92464f879931e4282e04",
+      "sha256": "b5aaf6b60f3af7ada068d02e6e913dc1a782105679f1b622389f7e158ab456f1",
       "bytes": 44664,
       "accepted_previous_sha256": [
         "16d009ee0839e00f293c4901d735e7fa0a141ebe76626163fb946dfe7a645ecd",
@@ -717,7 +718,8 @@
         "b1021bec8ae49c7b73cb829478382057d001893bf727f6011ced74aa1452f6bc",
         "49c0eada8849f77f4c79bf70991d4998606ebef4b1e76460715caf4b67542fed",
         "09d937d8fa9c9377629acd119822e87984937a5df1f4dd6161e7a5a8d1ea55e2",
-        "fac3c21bdb3b89392b4fe9ba1e870e0ee259a967f05fbdbfad4af7fbe3f2d82e"
+        "fac3c21bdb3b89392b4fe9ba1e870e0ee259a967f05fbdbfad4af7fbe3f2d82e",
+        "cb6a75a35c3f8e7fb48fd3b05c211865e9a7c7a8943c92464f879931e4282e04"
       ]
     },
     "boxing_bot.py": {
@@ -861,10 +863,11 @@
       ]
     },
     "static/winter.css": {
-      "sha256": "0deec8a972965a23404b0f227a0f9f9b9212d8df6b0d5cd7670c7fcf7323197a",
-      "bytes": 20069,
+      "sha256": "98460e201dc0eaa56d0dd9958927854ade4dd1469ce4b565152da7193cd444c7",
+      "bytes": 20090,
       "accepted_previous_sha256": [
-        "d659ae28d188790fe69e57db31bc7b186d65a0384ad26b7728692a311dfd9467"
+        "d659ae28d188790fe69e57db31bc7b186d65a0384ad26b7728692a311dfd9467",
+        "0deec8a972965a23404b0f227a0f9f9b9212d8df6b0d5cd7670c7fcf7323197a"
       ]
     },
     "static/winter-ui.js": {

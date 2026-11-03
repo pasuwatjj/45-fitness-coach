@@ -14,7 +14,7 @@ with sync_playwright() as pw:
  p.goto(root+'/45-fitness-coach');p.wait_for_function('window.WinterUI?.state.active')
  assert p.locator('.festival-hero,.festival-krathong,#festivalGhost').count()==0
  assert 'LOY KRATHONG' not in p.locator('#homePage').inner_text()
- assert p.locator('.home-tile img').count()==0
+ assert p.locator('.home-tile img').count()==1
  assert p.locator('.home-tile-icon svg').count()==10
  assert p.locator('.winter-weather').evaluate('e=>getComputedStyle(e).pointerEvents')=='none'
  for width,theme in [(1440,'power'),(390,'power'),(390,'spicy'),(768,'spicy'),(320,'power')]:

@@ -76,3 +76,9 @@ body[data-theme] #homePage .home-tile strong{font-size:20px;line-height:1.5}body
 @media(max-width:360px){body[data-home-active=true] .corner-brand .theme-switch{top:122px}body[data-home-active=true] main{padding-top:184px}.winter-features{gap:7px}.winter-copy .home-tag{font-size:8px;letter-spacing:.9px}.winter-chip svg{display:none}.winter-scene-controls{flex-wrap:wrap}.winter-snow-toggle{margin-left:auto}}
 body[data-effects=off] .winter-scene *{animation:none!important;transition:none!important}body[data-winter-visible=false] .winter-scene *{animation-play-state:paused!important}
 @media(prefers-reduced-motion:reduce){.winter-scene *,.winter-air,#homePage .home-tile{animation:none!important;transition:none!important;scroll-behavior:auto!important}body[data-effects=on] #homePage .home-tile:hover{transform:none}}
+/* Bring the exercise demonstration photograph back into the winter card. */
+body[data-theme] #homePage .home-tile.winter-featured{grid-column:1/-1;min-height:230px;background:#102b3c!important;text-align:left}
+#homePage .winter-featured>img{position:absolute;inset:0 5% 0 auto;width:42%;max-width:320px;height:100%;object-fit:cover;object-position:center 38%;opacity:.85}
+#homePage .winter-featured:before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#081c2bf0 0%,#0b223cc7 40%,#0b223c12 100%);pointer-events:none}
+body[data-theme] #homePage .winter-featured .home-tile-copy{position:relative;z-index:1;color:#f2fbff}body[data-theme] #homePage .winter-featured strong{color:#f2fbff}body[data-theme] #homePage .winter-featured small{color:#d5e9f4}
+@media(max-width:600px){body[data-theme] #homePage .home-tile.winter-featured{min-height:220px}#homePage .winter-featured>img{right:0;width:58%;object-position:center 38%}}

@@ -2,9 +2,9 @@
 // Short position interpolation buffer; it never changes combat or authoritative state.
 window.BoxingPlayback=class{
  constructor(){this.reset()}
- reset(){this.frames=new Map();this.stamp=-Infinity}
- push(players,stamp,now){if(stamp<=this.stamp)return;this.stamp=stamp;for(const p of players){if(!Number.isFinite(p.x)||!Number.isFinite(p.z))continue;const frames=this.frames.get(p.uid)||[];frames.push({x:p.x,z:p.z,stamp,at:now,moving:!!(p.move||p.side),hit:p.hit_at||0});this.frames.set(p.uid,frames.slice(-6))}}
- sample(uid,now,own=false,input=null){const f=this.frames.get(uid);if(!f?.length)return null;const t=now-(own?0:80),last=f[f.length-1];
+ reset(){this.frames=new Map();this.stamp=-Infinity;this.lastArrival=null;this.interval=120;this.jitter=0;this.delay=120}
+ push(players,stamp,now){if(stamp<=this.stamp)return;this.stamp=stamp;if(this.lastArrival!==null){const gap=Math.min(500,Math.max(0,now-this.lastArrival));this.jitter+=(Math.abs(gap-this.interval)-this.jitter)*.15;this.interval+=(gap-this.interval)*.15;this.delay=Math.max(80,Math.min(220,this.interval+this.jitter*.5))}this.lastArrival=now;for(const p of players){if(!Number.isFinite(p.x)||!Number.isFinite(p.z))continue;const frames=this.frames.get(p.uid)||[];frames.push({x:p.x,z:p.z,stamp,at:now,moving:!!(p.move||p.side),hit:p.hit_at||0});this.frames.set(p.uid,frames.slice(-6))}}
+ sample(uid,now,own=false,input=null){const f=this.frames.get(uid);if(!f?.length)return null;const t=now-(own?0:this.delay),last=f[f.length-1];
   // Brief local movement preview follows current input, never stale server controls.
   // Combat remains authoritative; limit the preview to 19 cm and respect separation.
   if(own&&input?.enabled){const q=input.opponent,age=Math.max(0,now-last.at)/1000;

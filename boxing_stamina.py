@@ -14,6 +14,9 @@ def advance(match, wall, game):
         if match['status'] == 'active' and not (match.get('special') and not match['special'].get('complete')):
             guarding = player.get('guard_until', 0) > game
             start = previous if guarding else max(previous, player.get('stamina_spent_at', wall - REST_DELAY) + REST_DELAY)
+            special = match.get('special') or {}
+            if special.get('complete') and 'started_at' in special:
+                start = max(start, special['started_at'] + special['duration'])
             player['stamina'] = round(min(MAXIMUM, player['stamina'] + max(0, wall - start) * RATE), 4)
         player['stamina_at'] = wall
 

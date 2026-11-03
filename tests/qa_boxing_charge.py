@@ -45,6 +45,8 @@ with sync_playwright() as pw:
     assert host.evaluate('Math.abs(Boxing.world.actors[0].chest.rotation.y)>.05')
     assert host.locator('.boxing-charge-readout').is_visible()
     host.locator('.boxing-arena').screenshot(path=str(out/'charge-desktop.png'))
+    # Screenshot readback can stall software WebGL beyond charge freshness; wait for a confirmed server charge again.
+    host.wait_for_function("Boxing.state.players[0].charge_hand==='right'&&Boxing.state.combat_now-Boxing.state.players[0].charge_at>=1.5",timeout=8000)
     host.mouse.up(button='right')
     host.wait_for_function('Boxing.state.players[1].hp===44',timeout=6000)
     guest.wait_for_function('Boxing.state.players[1].hp===44',timeout=6000)

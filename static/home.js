@@ -18,7 +18,7 @@
  create.onclick=()=>setTab('profile');
  const tiles=el('div',null,'home-tiles'),categories=el('section',null,'home-categories');categories.hidden=true;categories.append(el('h2',words.choose));
  function tile(title,sub,icon,fn,photo){const b=el('button',null,'home-tile');b.type='button';if(photo){const img=el('img');img.src=photo;img.alt='';img.loading='lazy';b.append(img)}const text=el('span',null,'home-tile-copy');text.append(el('span',icon,'home-tile-icon'),el('strong',title),el('small',sub));b.append(text);b.onclick=fn;tiles.append(b)}
- tile(words.train,words.desc,'🏋️',()=>{categories.hidden=!categories.hidden;if(!categories.hidden)categories.scrollIntoView({behavior:'smooth',block:'start'})});
+ tile(words.train,words.desc,'🏋️',()=>{categories.hidden=!categories.hidden;if(!categories.hidden)categories.scrollIntoView({behavior:'smooth',block:'start'})},'/static/images/jeff/page-31.jpg');
  tile(en?'Cardio coin rush':'คาร์ดิโอเผาผลาญ · เกมเก็บเหรียญ',en?'15-second jumping jacks · two camera modes':'กระโดดตบ 15 วินาที · เต็มตัว / ครึ่งตัว','🪙',()=>setTab('cardio'));
  tile(words.plan,words.planSub,'▦',()=>setTab('calendar'));
  tile(words.rank,words.rankSub,'🔥',()=>setTab('leader'));

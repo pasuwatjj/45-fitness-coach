@@ -1,50 +1,51 @@
-# Winter home — Product Design QA
+# X defensive aim and restored exercise card — Product Design QA
 
 final result: passed
 
-## Target and evidence
+## Source and intent
 
-The user requested replacing the existing Loy Krathong homepage with a snowy winter theme, using native UI and smooth wind-driven snowfall. The supplied FiveM winter image-search screenshot is a mood reference (ice blue, white snow and frosted surfaces), not a layout to clone. The explicit request for UI takes precedence over preserving the reference's raster character posters. No Figma file or frame was supplied; no Figma document was created or modified.
+The user supplied an aim-trainer reference (navy grid, orange/white circular targets and central timer), an exercise-category card screenshot, and the original exercise portrait already in this repository. They explicitly requested native UI, a frozen grayscale arena, and a functional defensive challenge rather than a static image. This is a new interaction, not a pixel clone of the image-search browser chrome. No Figma destination was supplied or modified.
 
-The existing code target was captured before editing: `docs/winter-home/before-desktop.png`. Implementation evidence: `docs/winter-home/home-power-1440.png`, `home-spicy-1440.png`, `home-power-390.png`, `home-spicy-390.png`, and `home-power-320.png`.
+Source visual truth: the supplied chat references; `static/images/jeff/page-31.jpg` (720 × 1280); and `docs/winter-home/home-power-1440.png`, the previously accepted winter homepage at a 1440 × 1000 CSS viewport, DPR 1. The winter homepage source and implementation are both Thai, guest, dark theme; full-page heights differ intentionally because the restored photo card spans the grid.
 
-- Source CSS viewport: 1440 × 1000, device scale factor 1; source bitmap 1440 × 1874. Thai, guest, light theme.
-- Comparison implementation: 1440 × 1627 bitmap, same 1440 × 1000 CSS viewport, density, language, guest state and light theme. Full-page lengths differ intentionally because the hero and photo-led category grid were redesigned.
-- Combined full-view evidence: `docs/winter-home/comparison-desktop.png` puts the actual source and implementation in the same browser-rendered comparison, at equal displayed widths.
-- Combined focused evidence: `docs/winter-home/comparison-hero.png` shows the hero, CTA area and first category row together. This is an intentional seasonal redesign, not a claim of pixel fidelity to the former screen.
-- Additional captures/tests cover dark/light at 390 px, tablet at 768 px, and compact 320 px. Original full-size screenshots remain available for reading small copy; the comparison board scales both columns equally.
+## Browser evidence and comparisons
 
-## Findings
+- Full-view source/implementation comparison: `docs/boxing-aim/comparison-home.png` (1250 × 1000). Both homepage captures displayed at the same width. Current source capture is `docs/boxing-aim/home-desktop.png` (1440 × 1873, viewport 1440 × 1000, DPR 1).
+- Focused source-asset/implementation comparison: `docs/boxing-aim/comparison-photo.png` (1250 × 1000). Original portrait is shown alongside actual desktop and mobile card captures. Desktop card 1264 × 231; mobile card 366 × 221 at viewport 390 × 844, DPR 1. Portrait and card intentionally have different crops, clearly labeled in the comparison.
+- New interaction: `docs/boxing-aim/aim-defender.png`, `aim-attacker.png`, `aim-evaded.png` (arena crops 1094 × 684, viewport 1200 × 950, DPR 1). Defender and spectator states share the same countdown but only the defender can click.
+- Mobile interaction: `docs/boxing-aim/aim-mobile.png` (arena crop 352 × 441, viewport 390 × 950, DPR 1). No horizontal overflow; target remains 48 px. Desktop targets are 54 px.
 
-No actionable P0/P1/P2 findings in the first rendered comparison and interaction pass. The winter palette, separate live mascot, UI category ornaments, bounded background particles and preserved routes meet the brief. A dedicated pause control prevents ambient motion from being compulsory.
+## Findings and iteration
 
-| Required surface | Review |
-| --- | --- |
-| Typography | Retains the app's loaded font/fallback stack. Strong title, Thai subtitle, readable body hierarchy. Title and CTA wrapping checked at 320/390/768/1440 px; no clipped text or horizontal overflow. Small scene captions are decorative; actions and feature descriptions retain separate readable labels. |
-| Spacing/layout | Split hero on desktop, stacked copy/scene on mobile, 3/2/1-column category grid. The primary training action remains before the mascot on mobile. Logo, theme controls, account bar and settings stay operable. |
-| Colors/tokens | Dark navy/ice blue and bright frost variants, with opaque-enough content surfaces separating text from the snow. Semantic health/cardio accents preserved. Non-home body tokens and gym-specific appearance retained. |
-| Assets | Native SVG snow friend, scarf/wave/blink animation, semantic line icons and 2D canvas snow. No added bitmap/video background; the former home photo panel is now a UI card. Real instructional exercise images remain intact. Logo retained. |
-| Copy/content | Seasonal label reads WINTER SEASON. Thai/English copy describes form learning, camera training and progress. The 24/7 chip describes availability, not invented sensor data or live weather. No visible Loy Krathong decoration remains. |
+The first exercise-card render used a full-width crop that enlarged and cropped the subject's head. This was a P2 asset-quality issue. The image was constrained to a portrait region on the right with a 38% vertical crop, while the readable text stays on the left. The post-fix focused comparison above shows the face and upper body clearly at both sizes. The latest comparison has no remaining actionable P0/P1/P2 findings.
 
-Comparison history: first implementation and matched-state comparison passed; there were no visual-fix iterations or unresolved design deviations. The change from a centered hero to a split hero and removal of the decorative workout-card photo are intentional responses to the UI-led brief.
+The aim trainer intentionally uses one target at a time, rather than the simultaneous static targets in the reference image, to make the user's continuous 10-second challenge unambiguous. The countdown, required total, misses, speed band and outcome text explain the rules. The grayscale applies to the arena behind the trainer; colored targets remain easy to find. The spectator sees the same sequence without interactive controls. Existing HP and skill HUDs stay around the arena edges; the challenge takes priority while combat input is frozen.
 
-## Tested interactions and performance
+## Required visual surfaces
 
-- `tests/qa_winter.py`: native snow pixels change over time, capped 88 desktop / 42 mobile particles, one canvas, about 59.8 fps in the local headless Chromium sample. This is not a physical-device performance guarantee.
-- Snow pause/resume persists after reload. Global effects settings and reduced-motion preferences stop animation. Leaving home, document visibility changes and page lifecycle stop the RAF loop; returning resumes without a time jump. Offscreen mascot animation pauses.
-- Keyboard Enter/Space activates the snow friend; rapid clicks keep at most 5 scene flakes and 20 existing click-feedback particles. Snow cannot intercept pointer input.
-- Training CTA expands categories; real tutorial images remain. Calendar/health navigation and contextual heart effects work. Thai/English labels and greetings verified.
-- `tests/qa_motion_ui.py`: six semantic category effects, keyboard interaction, rapid-click bounds, settings persistence and reduced-motion behavior passed.
-- `tests/qa_festival.py` (retained legacy regression entry point): updated seasonal selectors, responsive themes, navigation, effects and unchanged boxing foot-plant fixture passed.
-- No JavaScript console errors in these browser runs. Changed JavaScript syntax and installer tests passed; manifest includes both new seasonal files and cache versions in both templates.
+- **Typography:** Existing app stack retained; clear bold heading, tabular timer/counters, compact secondary copy. Thai/English and narrow screens checked. No browser-chrome imitation or reference-site labels.
+- **Spacing/layout:** Trainer stays inside the arena/fullscreen container; responsive inset, bounded grid and 48–54 px targets. Original winter navigation and category actions remain usable. Wider exercise card intentionally restores prominence to workout learning.
+- **Colors/tokens:** Navy glass, subtle grid and white/orange targets follow the supplied reference. Monochrome fighters communicate time stop. Success uses pale mint with explicit zero-damage text. Reduced-motion/global-effects settings suppress the decorative expanding clock.
+- **Assets:** Existing human photograph restored; approved Quaternius fighters and the X choreography retained. Real targets are native interactive buttons as explicitly requested. No replacement AI image was generated.
+- **Copy/content:** Rules say all targets for 10 seconds = evade; any miss = cinematic and 50% maximum HP damage. At exactly 50% HP the moderate schedule applies. X cooldown remains 180 seconds. Controls/help and bilingual labels updated.
 
-## Implementation checklist
+## Interaction and regression evidence
 
-- [x] Replace festive ghost/krathong with an interactive snow studio.
-- [x] Apply winter UI tokens, frosted panels and native category icons.
-- [x] Add wind-driven snowfall, pause control and lifecycle cleanup.
-- [x] Keep exercise, profile, game and account routes/data behavior.
-- [x] Check both themes, responsive layouts, keyboard use and motion preferences.
-- [x] Save browser evidence and regression results.
+- `tests/qa_boxing_aim.py`: two authenticated local players; defender-only native clicks, frozen renderer and transforms, grayscale, eight successful targets, zero-damage evade, 180-second cooldown, failed challenge, one 25 HP hit against 50 maximum HP, unchanged armor, original thigh/shoulder/elbow cinematic, mobile layout, clean exit and movement under alternating 40/180 ms response delays. No console errors.
+- `test_boxing_aim.py`: nine focused server tests, including low-HP acceleration, exact 50% boundary, premature/duplicate/late/forged clicks, attacker exclusion, stray misses, V overlap, paused stamina, leave cancellation, bot reactions and KO after the cinematic.
+- Full boxing Python regression run: 140 tests passed before adding the ninth focused bot case; all nine focused cases subsequently passed. Existing charged punch, Counter, stamina and reward rules are preserved.
+- Node computer/flow regressions passed: input/remapping, charge, guard/dash, stamina, bounded interpolation/extrapolation, stale packets, cage bounds and training acknowledgments. Added bounded adaptive interpolation checks for uneven arrivals.
+- `tests/qa_boxing_charge.py` passed: real left/right mouse remaps, full ×2 synchronized hit, tap, guard cancellation, impact effects, live bindings, mobile/fullscreen and reduced motion. Screenshot readback briefly interrupted charging in software WebGL; the test now waits for the server-confirmed full charge before release.
+- Winter browser regression passed at 320/390/768/1440 px in both themes, including navigation, instructional media, reduced motion, pause persistence and effects settings. Local ambient-snow sample: about 60 fps. This is not a physical-device or multiplayer FPS guarantee.
+- Rendering changes: stop WebGL drawing during aim; adapt pixel ratio between 0.85 and 1.5 under sustained load; update existing HP/armor/stamina elements instead of rebuilding the HUD on every response. Remote interpolation adapts within 80–220 ms; local input preview remains immediate and bounded.
 
-Follow-up polish: none required for this scope. Residual test limits: actual low-end mobile GPU and Safari performance were not benchmarked. Production verification is performed after deployment using public assets and GET-only browser smoke checks.
+## Checklist
+
+- [x] Server-owned 10-second challenge and damage, with 180 ms packet-delivery grace.
+- [x] Freeze / grayscale / clock cue and defender versus attacker UI.
+- [x] Success resumes combat; failure plays the existing X cutscene once.
+- [x] Restore exercise photograph and retain winter theme, tutorial media and account data.
+- [x] Responsive and reduced-motion checks; actual browser screenshots reviewed.
+- [x] Multiplayer uneven-delivery regression; no promise of fixed FPS across devices or networks.
+
+No outstanding design blockers. Existing rule-10 rooms keep their earlier mechanics; create a new room for rule 11. Physical low-end mobile hardware and geographically distant internet connections were not tested.

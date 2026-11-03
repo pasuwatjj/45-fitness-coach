@@ -1,8 +1,8 @@
 """Private casual boxing matches. No images/landmarks leave the browser."""
 import json,time,uuid,math
 from flask import Blueprint,g,request,jsonify
-import character,collaboration_features,boxing_cage,boxing_bot,boxing_training,community,copy,boxing_time,boxing_special,boxing_charge,boxing_stamina
-MATCH_RULES=10
+import character,collaboration_features,boxing_cage,boxing_bot,boxing_training,community,copy,boxing_time,boxing_special,boxing_charge,boxing_stamina,boxing_aim
+MATCH_RULES=11
 
 def clock():return time.time()
 def schema(store):
@@ -53,6 +53,7 @@ def motion(m,now):
 def advance(m,now):
     if m.get('rules',0)<9:return advance_combat(m,now)
     previous_wall=m.get('clock_wall',now);previous_game=m.get('combat_now',previous_wall)
+    boxing_aim.prepare(m,now)
     game=boxing_time.sync(m,now)
     boxing_time.evade_sync(m,m['clock_wall'],previous_wall,previous_game)
     if m['status'] in ['finished','declined','expired']:return
@@ -125,7 +126,7 @@ def knockout(m,winner,now):
 
 def award(db,m,now):
     if m.get('kind')=='bot':return # Bot sparring does not add competitive belts.
-    if m.get('rules') not in [2,3,4,5,6,7,8,9,10] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
+    if m.get('rules') not in [2,3,4,5,6,7,8,9,10,11] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
     winner=next((p for p in m['players'] if p['uid']==m.get('winner') and p.get('profile_id')),None)
     if winner:
         db.execute('INSERT OR IGNORE INTO boxing_trophies VALUES(?,?,?,?)',(m['id'],winner['uid'],winner['profile_id'],now));m['trophy_awarded']=True;m['belt_awarded']=True
@@ -133,6 +134,8 @@ def award(db,m,now):
 def action(m,uid,data,now,internal_bot=False):
     p=next(p for p in m['players'] if p['uid']==uid)
     p['seen_wall']=now
+    if data.get('action')=='special_aim':
+        boxing_aim.click(m,p,data,now);p['seen']=m.get('combat_now',now);return
     if data.get('action')=='special':
         if m.get('rules',0)>=10 and m.get('combat_now',now)<p.get('hit_stun_until',0):return
         if m.get('rules',0)<9:raise ValueError('Start a new match to use the skill')

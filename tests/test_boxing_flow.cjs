@@ -1,11 +1,14 @@
 const vm=require('vm'),fs=require('fs'),assert=require('assert');const env={window:{},setTimeout,clearTimeout};
 for(const name of ['boxing-playback','boxing-training'])vm.runInNewContext(fs.readFileSync('static/'+name+'.js','utf8'),env);
 const p=new env.window.BoxingPlayback();p.push([{uid:1,x:0,z:0,move:1}],1000,0);p.push([{uid:1,x:.2,z:0,move:1}],1200,200);
-assert(Math.abs(p.sample(1,180).x-.1)<1e-9);assert(p.sample(1,250).x<p.sample(1,300).x);assert(p.sample(1,5000).x<=.45+.0001);
+assert(Math.abs(p.sample(1,100+p.delay).x-.1)<1e-9);assert(p.sample(1,250).x<p.sample(1,300).x);assert(p.sample(1,5000).x<=.45+.0001);
 p.push([{uid:1,x:4,z:0,move:1}],1100,300);assert(p.sample(1,5000).x<1); // Old packet ignored.
 p.push([{uid:1,x:.22,z:0,move:0}],1400,400);assert.equal(p.sample(1,2000).x,.22);
 p.push([{uid:1,x:.4,z:0,move:1,hit_at:1}],1600,600);assert.equal(p.sample(1,2000).x,.4); // No extra knockback from extrapolation.
 p.reset();assert.equal(p.sample(1,1000),null);p.push([{uid:1,x:4.9,z:0,move:1}],1000,0);p.push([{uid:1,x:5,z:0,move:1}],1100,100);assert(p.sample(1,1000).x<=5);
+// Jitter increases the remote buffer within bounds without delaying local input.
+p.reset();for(let i=0;i<12;i++)p.push([{uid:1,x:i*.1,z:0,move:1}],1000+i*150,i*150);const steady=p.delay;
+for(let i=12;i<24;i++)p.push([{uid:1,x:i*.1,z:0,move:1}],1000+i*150,i*150+(i%2?90:0));assert(p.delay>steady);assert(p.delay<=220);
 // Keyboard movement previews the current direction while replies are delayed.
 p.reset();p.push([{uid:1,x:0,z:0,move:0}],1000,0);
 const input={enabled:true,move:1,strafe:0,opponent:{x:2,z:0}};

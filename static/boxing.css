@@ -98,3 +98,19 @@ body[data-effects=off] .boxing-time-cue,body[data-effects=off] .boxing-time-wave
 .boxing-bars .stamina-bar progress::-webkit-progress-value{background:linear-gradient(90deg,#249b95,#86f0bf)}
 .boxing-bars .stamina-bar progress::-moz-progress-bar{background:linear-gradient(90deg,#249b95,#86f0bf)}
 @media(max-width:600px){.boxing-bars{height:95px;gap:5px}.boxing-bars .stamina-bar{height:13px;width:100%}.boxing-key-hints{right:5px;top:222px;bottom:110px;max-width:145px;font-size:9px}.boxing-key-row{gap:4px;min-height:21px}.boxing-key-row kbd{min-width:28px;font-size:9px}.boxing-key-list{padding:5px}.boxing-key-hints .boxing-hints-toggle{font-size:10px!important}.boxing-time-hud{top:146px}}
+/* X defensive challenge: frozen monochrome arena, crisp native aim targets. */
+.boxing-aim-active .boxing-fighters{filter:grayscale(1) contrast(1.12);pointer-events:none}
+.boxing-aim-active .boxing-key-hints,.boxing-aim-active .boxing-cinematic-title,.boxing-aim-active .boxing-banner{visibility:hidden}
+.boxing-aim{position:absolute;z-index:35;inset:13% 16% 9%;display:flex;flex-direction:column;border:1px solid #91b8c8;border-radius:20px;background:#081b2cf2;box-shadow:0 20px 70px #0009;color:#f4fbff;overflow:hidden;isolation:isolate}
+.boxing-aim[hidden]{display:none}.boxing-aim-header{display:grid;gap:5px;padding:16px 20px;border-bottom:1px solid #c2eaff24}.boxing-aim-header strong{font-size:clamp(13px,1.5vw,20px);letter-spacing:.06em}.boxing-aim-header span{font-size:12px;color:#b8d5e6}
+.boxing-aim-board{position:relative;flex:1;min-height:190px;touch-action:manipulation;background:linear-gradient(#c5e7ff07 1px,transparent 1px),linear-gradient(90deg,#c5e7ff07 1px,transparent 1px),radial-gradient(ellipse at center,#10435b,transparent);background-size:40px 40px,40px 40px,100% 100%;overflow:hidden}
+.boxing-aim-timer{position:absolute;inset:0;display:grid;place-content:center;font:800 clamp(40px,6vw,84px)/1 system-ui;color:#a9d6eb40;pointer-events:none;font-variant-numeric:tabular-nums}
+.boxing-aim-target{position:absolute;width:54px;height:54px;min-height:44px;padding:0!important;transform:translate(-50%,-50%);border:3px solid white!important;border-radius:50%!important;background:radial-gradient(circle,#fff 0 13%,#ff633e 15% 31%,white 33% 41%,#ff633e 43% 65%,white 67%)!important;box-shadow:0 0 0 7px #ff794c20,0 0 26px #ff794c55;cursor:crosshair;touch-action:manipulation}
+.boxing-aim-target:disabled{opacity:1;cursor:default}.boxing-aim-target[hidden]{display:none}.boxing-aim-target:focus-visible{outline:3px solid #81e9ff;outline-offset:8px}
+.boxing-aim-progress{margin:0!important;padding:10px 18px 4px;text-align:center;font-size:13px;font-weight:750;color:#ffd2a9;font-variant-numeric:tabular-nums}.boxing-aim-help{margin:0!important;padding:5px 18px 14px;font-size:12px;text-align:center;line-height:1.6;color:#d1e3ec}
+.boxing-aim-result{position:absolute;z-index:36;top:40%;left:50%;transform:translateX(-50%);width:max-content;max-width:90%;padding:18px 25px;border:1px solid #a9f6df;border-radius:14px;background:#0b2c32ee;color:#bdffe8;font-weight:850;box-shadow:0 10px 50px #0008}
+.boxing-aim-active:after{content:'◷';position:absolute;inset:15% 0;pointer-events:none;z-index:34;display:grid;place-content:center;color:#d6efff88;font:180px/1 system-ui;animation:boxing-time-ring .7s ease-out both}
+@keyframes boxing-time-ring{from{transform:scale(.4);opacity:.9}to{transform:scale(2);opacity:0}}
+@media(max-width:600px){.boxing-aim{inset:16% 8px 9%;border-radius:14px}.boxing-aim-header{padding:10px 12px}.boxing-aim-header span{font-size:11px}.boxing-aim-target{width:48px;height:48px}.boxing-aim-help{font-size:11px;padding:3px 10px 10px}.boxing-aim-board{min-height:160px}}
+@media(prefers-reduced-motion:reduce){.boxing-aim-active:after{display:none}}
+body[data-effects=off] .boxing-aim-active:after{display:none}

@@ -1,5 +1,5 @@
-"""Server-owned Ruesi Bod Ya cinematic. One right-arm hit; real-time cooldown."""
-import math,uuid
+"""Server-owned Ruesi Bod Ya cinematic. Rule 11 adds defensive aim and half-max-HP damage."""
+import math,uuid,boxing_aim
 DURATION=6.2
 IMPACT=4.1
 COOLDOWN=180
@@ -17,6 +17,10 @@ def activate(m,p,wall):
     if math.hypot(q['x']-p['x'],q['z']-p['z'])>RANGE:raise ValueError('Move within 4 metres to use Ruesi Bod Ya')
     p['special_ready_at']=wall+COOLDOWN
     m['special']=dict(id=uuid.uuid4().hex,attacker=p['uid'],target=q['uid'],started_at=wall,duration=DURATION,impact=IMPACT,damage=p['damage']['right'],players=[dict(uid=v['uid'],x=v['x'],z=v['z']) for v in m['players']])
+    if m.get('rules',0)>=11:
+        challenge=boxing_aim.create(q,wall)
+        lead=boxing_aim.DURATION+boxing_aim.GRACE
+        m['special'].update(challenge=challenge,phase='aim',cinematic_at=wall+lead,duration=lead+DURATION,impact=lead+IMPACT,damage=round(q['max_hp']*.5,2))
     m['pending_strikes']=[]
     for v in m['players']:
         v.update(charge_hand=None,charge_at=0,move=0,side=0,side_since=None,crouch=0,slip=0,bend=0,arms=None,posture=None,lowerBody=None,guard_until=0,counter_until=0,evade_slow_until=0,dash_until=0,kick_until=0,last_punch=0,last_hand=None)

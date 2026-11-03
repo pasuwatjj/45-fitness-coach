@@ -1,0 +1,13 @@
+{
+  "result": "passed",
+  "live": false,
+  "sample_fps": 59.8,
+  "max_flakes": 88,
+  "console_errors": [],
+  "viewports": [
+    320,
+    390,
+    768,
+    1440
+  ]
+}

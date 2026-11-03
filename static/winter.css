@@ -80,5 +80,5 @@ body[data-effects=off] .winter-scene *{animation:none!important;transition:none!
 body[data-theme] #homePage .home-tile.winter-featured{grid-column:1/-1;min-height:230px;background:#102b3c!important;text-align:left}
 #homePage .winter-featured>img{position:absolute;inset:0;width:100%;max-width:none;height:100%;object-fit:cover;object-position:center 35%;opacity:.85}
 #homePage .winter-featured:before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#081c2bf0 0%,#0b223cc7 40%,#0b223c12 100%);pointer-events:none}
-body[data-theme] #homePage .winter-featured .home-tile-copy{position:relative;z-index:1;color:#f2fbff}body[data-theme] #homePage .winter-featured strong{color:#f2fbff}body[data-theme] #homePage .winter-featured small{color:#d5e9f4}
+body[data-theme] #homePage .winter-featured .home-tile-copy{position:relative;z-index:1;color:#f2fbff!important}body[data-theme] #homePage .winter-featured strong{color:#f2fbff!important}body[data-theme] #homePage .winter-featured small{color:#d5e9f4!important}
 @media(max-width:600px){body[data-theme] #homePage .home-tile.winter-featured{min-height:220px}#homePage .winter-featured>img{inset:0;width:100%;object-position:center 35%}}

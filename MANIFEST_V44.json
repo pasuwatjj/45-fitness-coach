@@ -863,8 +863,8 @@
       ]
     },
     "static/winter.css": {
-      "sha256": "1849d6ad6de14d082f45b1992293129414e07c6f3650b999ec185250edaa712c",
-      "bytes": 20060,
+      "sha256": "98460e201dc0eaa56d0dd9958927854ade4dd1469ce4b565152da7193cd444c7",
+      "bytes": 20090,
       "accepted_previous_sha256": [
         "d659ae28d188790fe69e57db31bc7b186d65a0384ad26b7728692a311dfd9467",
         "0deec8a972965a23404b0f227a0f9f9b9212d8df6b0d5cd7670c7fcf7323197a"

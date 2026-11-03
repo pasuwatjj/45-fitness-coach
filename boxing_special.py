@@ -19,7 +19,7 @@ def activate(m,p,wall):
     m['special']=dict(id=uuid.uuid4().hex,attacker=p['uid'],target=q['uid'],started_at=wall,duration=DURATION,impact=IMPACT,damage=p['damage']['right'],players=[dict(uid=v['uid'],x=v['x'],z=v['z']) for v in m['players']])
     m['pending_strikes']=[]
     for v in m['players']:
-        v.update(move=0,side=0,side_since=None,crouch=0,slip=0,bend=0,arms=None,posture=None,lowerBody=None,guard_until=0,counter_until=0,evade_slow_until=0,dash_until=0,kick_until=0,last_punch=0,last_hand=None)
+        v.update(charge_hand=None,charge_at=0,move=0,side=0,side_since=None,crouch=0,slip=0,bend=0,arms=None,posture=None,lowerBody=None,guard_until=0,counter_until=0,evade_slow_until=0,dash_until=0,kick_until=0,last_punch=0,last_hand=None)
 
 def advance(m,wall,knockout):
     s=m.get('special')

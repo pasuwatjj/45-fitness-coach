@@ -151,7 +151,9 @@ window.CageFighter=class extends FitnessImportedAvatar{
   this.canvas.dataset.presentation=kind||'fighting';
   if(!kind){this.downAmount=0;return;}
   this.footPlants={};this.gait=0;this.punchAt=-1000;
-  let down=kind==='down'?smooth(0,.75,age):0;
+  const launch=kind==='down'&&state.launch&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&document.body.dataset.effects!=='off',flight=launch?smooth(0,2.1,age):0;
+  let down=kind==='down'?smooth(0,launch?2.1:.75,age):0;
+  if(launch){const direction=state.launchDirection||[1,0],recover=state.recoverAfter!=null?1-smooth(state.recoverAfter-1.8,state.recoverAfter-.25,age):1;this.root.position.x+=direction[0]*.65*flight*recover;this.root.position.z+=direction[1]*.65*flight*recover;this.root.position.y=.30*Math.sin(Math.PI*flight);for(let pass=0;pass<2;pass++)for(let j=0;j<8;j++){const nx=Math.cos(j*Math.PI/4),nz=Math.sin(j*Math.PI/4),over=this.root.position.x*nx+this.root.position.z*nz-5;if(over>0){this.root.position.x-=nx*over;this.root.position.z-=nz*over}}}
   if(kind==='down'&&state.recoverAfter!=null)down*=1-smooth(state.recoverAfter-1.8,state.recoverAfter-.25,age);
   this.downAmount=down;
   const gettingUp=kind==='down'&&state.recoverAfter!=null?Math.sin(Math.PI*smooth(state.recoverAfter-1.8,state.recoverAfter-.25,age)):0;
@@ -209,11 +211,12 @@ window.CageFighter=class extends FitnessImportedAvatar{
   for(const key of ['turn','hipTurn','tilt','headPitch','headYaw','headRoll'])this.poseSmooth[key]+=(Number(state.posture?.[key]||0)-this.poseSmooth[key])*ease;
   for(const key of Object.keys(this.supportSmooth))this.supportSmooth[key]+=(Number(state.lowerBody?.[key]||0)-this.supportSmooth[key])*ease;
   const support=this.supportSmooth,lowerMix=support.confidence,kneeDrop=(1-Math.cos((support.leftKnee+support.rightKnee)*.45))/.45;
-  const computer=state.controlMode==='computer',elapsed=this.now()-(this.punchAt??-1000),kicking=this.punchType==='kick';
+  if(state.stunned){this.punchAt=-1000;this.punchType='straight'}
+  const computer=state.controlMode==='computer',charging=computer&&state.charge_hand&&!state.guard&&!state.stunned,elapsed=this.now()-(this.punchAt??-1000),kicking=this.punchType==='kick';
   const motion=BoxingMotion.sample(this.punchType,this.punchHand,elapsed);motion.type=this.punchType;this.computerMotion=computer?motion:null;
   const assisted=!computer&&motion.active&&['hook','uppercut'].includes(this.punchType),assist=assisted?BoxingMotion.smooth(elapsed/45)*(1-BoxingMotion.smooth((elapsed-205)/200)):0;
   const pose={...this.poseSmooth,crouch:this.poseSmooth.crouch*(1-lowerMix)+Math.max(support.drop,kneeDrop)*lowerMix};
-  if(computer){const dashAge=180-((state.dashVisualUntil||0)-this.now()),duck=BoxingMotion.smooth(dashAge/35)*(1-BoxingMotion.smooth((dashAge-130)/90));pose.crouch=Math.max(.24+.48*duck,pose.crouch);if(duck>0)pose.bend=Math.max(.48*duck,pose.bend);pose.crouch+=motion.duck;pose.bend+=.18+motion.lean;pose.turn=motion.turn;pose.hipTurn=motion.hipTurn;pose.tilt+=motion.roll;pose.headYaw=-motion.turn*.48}
+  if(computer){const dashAge=180-((state.dashVisualUntil||0)-this.now()),duck=BoxingMotion.smooth(dashAge/35)*(1-BoxingMotion.smooth((dashAge-130)/90));pose.crouch=Math.max(.24+.48*duck,pose.crouch);if(duck>0)pose.bend=Math.max(.48*duck,pose.bend);pose.crouch+=motion.duck;pose.bend+=.18+motion.lean;pose.turn=charging?this.poseSmooth.turn:motion.turn;pose.hipTurn=charging?this.poseSmooth.hipTurn:motion.hipTurn;pose.tilt+=motion.roll;pose.headYaw=-motion.turn*.48}
   if(assisted){pose.crouch=Math.max(pose.crouch,motion.duck);pose.bend+=motion.lean;pose.turn+=motion.turn;pose.hipTurn+=motion.hipTurn;pose.tilt+=motion.roll}
   const bow=Math.max(0,pose.bend),sway=Math.abs(pose.slip),envelope=computer?motion.reach:kicking?0:elapsed<0||elapsed>360?0:Math.sin(Math.PI*elapsed/360);
   this.kickAmount=computer&&kicking?motion.lift:0;this.kickExtension=computer&&kicking?motion.reach:0;
@@ -221,17 +224,17 @@ window.CageFighter=class extends FitnessImportedAvatar{
   let power=.16+.84*T.MathUtils.clamp((alignment-.15)/.85,0,1);if(this.punchType==='hook')power=Math.max(power,.55);if(this.punchType==='uppercut')power=Math.max(power,.45);
   const drive=envelope*(computer?1:power)*(kicking?.25:1),twist=(this.punchHand==='left'?1:-1)*(computer?-1:1)*drive;
   const clashAge=this.now()-(state.clashAt??-1000),clashRecoil=clashAge>=0&&clashAge<360?Math.sin(Math.PI*clashAge/360):0;
-  const hitAge=this.now()-(state.hitAt||-1000),recoil=hitAge>=0&&hitAge<320?Math.sin(hitAge/320*Math.PI)*.11:0;
+  const hitAge=this.now()-(state.hitAt||-1000),recoil=hitAge>=0&&hitAge<480?Math.sin(hitAge/480*Math.PI)*.22*Math.min(1.5,state.hitPower||1):0;
   // Shoulder/hip rotation is continuous, including the wind-up before a strike event.
   const turn=pose.turn*1.05,hipYaw=pose.hipTurn*.82+twist*.08,remaining=turn-hipYaw,back=Math.min(0,pose.bend),pitch=pose.bend<0?pose.bend*.70:pose.bend,curve=1+Math.min(0,pose.bend)*1.1;
   this.pelvis.rotation.set(pitch*.32,hipYaw+twist*.04,-pose.slip*.16+support.hipRoll*.25*lowerMix+(computer?motion.roll*.4:0));
   this.spine.rotation.set(.06*curve+pitch*.43,remaining*.35+twist*.045,-pose.slip*.20+pose.tilt*.15);
   this.chest.rotation.set(-clashRecoil*.10-recoil+.12*curve+pitch*.38+drive*(this.punchType==='uppercut'?-.04:.035),remaining*.65+twist*.065,-pose.slip*.22+pose.tilt*(computer?.65:.35));
-  this.neck.rotation.set(-.08*curve-bow*.28+back*.08+pose.headPitch*.65,pose.headYaw*.75-twist*.04,pose.headRoll*.55-pose.tilt*.50+pose.slip*.58-support.hipRoll*.25*lowerMix);
+  this.neck.rotation.set(-recoil*1.6-.08*curve-bow*.28+back*.08+pose.headPitch*.65,pose.headYaw*.75-twist*.04+recoil*(state.hitHand==='left'?1:-1),pose.headRoll*.55-pose.tilt*.50+pose.slip*.58-support.hipRoll*.25*lowerMix);
   this.body.position.set(pose.slip*.17*(1-lowerMix)+support.shiftX*.30*lowerMix+twist*.025-(computer?motion.sign*motion.lift*.23:0),-.06-.48*pose.crouch-.08*bow-.045*sway,-bow*.12-back*.12+support.shiftZ*.26*lowerMix+drive*(computer?.12:.025)-this.kickAmount*.17);
   const shoulderFrame=new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),turn);
   const inverseTorso=this.pelvis.quaternion.clone().multiply(this.spine.quaternion).multiply(this.chest.quaternion).invert();
-  const computerArms=computer?BoxingMotion.arms(motion,state.guard,state.guard_side||'both'):null,assistedArms=assisted?BoxingMotion.arms(motion):null;
+  const computerArms=computer?(charging&&state.arms?state.arms:BoxingMotion.arms(motion,state.guard,state.guard_side||'both')):null,assistedArms=assisted?BoxingMotion.arms(motion):null;
   for(const side of ['left','right']){
    const b=this.bones[side+'Arm'],sign=side==='left'?1:-1,measured=computerArms?.[side]||state.arms?.[side];if(!b)continue;
    const upper=new T.Vector3(...(measured?.upper||[sign*.25,-.5,.65])).normalize(),lower=new T.Vector3(...(measured?.lower||[-sign*.15,.8,.4])).normalize();
@@ -333,9 +336,12 @@ window.BoxingWorld=class{
  }
  view(mode){this.mode=mode;this.yaw=.28;this.elevation=mode==='top'?.95:mode==='follow'?.12:.22;this.distance=mode==='top'?9:mode==='follow'?3.15:4.2}
  add(model,id){const actor=new CageFighter(this,model,id);this.actors.push(actor);return actor}
- clearActors(){this.special?.clear();this.finale?.clear();for(const a of this.actors)a.destroy();this.actors=[];this.states=[];this.loading()}
+ clearActors(){this.clearHitEffects();this.special?.clear();this.finale?.clear();for(const a of this.actors)a.destroy();this.actors=[];this.states=[];this.loading()}
  loading(){const error=this.actors.some(a=>a.canvas.dataset.avatarState==='error'),pending=this.actors.some(a=>a.canvas.dataset.avatarState!=='ready');this.notice.textContent=error?(window.I18N?.lang==='en'?'Avatar unavailable. Leave and reopen the arena to retry.':'โหลดตัวละครไม่ได้ ออกแล้วเปิดสนามใหม่เพื่อลองอีกครั้ง'):pending?(window.I18N?.lang==='en'?'Loading your fighters…':'กำลังโหลดตัวละครของคุณ…'):''}
  set(states,practice=true){this.states=states;this.practice=practice;this.bag.visible=practice;const champion=states.findIndex(s=>s.presentation==='champion');if(champion>=0&&!this.celebrating){this.mode='champion';this.distance=3.8;this.elevation=.18}if(champion<0&&this.celebrating)this.view('follow');this.celebrating=champion>=0;this.loading()}
+ clearHitEffects(){for(const fx of this.hitEffects||[]){fx.effect?.removeFromParent();for(const r of fx.resources)r.dispose()}this.hitEffects=[]}
+ hitEffect(event,position){if(matchMedia('(prefers-reduced-motion: reduce)').matches||document.body.dataset.effects==='off')return;this.hitEffects??=[];if(this.hitEffects.length>=8){const old=this.hitEffects.shift();old.effect?.removeFromParent();for(const r of old.resources)r.dispose()}const fx=new BoxingFinale(this);fx.origin=new THREE.Vector3(position.x,1.45,position.z);const target=this.practice?null:this.actors.filter(a=>a.body).sort((a,b)=>Math.hypot(a.position.x-position.x,a.position.y-position.z)-Math.hypot(b.position.x-position.x,b.position.y-position.z))[0];if(target)fx.origin=target.neck.localToWorld(new THREE.Vector3(0,.18,0));fx.direction={x:1,z:0};fx.born=performance.now();fx.particles(0);fx.effect.scale.setScalar((event.charge_multiplier||1)>1?1.15:.72);this.hitEffects.push(fx)}
+ tickHitEffects(now){this.hitEffects=(this.hitEffects||[]).filter(fx=>{const age=(now-fx.born)/1000*2.8;if(age>=2.3||matchMedia('(prefers-reduced-motion: reduce)').matches||document.body.dataset.effects==='off'){fx.effect?.removeFromParent();for(const r of fx.resources)r.dispose();return false}fx.particles(age);return true})}
  hitBag(){this.bagHit=performance.now()}
  project(x,z,y=1.65){const v=new THREE.Vector3(x,y,z).project(this.camera);return{x:(v.x*.5+.5)*100,y:(-.5*v.y+.5)*100}}
  tick(now){
@@ -361,7 +367,7 @@ window.BoxingWorld=class{
   for(const lamp of this.lamps)lamp.visible=this.camera.position.y<5.3;for(const beam of this.beams)beam.visible=this.camera.position.y<5.3;
   const motion=!matchMedia('(prefers-reduced-motion: reduce)').matches&&document.body.dataset.effects!=='off';for(let i=0;i<this.beams.length;i++)this.beams[i].rotation.z=motion?Math.sin(now/2600+i)*.15:0;
   const elapsed=(now-(this.bagHit??-5000))/1000;this.bag.rotation.z=elapsed<2&&motion?Math.sin(elapsed*12)*Math.exp(-elapsed*3)*.12:0;
-  this.renderer.render(this.scene,this.camera);
+  this.tickHitEffects(now);this.renderer.render(this.scene,this.camera);
  }
  destroy(){this.running=false;cancelAnimationFrame(this.frame);this.events.abort();this.clearActors();for(const r of this.resources)r.dispose();this.renderer.dispose();this.renderer.forceContextLoss();this.container.replaceChildren()}
 };

@@ -1,5 +1,5 @@
 """Server-authoritative planar cage movement and timed head-strike resolution."""
-import math,uuid,boxing_time
+import math,uuid,boxing_time,boxing_charge
 APOTHEM=5.0
 SPEED=1.05
 RANGE=1.65
@@ -71,9 +71,10 @@ def control(p,slip,bend,now,move=0):
         if side and (p.get('side_since') is None or (not ready and side!=p.get('side',0))):p['side_since']=now-MOVE_HOLD if ready else now
     p.update(side=side,slip=slip,bend=bend,travel_ready=bool(ready))
 
-def queue(m,p,q,hand,kind,now,token,counter=False):
+def queue(m,p,q,hand,kind,now,token,counter=False,charge=0):
     ensure(m['players']);fx,fz=direction(p,q)
-    m.setdefault('pending_strikes',[]).append(dict(id=uuid.uuid4().hex,attacker=p['uid'],target=q['uid'],hand=hand,punch_type=kind,damage=p.get('kick_damage',1) if kind=='kick' else p['damage'][hand],counter=counter,time=now+(.10 if counter else .28 if kind=='kick' else .18),fx=fx,fz=fz,token=token))
+    multiplier=boxing_charge.multiplier(charge) if kind=='straight' and not counter else 1
+    m.setdefault('pending_strikes',[]).append(dict(id=uuid.uuid4().hex,attacker=p['uid'],target=q['uid'],hand=hand,punch_type=kind,damage=round((p.get('kick_damage',1) if kind=='kick' else p['damage'][hand])*multiplier,2),charge_multiplier=round(multiplier,2),counter=counter,time=now+(.10 if counter else .28 if kind=='kick' else .18),fx=fx,fz=fz,token=token))
 
 def directional_rules(m):return m.get('rules',0)>=6 and m.get('control_mode')=='computer'
 
@@ -87,11 +88,13 @@ def regenerate(m,now):
             if p['armor']>0:p['armor']=min(p.get('max_armor',10),p['armor']+ticks)
             p['armor_regen_at']=anchor+ticks*5
 
-def defend(p,hand,damage,now):
+def defend(p,hand,damage,now,drain=False):
     guarded=p.get('guard_until',0)>now and now-p.get('control_at',0)<.65
     side=p.get('guard_side') or 'both';matched=guarded and side==hand
     armor_loss=0;hp_loss=damage;detail='none'
-    if matched and p['armor']>0:hp_loss=0;detail='perfect'
+    if drain and guarded:
+        armor_loss=min(p['armor'],damage);hp_loss=damage-armor_loss;detail='all' if armor_loss else 'broken'
+    elif matched and p['armor']>0:hp_loss=0;detail='perfect'
     elif matched:hp_loss=round(damage*.9,2);detail='reduced'
     elif guarded and side=='both':
         armor_loss=min(p['armor'],damage);hp_loss=damage-armor_loss;detail='all' if armor_loss else 'broken'
@@ -137,14 +140,20 @@ def resolve(m,now,knockout):
         elif parried:
             result='parry';q.update(counter_until=now+.65,parry_dash_at=q['dash_at'])
         elif evade or (duck and strike['punch_type']!='uppercut'):result='dodge'
-        elif directional_rules(m):defense=defend(q,strike['hand'],strike['damage'],now);result=defense['result']
+        elif directional_rules(m):defense=defend(q,strike['hand'],strike['damage'],now,drain=m.get('rules',0)>=10);result=defense['result']
         elif q['guard_until']>now and q['armor']>0:q['armor']-=1;result='block'
         else:q['hp']=max(0,q['hp']-strike['damage']);result='hit'
         if m.get('rules',0)>=9 and result in ('dodge','parry') and strike['punch_type']!='kick':
             boxing_time.evade(m,p,q);q['counter_until']=now+.65
             defense.update(slow_target=p['uid'],slow_until=p['evade_slow_until'])
         if result=='hit' and m.get('rules',0)>=7:
-            fx,fz=direction(p,q);push=.18 if strike['punch_type']=='uppercut' else .14
+            fx,fz=direction(p,q);push=(.34+.12*(strike.get('charge_multiplier',1)-1)) if m.get('rules',0)>=10 else .18 if strike['punch_type']=='uppercut' else .14
+            if m.get('rules',0)>=10:
+                q.update(hit_stun_until=now+.48,hit_hand=strike['hand'],hit_power=strike.get('charge_multiplier',1))
+                boxing_charge.reset(q)
+                for incoming in pending:
+                    if incoming['attacker']==q['uid'] and incoming['id'] not in cancelled:cancelled.add(incoming['id'])
+                m['pending_strikes']=[s for s in m['pending_strikes'] if s['attacker']!=q['uid']]
             old_x,old_z=q['x'],q['z'];q['x'],q['z']=clamp(q['x']+fx*push,q['z']+fz*push)
             defense['knockback']=dict(x=q['x']-old_x,z=q['z']-old_z);q['hit_at']=now
         event={k:v for k,v in strike.items() if k not in ['fx','fz','token']};event.update(defense);event.update(result=result,time=now,x=q['x'],z=q['z'])

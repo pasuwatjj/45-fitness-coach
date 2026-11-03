@@ -4,14 +4,14 @@ const sandbox={window:win,document:doc,AbortController,performance:{now:()=>now}
 const c=new win.BoxingComputer(()=>enabled),key=(code,type='keydown',repeat=false)=>{const e=new Event(type,{cancelable:true});Object.assign(e,{code,repeat,ctrlKey:false,altKey:false,metaKey:false});doc.dispatchEvent(e);return e};
 key('KeyW');key('KeyA');assert.equal(c.read(now).move,1);assert.equal(c.read(now).strafe,1);
 key('ControlLeft');assert(c.read(now).dash);now+=80;key('ControlLeft','keydown',true);assert(!c.read(now).dash);key('ControlLeft','keyup');now+=100;key('ControlLeft');assert(!c.read(now).dash);key('ControlLeft','keyup');now+=700;key('ControlLeft');assert(c.read(now).dash);key('ControlLeft','keyup');
-now+=200;key('KeyQ');assert.equal(c.read(now).action,'left');now+=210;const p=c.read(now);assert.equal(p.action,'control');assert(p.posture.turn<-.2);key('KeyQ','keydown',true);assert.equal(c.read(now).action,'control');key('KeyQ','keyup');now+=500;key('KeyI');let kick=c.read(now);assert.equal(kick.action,'right');assert.equal(kick.punchType,'kick');
+now+=200;key('KeyQ');assert.equal(c.read(now).action,'control');key('KeyQ','keyup');assert.equal(c.read(now).action,'left');now+=210;const p=c.read(now);assert.equal(p.action,'control');assert(p.posture.turn<-.2);key('KeyQ','keydown',true);assert.equal(c.read(now).action,'control');key('KeyQ','keyup');now+=500;key('KeyI');let kick=c.read(now);assert.equal(kick.action,'right');assert.equal(kick.punchType,'kick');
 key('KeyC');assert(c.read(now).crouch>.5);key('KeyF');assert(c.read(now).guard);win.dispatchEvent(new Event('blur'));const stopped=c.read(now);assert.equal(stopped.move,0);assert.equal(stopped.strafe,0);assert(!stopped.guard);assert.equal(stopped.action,'control');
-assert.equal(win.BoxingKeys.set('punchLeft','KeyW'),'duplicate');assert.equal(win.BoxingKeys.set('punchLeft','Escape'),'invalid');assert.equal(win.BoxingKeys.set('punchLeft','KeyJ'),null);now+=800;key('KeyQ');assert.equal(c.read(now).action,'control');key('KeyJ');assert.equal(c.read(now).action,'left');assert(win.BoxingKeys.hint().includes('J/E'));
+assert.equal(win.BoxingKeys.set('punchLeft','KeyW'),'duplicate');assert.equal(win.BoxingKeys.set('punchLeft','Escape'),'invalid');assert.equal(win.BoxingKeys.set('punchLeft','KeyJ'),null);now+=800;key('KeyQ');assert.equal(c.read(now).action,'control');key('KeyJ');key('KeyJ','keyup');assert.equal(c.read(now).action,'left');assert(win.BoxingKeys.hint().includes('J/E'));
 enabled=false;key('KeyW');assert(!c.read(now).valid);enabled=true;assert.equal(c.read(now).move,0);c.destroy();console.log('PASS WASD/diagonals, Ctrl dash edge and cooldown, Q/E fists, U/I kicks, C crouch, F guard, no key-repeat strikes, blur cleanup and persisted unique remaps');
 
 // Every combination hit requires a distinct press. Baseline stance is visual, never free evasion.
 enabled=true;const combo=new win.BoxingComputer(()=>enabled);now+=1000;
-const tap=code=>{key(code);const state=combo.read(now);key(code,'keyup');return state};
+const tap=code=>{key(code);key(code,'keyup');return combo.read(now)};
 assert.equal(tap('KeyJ').punchType,'straight');now+=430;assert.equal(tap('KeyE').punchType,'straight');now+=430;assert.equal(tap('KeyJ').punchType,'hook');now+=430;
 assert.equal(tap('KeyU').punchType,'kick');key('KeyW');assert.equal(combo.read(now+280).move,0);now+=500;assert.equal(tap('KeyE').action,'control');now+=270;assert.equal(tap('KeyE').action,'right');
 now+=500;combo.reset();let idle=combo.read(now);assert.equal(idle.bend,0);assert.equal(idle.crouch,0);key('KeyW');key('ControlLeft');let duck=combo.read(now);assert(duck.dash&&duck.dashVisualUntil>now);assert.equal(duck.crouch,0);key('ControlLeft','keyup');key('KeyW','keyup');
@@ -51,3 +51,25 @@ const legacyKeys={...win.BoxingKeys.bindings};delete legacyKeys.skill;legacyKeys
 
 const xControls=new win.BoxingComputer(()=>true);key(win.BoxingKeys.bindings.ruesi);assert(xControls.read(now).ruesi);key(win.BoxingKeys.bindings.ruesi,'keydown',true);assert(!xControls.read(now).ruesi);key(win.BoxingKeys.bindings.ruesi,'keyup');xControls.destroy();
 const beforeX={...win.BoxingKeys.bindings};delete beforeX.ruesi;beforeX.slipRight='KeyX';saved.set('45-boxing-keys-v2',JSON.stringify(beforeX));vm.runInNewContext(fs.readFileSync('static/boxing-computer.js','utf8'),sandbox);assert.equal(win.BoxingKeys.bindings.ruesi,'KeyX');assert.equal(win.BoxingKeys.bindings.slipRight,'KeyB');assert.equal(win.BoxingKeys.bindings.punchLeft,beforeX.punchLeft);assert.equal(new Set(Object.values(win.BoxingKeys.bindings)).size,Object.keys(win.BoxingKeys.bindings).length);console.log('PASS one X special per press and non-destructive X/B saved-key migration');
+
+// Holding is a windup; only release commits a normal punch. Cancelled holds never fire.
+sandbox.BoxingKeys=win.BoxingKeys;now+=2000;const chargeControl=new win.BoxingComputer(()=>enabled);win.BoxingKeys.reset();
+key('KeyQ');assert.equal(chargeControl.read(now).action,'control');now+=1500;
+let charging=chargeControl.read(now);assert.equal(charging.chargeHand,'left');assert.equal(charging.chargeProgress,1);assert.equal(charging.action,'control');
+key('KeyQ','keyup');let charged=chargeControl.read(now);assert.equal(charged.action,'left');assert.equal(charged.chargeMultiplier,2);assert.equal(chargeControl.read(now).action,'control');
+now+=600;key('KeyE');now+=1000;key('KeyF');key('KeyF','keyup');key('KeyE','keyup');assert.equal(chargeControl.read(now).action,'control');
+now+=600;key('KeyQ');win.dispatchEvent(new Event('blur'));key('KeyQ','keyup');assert.equal(chargeControl.read(now).action,'control');
+assert.equal(win.BoxingKeys.set('punchLeft','Mouse0'),null);assert.equal(win.BoxingKeys.set('punchRight','Mouse2'),null);assert.equal(win.BoxingKeys.set('dash','Mouse0'),'invalid');assert.equal(win.BoxingKeys.name('Mouse2'),'RMB');
+const pointer=(type,button)=>{const e=new Event(type,{cancelable:true});Object.assign(e,{button,pointerType:'mouse'});doc.dispatchEvent(e);return e};
+doc.closest=()=>({});pointer('pointerdown',0);now+=1500;assert.equal(chargeControl.read(now).chargeHand,'left');pointer('pointerup',0);assert.equal(chargeControl.read(now).chargeMultiplier,2);
+now+=600;pointer('pointerdown',2);now+=60;pointer('pointerup',2);assert.equal(chargeControl.read(now).action,'right');assert(pointer('contextmenu',2).defaultPrevented);
+now+=600;doc.closest=()=>null;pointer('pointerdown',0);pointer('pointerup',0);assert.equal(chargeControl.read(now).action,'control');
+chargeControl.destroy();console.log('PASS charge release, full ×2 cap, guard/blur cancel, mouse remaps, right-click suppression only in arena, clicks outside arena ignored');
+
+win.BoxingKeys.reset();now+=2000;const energyControl=new win.BoxingComputer(()=>true);
+for(let i=0;i<10;i++){now+=500;assert(energyControl.attack('left','straight',win.BoxingMotion.playerNow()));energyControl.read(win.BoxingMotion.playerNow())}
+assert.equal(energyControl.stamina,0);now+=500;assert(!energyControl.attack('right','straight',win.BoxingMotion.playerNow()));
+energyControl.setCombat(5,480);assert(!energyControl.attack('right','straight',win.BoxingMotion.playerNow()));
+key('KeyF');key('KeyS');key('ControlLeft');const escape=energyControl.read(win.BoxingMotion.playerNow());assert(escape.guard&&escape.dash&&escape.move===-1);key('KeyF','keyup');key('KeyS','keyup');key('ControlLeft','keyup');
+now+=500;energyControl.setCombat(5);assert(energyControl.attack('right','straight',win.BoxingMotion.playerNow()));energyControl.destroy();
+console.log('PASS ten punches exhaust 20 stamina, empty and hit-stun block attacks, guard + dash escape stays available, recovery unlocks punches');

@@ -1,8 +1,8 @@
 """Private casual boxing matches. No images/landmarks leave the browser."""
 import json,time,uuid,math
 from flask import Blueprint,g,request,jsonify
-import character,collaboration_features,boxing_cage,boxing_bot,boxing_training,community,copy,boxing_time,boxing_special
-MATCH_RULES=9
+import character,collaboration_features,boxing_cage,boxing_bot,boxing_training,community,copy,boxing_time,boxing_special,boxing_charge,boxing_stamina
+MATCH_RULES=10
 
 def clock():return time.time()
 def schema(store):
@@ -60,6 +60,7 @@ def advance(m,now):
     if m['status'] in ['countdown','active','round_break']:
         gone=[p for p in m['players'] if not p.get('bot') and now-p.get('seen_wall',p['seen'])>20]
         if gone:finish(m,next((p['uid'] for p in m['players'] if p not in gone),None),'disconnect',game);return
+    boxing_stamina.advance(m,now,game)
     boxing_special.advance(m,now,knockout)
     if boxing_special.active(m,now):return
     advance_combat(m,game)
@@ -75,7 +76,7 @@ def advance_combat(m,now):
         m.update(status='active',round=m['round']+1,round_start=m['next_round_at'],motion_at=now)
         m.pop('knockdown',None)
         for i,p in enumerate(m['players']):
-            p.update(x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,evade_slow_until=0,evade_slow_by=None,motion_scale=1,hp=p.get('max_hp',10),armor=p.get('max_armor',10),position=.35 if i==0 else .65,move=0,crouch=0,arms=None,posture=None,lowerBody=None,counter_until=0,parry_dash_at=None,kick_at=0,kick_until=0,dash_at=0,dash_until=0,dash_move=0,dash_side=0,last_dash=0,guard_since=None,guard_side=None,guard_until=0,armor_regen_at=m['next_round_at'],last_punch=0,last_hand=None,control_at=0)
+            p.update(stamina=20,stamina_at=m.get('clock_wall',now),stamina_spent_at=0,hit_stun_until=0,x=-.7 if i==0 else .7,z=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,evade_slow_until=0,evade_slow_by=None,motion_scale=1,hp=p.get('max_hp',10),armor=p.get('max_armor',10),position=.35 if i==0 else .65,move=0,crouch=0,arms=None,posture=None,lowerBody=None,counter_until=0,parry_dash_at=None,kick_at=0,kick_until=0,dash_at=0,dash_until=0,dash_move=0,dash_side=0,last_dash=0,guard_since=None,guard_side=None,guard_until=0,armor_regen_at=m['next_round_at'],last_punch=0,last_hand=None,control_at=0)
     if m.get('kind')=='bot':
         for p in m['players']:
             if p.get('bot'):p['seen']=now
@@ -110,15 +111,21 @@ def knockout(m,winner,now):
         # A visual replay of the confirmed deciding strike, never an extra attack.
         pause=6
         m['finale']=dict(id=str(event['id']),winner=winner['uid'],target=event['target'],hand=event['hand'],punch_type=event['punch_type'],started_at=m.get('clock_wall',now),duration=pause,players=[dict(uid=p['uid'],x=p.get('x',0),z=p.get('z',0)) for p in m['players']])
+    if m.get('finale') and winner['wins']>=2:
+        target=next(p for p in m['players'] if p['uid']!=winner['uid'])
+        fx,fz=boxing_cage.direction(winner,target);cx=(winner['x']+target['x'])/2;cz=(winner['z']+target['z'])/2
+        winner['x'],winner['z']=boxing_cage.clamp(cx-fx*.48,cz-fz*.48)
+        target['x'],target['z']=boxing_cage.clamp(cx+fx*1.53,cz+fz*1.53)
     m.update(status='round_break',round_winner=winner['uid'],round_ended_at=now,next_round_at=now+pause)
     loser=next(p for p in m['players'] if p['uid']!=winner['uid'])
-    m['knockdown']=dict(uid=loser['uid'],at=now,recover_at=None if winner['wins']>=2 else now+pause)
+    m['knockdown']=dict(uid=loser['uid'],at=now,recover_at=None if winner['wins']>=2 else now+pause,launch=bool(event.get('special')),direction=boxing_cage.direction(winner,loser) if event.get('special') else (1,0))
+    for fighter in m['players']:boxing_charge.reset(fighter)
     for p in m['players']:p.update(move=0,crouch=0,slip=0,bend=0,side=0,side_since=None,travel_ready=False,travel_neutral_at=None,guard_until=0)
     if winner['wins']>=2 and m.get('rules',2)<5:finish(m,winner['uid'],'best_of_three',now)
 
 def award(db,m,now):
     if m.get('kind')=='bot':return # Bot sparring does not add competitive belts.
-    if m.get('rules') not in [2,3,4,5,6,7,8,9] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
+    if m.get('rules') not in [2,3,4,5,6,7,8,9,10] or m['status']!='finished' or not m.get('start') or now<m['start'] or len(m['players'])!=2:return
     winner=next((p for p in m['players'] if p['uid']==m.get('winner') and p.get('profile_id')),None)
     if winner:
         db.execute('INSERT OR IGNORE INTO boxing_trophies VALUES(?,?,?,?)',(m['id'],winner['uid'],winner['profile_id'],now));m['trophy_awarded']=True;m['belt_awarded']=True
@@ -127,6 +134,7 @@ def action(m,uid,data,now,internal_bot=False):
     p=next(p for p in m['players'] if p['uid']==uid)
     p['seen_wall']=now
     if data.get('action')=='special':
+        if m.get('rules',0)>=10 and m.get('combat_now',now)<p.get('hit_stun_until',0):return
         if m.get('rules',0)<9:raise ValueError('Start a new match to use the skill')
         boxing_special.activate(m,p,now);p['seen']=m['combat_now'];return
     if boxing_special.active(m,now) and data.get('action') not in ('leave','heartbeat','skill'):
@@ -184,6 +192,10 @@ def combat_action(m,uid,data,now,internal_bot=False):
     if lower_body is not None:
         keys={'confidence','shiftX','shiftZ','drop','hipRoll','leftKnee','rightKnee','stance','stagger'}
         if not isinstance(lower_body,dict) or set(lower_body)!=keys or any(type(v) not in (int,float) or not math.isfinite(v) or not -1<=v<=1 for v in lower_body.values()) or any(lower_body[k]<0 for k in ['confidence','drop','leftKnee','rightKnee']):raise ValueError('Invalid lower-body posture')
+    charging=data.get('charge_hand')
+    if charging not in (None,'left','right') or (charging and (not computer or kind!='control' or guard)):
+        raise ValueError('Invalid charge control')
+    charge_hand,charge_age=boxing_charge.update(p,charging,now,computer and not guard and now>=p.get('hit_stun_until',0) and kind in ('control','left','right'))
     if now-p.get('control_at',0)>.7:p['guard_since']=None
     if m.get('rules',2)>=4:
         if computer:
@@ -196,6 +208,7 @@ def combat_action(m,uid,data,now,internal_bot=False):
         p['guard_until']=now+.65 if m.get('control_mode')=='computer' or now-p['guard_since']>=3 else 0
     else:p['guard_since']=None;p['guard_until']=0
     if kind not in ['left','right']:return
+    if m.get('rules',0)>=10 and now<p.get('hit_stun_until',0):return
     token=data.get('strike_id')
     if m.get('rules',2)>=4:
         if not isinstance(token,str) or not 1<=len(token)<=100:raise ValueError('Invalid strike ID')
@@ -205,13 +218,14 @@ def combat_action(m,uid,data,now,internal_bot=False):
     counter=m.get('rules',0)>=7 and (now<p.get('counter_until',0) or evade_counter) and punch_type!='kick'
     if not counter and now-p['last_punch']<(.76 if computer and p.get('punch_type')=='kick' else .4):return
     if punch_type=='kick' and now<p.get('dash_until',0):return
+    if not boxing_stamina.spend(m,p,punch_type):return
     if m.get('rules',2)>=4:p['strike_ids']=(p.get('strike_ids',[])+[token])[-64:]
     if evade_counter and punch_type!='kick':q.update(evade_slow_until=0,evade_slow_by=None,motion_scale=1)
     if counter:p.update(counter_until=0,dash_until=now,kick_until=now)
     if punch_type=='kick':p['kick_at']=now;p['kick_until']=now+.76
     p['last_punch']=now;p['last_strike_id']=token;p['last_hand']=kind;p['punch_type']=punch_type;q=next(v for v in m['players'] if v['uid']!=uid);hit='hit'
     if m.get('rules',2)>=4:
-        boxing_cage.queue(m,p,q,kind,punch_type,now,token,counter=counter);return
+        boxing_cage.queue(m,p,q,kind,punch_type,now,token,counter=counter,charge=charge_age if charge_hand==kind and punch_type=='straight' and not counter else 0);return
     if abs(q.get('position',.65)-p.get('position',.35))>.44:hit='miss'
     elif q['guard_until']>now and q['armor']>0:q['armor']-=1;hit='block'
     else:q['hp']=max(0,q['hp']-p['damage'][kind])

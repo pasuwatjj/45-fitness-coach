@@ -18,14 +18,16 @@ window.BoxingFinale=class{
   // Stretch the original strike into a single slow-motion beat, with no repeat.
   this.strikeAge=a<.6?a/.6*55:a<1.8?55+(a-.6)/1.2*125:a<2.1?180:205+(a-2.1)*300;
   return states.map((s,i)=>{
-   const losing=i===this.loser,actor=this.world.actors[i],push=losing?.30*smooth((a-1.8)/2):0,side=losing?.48+push:-.48;
+   const losing=i===this.loser,actor=this.world.actors[i],push=losing?1.05*(this.reduced?1:smooth((a-1.8)/2.8)):0,side=losing?.48+push:-.48;
    const falling=losing&&(a>=2.1||this.reduced),kind=falling?'down':losing||a>=2.8||this.reduced?'waiting':null;
    if(!losing&&!this.reduced){actor.punchHand=d.hand;actor.punchType=d.punch_type==='uppercut'?'uppercut':d.punch_type==='hook'?'hook':'straight';actor.punchAt=actor.now()-this.strikeAge}
-   return{...s,x:this.center.x+this.direction.x*side,z:this.center.z+this.direction.z*side,controlMode:'computer',arms:null,posture:null,lowerBody:null,move:0,strafe:0,guard:false,crouch:0,bend:0,slip:0,hitAt:-1000,dashVisualUntil:0,timeScale:1,presentation:kind,presentationAt:actor.now()-(this.reduced?1200:Math.max(0,a-2.1)*340),recoverAfter:null};
+   let x=this.center.x+this.direction.x*side,z=this.center.z+this.direction.z*side;for(let pass=0;pass<2;pass++)for(let j=0;j<8;j++){const nx=Math.cos(j*Math.PI/4),nz=Math.sin(j*Math.PI/4),over=x*nx+z*nz-5;if(over>0){x-=nx*over;z-=nz*over}}
+   return{...s,x,z,controlMode:'computer',arms:null,posture:null,lowerBody:null,move:0,strafe:0,guard:false,crouch:0,bend:0,slip:0,hitAt:-1000,dashVisualUntil:0,timeScale:1,presentation:kind,presentationAt:actor.now()-(this.reduced?1200:Math.max(0,a-2.1)*340),recoverAfter:null};
   });
  }
  aim(){
   if(!this.active||this.reduced)return;const T=THREE,w=this.world.actors[this.winner],l=this.world.actors[this.loser];if(!w?.body||!l?.body)return;
+  const flight=BoxingMotion.smooth((this.age-1.8)/2.8);l.root.position.y+=.32*Math.sin(Math.PI*flight);
   const a=this.age,recoil=BoxingMotion.smooth((a-1.72)/.12)*(1-BoxingMotion.smooth((a-2.1)/.45));l.neck.rotation.x-=.22*recoil;l.neck.rotation.y+=(this.data.hand==='left'?1:-1)*.18*recoil;l.chest.rotation.x-=.08*recoil;l.root.updateMatrixWorld(true);
   const head=l.neck.localToWorld(new T.Vector3(0,.22,0));
   if(a>1&&a<2.45){const arm=w.bones[this.data.hand+'Arm'],from=arm.lower.localToWorld(arm.contactEnd.clone()),weight=BoxingMotion.smooth((a-1)/.8)*(1-BoxingMotion.smooth((a-2.1)/.35));const contact=head.clone().add(new T.Vector3(-this.direction.x*.14,0,-this.direction.z*.14));BoxingContact.solve(w,this.data.hand,from.lerp(contact,weight));}
@@ -43,7 +45,7 @@ window.BoxingFinale=class{
  }
  camera(dt){
   if(!this.active||this.reduced)return false;const T=THREE,w=this.world,a=this.age,zoom=BoxingMotion.smooth(a/.75),pull=BoxingMotion.smooth((a-3)/2),dir=this.direction;
-  const focus=new T.Vector3(this.center.x+dir.x*pull*.5,1.25-pull*.65,this.center.z+dir.z*pull*.5),radius=(3.5-.75*zoom+pull*2.6)/Math.min(1,Math.max(.45,w.camera.aspect));
+  const focus=new T.Vector3(this.center.x+dir.x*pull*1.2,1.25-pull*.65,this.center.z+dir.z*pull*1.2),radius=(3.5-.75*zoom+pull*3.8)/Math.min(1,Math.max(.35,w.camera.aspect*.8));
   // Cross-ring angle keeps both faces and the contact point visible.
   const side=new T.Vector3(dir.z,0,-dir.x),forward=new T.Vector3(dir.x,0,dir.z);const position=focus.clone().addScaledVector(side,radius).addScaledVector(forward,-.45).add(new T.Vector3(0,.35+pull*.7,0));
   w.camera.position.lerp(position,1-Math.exp(-dt*7));w.focus.lerp(focus,1-Math.exp(-dt*7));w.camera.lookAt(w.focus);return true;
